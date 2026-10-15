@@ -6,6 +6,7 @@ const stmt = (q) => { let args = []; const o = {
   bind: (...a) => { args = a; return o; },
   run: async () => { const r = sql.prepare(q).run(...args); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; },
   first: async () => sql.prepare(q).get(...args) ?? null,
+  all: async () => ({ results: sql.prepare(q).all(...args) }),
   _exec: () => sql.exec(q) }; return o; };
 const DB = { prepare: stmt, batch: async (list) => { list.forEach((s) => s._exec()); } };
 const ASSETS = { fetch: async (req) => new Response('PAGE ' + new URL(req.url).pathname, { status: 200 }) };
@@ -138,9 +139,31 @@ await itn(signItn({ ...base, m_payment_id: co2.fields.m_payment_id, amount_gross
 t('annual activation', await planOf() === 'svod' && (await (await call('/api/me', {}, pc)).json()).plan_period === 'annual');
 t('PayFast CANCELLED ITN downgrades', (await itn(signItn({ ...base, m_payment_id: co2.fields.m_payment_id, payment_status: 'CANCELLED', amount_gross: '590.00', token: 'tok-2' }))).status === 200 && await planOf() === 'avod');
 payfastSays = 'VALID';
+
+// 6d. Skepper Portaal: net Premium-lede
+r = await post('/api/register', { email: 'skep@stroom.co.za', name: 'Skepper', password: 'skep-pass-1234' }); const sk = ck(r);
+await post('/api/plan', { plan: 'avod' }, sk);
+const good = { name: 'Johan vd Merwe', title: 'Die Laaste Rit', type: 'Kortfilm', link: 'https://vimeo.com/123456', synopsis: 'n Kort storie.', agree: true };
+t('skep: needs login', (await post('/api/skep', good)).status === 401);
+t('skep: free member refused', (await post('/api/skep', good, sk)).status === 403);
+r = await post('/api/checkout', { plan: 'monthly' }, sk); const coSk = await r.json();
+await itn(signItn({ ...base, m_payment_id: coSk.fields.m_payment_id, token: 'tok-3' }));
+t('skep: premium now', (await (await call('/api/me', {}, sk)).json()).plan === 'svod');
+t('skep: rejects non-https link', (await post('/api/skep', { ...good, link: 'javascript:alert(1)' }, sk)).status === 400);
+t('skep: rejects missing agreement', (await post('/api/skep', { ...good, agree: false }, sk)).status === 400);
+t('skep: rejects bad type', (await post('/api/skep', { ...good, type: 'Reklame' }, sk)).status === 400);
+t('skep: premium member can submit', (await post('/api/skep', good, sk)).status === 200);
+t('skep: admin list closed without ADMIN_EMAIL', (await call('/api/skep-admin', {}, sk)).status === 404);
+env.ADMIN_EMAIL = 'skep@stroom.co.za';
+r = await call('/api/skep-admin', {}, sk); const adm = await r.json();
+t('skep: owner sees pending submission', r.status === 200 && adm.inskrywings.length === 1 && adm.inskrywings[0].status === 'hangende' && adm.inskrywings[0].title === 'Die Laaste Rit');
+for (let k = 0; k < 4; k++) await post('/api/skep', good, sk);
+t('skep: daily limit of 5', (await post('/api/skep', good, sk)).status === 429);
+env.ADMIN_EMAIL = 'iemand@anders.co';
+t('skep: non-owner cannot list', (await call('/api/skep-admin', {}, sk)).status === 404);
 globalThis.fetch = async () => new Response('', { status: 500 });
-r = await post('/api/checkout', { plan: 'monthly' }, pc); const co3 = await r.json();
-await itn(signItn({ ...base, m_payment_id: co3.fields.m_payment_id }, 'test pass&1')).catch(() => {});
+r = await post('/api/checkout', { plan: 'monthly' }, pc); const coS = await r.json();
+await itn(signItn({ ...base, m_payment_id: coS.fields.m_payment_id }, 'test pass&1')).catch(() => {});
 globalThis.fetch = realFetch;
 delete env.PAYFAST_MERCHANT_ID; delete env.PAYFAST_MERCHANT_KEY; delete env.PAYFAST_PASSPHRASE;
 t('ITN endpoint closed without keys', (await itn('x=1')).status === 503);

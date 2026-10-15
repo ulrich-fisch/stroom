@@ -136,6 +136,12 @@ appjs: yes
 
       // Reset card visual borders
       [avod, monthly, annual].forEach(card => card.classList.remove('selected'));
+      const syncRadios = () => [avod, monthly, annual].forEach(card => {
+        const on = card.classList.contains('selected');
+        const r = card.querySelector('.radio-indicator');
+        r.className = 'radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center ' + (on ? 'border-sky-400' : 'border-slate-700');
+        r.innerHTML = on ? '<span class="w-2 h-2 rounded-full bg-sky-400"></span>' : '';
+      });
 
       if (plan === 'avod') {
         avod.classList.add('selected');
@@ -150,6 +156,7 @@ appjs: yes
         payBadge.classList.remove('opacity-40');
         btn.innerHTML = 'AKTIVEER JAARLIKSE SUBSKRIPSIE — R590';
       }
+      syncRadios();
     }
 
     async function confirmPlanChoice() {

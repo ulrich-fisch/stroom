@@ -53,6 +53,10 @@ function init(db) {
       db.prepare(`CREATE TABLE IF NOT EXISTS orders (
         m_payment_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, plan TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS indienings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
+        title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
     ]);
     // Nuwe kolomme vir bestaande databasisse (fout as dit reeds bestaan word geïgnoreer)
     for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
@@ -84,12 +88,12 @@ async function startSession(db, userId, remember) {
   return `stroom_sessie=${token}; Path=/; HttpOnly; Secure; SameSite=Lax` + (remember ? `; Max-Age=${maxAge}` : '');
 }
 
-async function tooManyAttempts(db, key) {
-  const since = Date.now() - 15 * 60 * 1000;
-  await db.prepare('DELETE FROM attempts WHERE at < ?').bind(since).run();
-  const r = await db.prepare('SELECT COUNT(*) AS n FROM attempts WHERE key = ?').bind(key).first();
-  return r.n >= 10;
+async function tooManyAttemptsN(db, key, max, windowMs) {
+  await db.prepare('DELETE FROM attempts WHERE at < ?').bind(Date.now() - 24 * 3600 * 1000).run();
+  const r = await db.prepare('SELECT COUNT(*) AS n FROM attempts WHERE key = ? AND at >= ?').bind(key, Date.now() - windowMs).first();
+  return r.n >= max;
 }
+const tooManyAttempts = (db, key) => tooManyAttemptsN(db, key, 10, 15 * 60 * 1000);
 const noteAttempt = (db, key) => db.prepare('INSERT INTO attempts (key, at) VALUES (?, ?)').bind(key, Date.now()).run();
 
 async function api(request, env, url) {
@@ -112,6 +116,13 @@ async function api(request, env, url) {
     return json({ rekening: { e_pos: full.email, naam: full.name, plan: full.plan, aangesluit: new Date(full.created_at).toISOString() },
                   uitgevoer_op: new Date().toISOString() }, 200,
       { 'Content-Disposition': 'attachment; filename="my-stroom-data.json"' });
+  }
+  if (path === '/api/skep-admin') {
+    // Net die eienaar (ADMIN_EMAIL) sien die inskrywings
+    const u = await getUser(request, env.DB);
+    if (!u || !env.ADMIN_EMAIL || u.email !== String(env.ADMIN_EMAIL).trim().toLowerCase()) return json({ fout: 'Nie gevind nie.' }, 404);
+    const rows = await env.DB.prepare('SELECT id, name, email, title, type, link, synopsis, status, created_at FROM indienings ORDER BY id DESC LIMIT 200').all();
+    return json({ inskrywings: rows.results.map((r) => ({ ...r, created_at: new Date(r.created_at).toISOString() })) });
   }
   if (path === '/api/status') return json({ bou: 'betalings-1', betalings_gereed: !!config(env), db: true });
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
@@ -175,6 +186,24 @@ async function api(request, env, url) {
     // bevestigde betaling (PayFast ITN) gestel; dit is nog nie oop nie.
     if (body.plan !== 'avod') return json({ fout: 'Betalings is nog nie oop nie.' }, 403);
     if (u.plan === 'none') await env.DB.prepare("UPDATE users SET plan = 'avod' WHERE id = ?").bind(u.id).run();
+    return json({ ok: true });
+  }
+
+  if (path === '/api/skep') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    if (u.plan !== 'svod') return json({ fout: 'Net Premium-lede kan films indien.' }, 403);
+    const f = (v, n) => String(v || '').trim().slice(0, n);
+    const name = f(body.name, 80), title = f(body.title, 120), link = f(body.link, 300), synopsis = f(body.synopsis, 2000);
+    const type = ['Kortfilm', 'Speelfilm', 'Dokumentêr'].includes(body.type) ? body.type : null;
+    if (!name || !title || !synopsis || !type) return json({ fout: 'Vul asseblief al die velde in.' }, 400);
+    if (!/^https:\/\/[^\s]+$/i.test(link)) return json({ fout: 'Die kykskakel moet met https:// begin.' }, 400);
+    if (body.agree !== true) return json({ fout: 'Bevestig asseblief die ooreenkoms.' }, 400);
+    const key = 'skep:' + u.id;
+    if (await tooManyAttemptsN(env.DB, key, 5, 24 * 3600 * 1000)) return json({ fout: 'Jy het vandag reeds genoeg ingedien. Probeer more weer.' }, 429);
+    await noteAttempt(env.DB, key);
+    await env.DB.prepare('INSERT INTO indienings (user_id, email, name, title, type, link, synopsis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(u.id, u.email, name, title, type, link, synopsis, Date.now()).run();
     return json({ ok: true });
   }
 

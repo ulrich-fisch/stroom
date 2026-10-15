@@ -17,47 +17,70 @@ head_extra:
       </p>
     </div>
 
-    <form action="https://api.web3forms.com/submit" method="POST" class="space-y-8 bg-slate-900/90 p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl">
-      <input type="hidden" name="access_key" value="8422ee05-4316-45bb-8cb1-f024e4bfdbe2" />
-      <input type="hidden" name="subject" value="Nuwe Filmmaker LOI" />
+    <!-- Slot: net vir Premium-lede -->
+    <div id="skepSlot" class="hidden bg-slate-900/90 p-8 rounded-2xl border border-slate-800 text-center space-y-4">
+      <span class="text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Slegs vir Premium-lede</span>
+      <h2 class="text-2xl font-black text-white uppercase tracking-tight">Stroom is nie &rsquo;n oop-oplaai-platform nie</h2>
+      <p class="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+        Net ernstige filmmakers met &rsquo;n Premium-rekening kan werk indien. Elke inskrywing word eers deur ons gekeur voordat dit gepubliseer word.
+      </p>
+      <a href="rekening.html" class="inline-block text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full transition uppercase tracking-wider">Opgradeer na Premium</a>
+    </div>
 
+    <form id="skepForm" class="hidden space-y-8 bg-slate-900/90 p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Naam &amp; Van</label>
-          <input type="text" id="creatorName" name="creator_name" required placeholder="bv. Johan van der Merwe" oninput="updateLOI()"
+          <input type="text" id="creatorName" required maxlength="80" placeholder="bv. Johan van der Merwe" oninput="updateLOI()"
                  class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">E-posadres</label>
-          <input type="email" name="email" required placeholder="johan@produksies.co.za" 
-                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Jou Rekening (E-pos)</label>
+          <input type="text" id="accountEmailField" disabled
+                 class="w-full px-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-400 text-sm"/>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Titel van Projek</label>
-          <input type="text" id="projectTitle" name="project_title" required placeholder="bv. Die Laaste Rit" oninput="updateLOI()"
+          <input type="text" id="projectTitle" required maxlength="120" placeholder="bv. Die Laaste Rit" oninput="updateLOI()"
                  class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Inhoud Tipe</label>
-          <select id="projectType" name="project_type" onchange="updateLOI()" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+          <select id="projectType" onchange="updateLOI()" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
             <option value="Kortfilm">Kortfilm</option>
             <option value="Speelfilm">Speelfilm</option>
-            <option value="Dokumentêr">Dokumentêr</option>
+            <option value="Dokument&ecirc;r">Dokument&ecirc;r</option>
           </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Kykskakel (privaat skakel)</label>
+          <input type="url" id="screenerLink" required maxlength="300" placeholder="https://vimeo.com/... (met wagwoord of onlys&ecirc;)"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+          <p class="text-[11px] text-slate-500 mt-2">Plaas jou film op Vimeo of YouTube as &lsquo;onlys&egrave;&rsquo; en plak die skakel hier. Ons kyk dit slegs vir keuring.</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Kort Opsomming &amp; Agtergrond</label>
+          <textarea id="synopsis" required rows="5" maxlength="2000" placeholder="Waaroor gaan die film, wie het dit gemaak, waar is dit al vertoon?"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
         </div>
       </div>
 
       <div class="pt-4 border-t border-slate-800 space-y-3">
         <span class="text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Digitale Ooreenkoms Voorskou (LOI)</span>
         <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
-          <p class="font-bold text-white uppercase text-center border-b border-slate-800 pb-2">LETTER OF INTENT — NIE-EKSKLUSIEF</p>
+          <p class="font-bold text-white uppercase text-center border-b border-slate-800 pb-2">LETTER OF INTENT &mdash; NIE-EKSKLUSIEF</p>
           <p><strong>Partye:</strong> Fischbowl Media &amp; <span id="loiName" class="text-sky-400">[Jou Naam]</span></p>
           <p><strong>Titel:</strong> <span id="loiTitle" class="text-sky-400">[Titel van Projek]</span> (<span id="loiType" class="text-sky-400">Kortfilm</span>)</p>
         </div>
+        <label class="flex items-start space-x-3 text-xs text-slate-400 leading-relaxed">
+          <input type="checkbox" id="loiAgree" required class="mt-0.5"/>
+          <span>Ek bevestig dat ek die regte op hierdie film besit en dat ek die Voorneme-ooreenkoms hierbo aanvaar. Indiening waarborg nie publikasie nie &mdash; elke film word gekeur.</span>
+        </label>
       </div>
 
-      <button type="submit" class="w-full py-3.5 px-6 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
-        Dien Film in &amp; Signeer LOI
+      <p id="skepMsg" class="hidden text-sm text-center"></p>
+      <button type="submit" id="skepBtn" class="w-full py-3.5 px-6 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+        Dien Film in vir Keuring &amp; Signeer LOI
       </button>
     </form>
   </main>
@@ -70,4 +93,39 @@ head_extra:
       document.getElementById('loiTitle').innerText = document.getElementById('projectTitle').value || '[Titel van Projek]';
       document.getElementById('loiType').innerText = document.getElementById('projectType').value;
     }
-  
+
+    // Wys die vorm slegs aan Premium-lede (die bediener dwing dit ook af)
+    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
+      if (me && me.plan === 'svod') {
+        document.getElementById('skepForm').classList.remove('hidden');
+        document.getElementById('accountEmailField').value = me.email;
+        document.getElementById('creatorName').value = me.name || '';
+        updateLOI();
+      } else {
+        document.getElementById('skepSlot').classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('skepForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('skepBtn'), msg = document.getElementById('skepMsg');
+      btn.disabled = true; msg.classList.add('hidden');
+      let r, d = {};
+      try {
+        r = await fetch('/api/skep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          name: document.getElementById('creatorName').value, title: document.getElementById('projectTitle').value,
+          type: document.getElementById('projectType').value, link: document.getElementById('screenerLink').value,
+          synopsis: document.getElementById('synopsis').value, agree: document.getElementById('loiAgree').checked }) });
+        d = await r.json().catch(function () { return {}; });
+      } catch (err) { r = { ok: false }; }
+      msg.classList.remove('hidden');
+      if (r.ok) {
+        msg.className = 'text-sm text-center text-emerald-400';
+        msg.textContent = 'Dankie! Jou film is ontvang en wag vir keuring. Ons kontak jou per e-pos.';
+        document.getElementById('skepForm').reset(); updateLOI(); btn.classList.add('hidden');
+      } else {
+        msg.className = 'text-sm text-center text-rose-400';
+        msg.textContent = d.fout || 'Kon nie nou indien nie. Probeer asseblief weer.';
+        btn.disabled = false;
+      }
+    });
