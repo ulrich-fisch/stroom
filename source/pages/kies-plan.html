@@ -5,7 +5,8 @@ header: none
 nav: none
 footer: none
 search: no
-head_extra: <script src="https://www.payfast.co.za/onsite/engine.js"></script>
+head_extra: 
+appjs: yes
 -->
   <!-- Header -->
   <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
@@ -163,46 +164,14 @@ head_extra: <script src="https://www.payfast.co.za/onsite/engine.js"></script>
         return;
       }
 
-      // Premium SVOD PayFast Trigger
+      // Premium (SVOD): stuur na PayFast se betaalbladsy
       const btn = document.getElementById('actionBtn');
       const originalText = btn.innerHTML;
       btn.innerText = "Verbind tans met PayFast...";
       btn.disabled = true;
-
-      try {
-        const response = await fetch("/api/payfast", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            plan: selectedPlan
-          })
-        });
-
-        const rawText = await response.text();
-        let data = {};
-        try { data = JSON.parse(rawText); } catch(e) {}
-
-        if (data.uuid && typeof window.payfast_do_onsite_payment === 'function') {
-          window.payfast_do_onsite_payment({
-            uuid: data.uuid
-          }, function(result) {
-            if (result === true) {
-              localStorage.setItem('stroom_subscription', 'svod_active');
-              window.location.href = 'profiel.html';
-            } else {
-              alert("Betaling gekanselleer of onsuksesvol.");
-              btn.innerHTML = originalText;
-              btn.disabled = false;
-            }
-          });
-        } else {
-          alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        }
-      } catch (err) {
-        console.error("PayFast Connection Error:", err);
-        alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
+      const res = await startCheckout(selectedPlan);
+      if (!res.ok) {
+        alert(res.fout);
         btn.innerHTML = originalText;
         btn.disabled = false;
       }

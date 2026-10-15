@@ -2,6 +2,8 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
+import { config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
+
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
 const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
 const NEEDS_PLAN = new Set(['profiel', 'katalogus', 'joernaal', 'oor-ons']);
@@ -38,16 +40,25 @@ function safeEqual(a, b) {
 
 let ready;
 function init(db) {
-  ready ||= db.batch([
-    db.prepare(`CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT,
-      salt TEXT NOT NULL, hash TEXT NOT NULL, plan TEXT NOT NULL DEFAULT 'none',
-      created_at INTEGER NOT NULL)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
-      token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at INTEGER NOT NULL)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS attempts (
-      key TEXT NOT NULL, at INTEGER NOT NULL)`),
-  ]);
+  ready ||= (async () => {
+    await db.batch([
+      db.prepare(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT,
+        salt TEXT NOT NULL, hash TEXT NOT NULL, plan TEXT NOT NULL DEFAULT 'none',
+        created_at INTEGER NOT NULL)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+        token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at INTEGER NOT NULL)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS attempts (
+        key TEXT NOT NULL, at INTEGER NOT NULL)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS orders (
+        m_payment_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, plan TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL)`),
+    ]);
+    // Nuwe kolomme vir bestaande databasisse (fout as dit reeds bestaan word geïgnoreer)
+    for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
+      try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
+    }
+  })();
   return ready;
 }
 
@@ -60,7 +71,7 @@ async function getUser(request, db) {
   const token = cookieValue(request, 'stroom_sessie');
   if (!token) return null;
   const row = await db.prepare(
-    `SELECT u.id, u.email, u.name, u.plan FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.email, u.name, u.plan, u.plan_period, u.pf_token FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ? AND s.expires_at > ?`).bind(await sha256(token), Date.now()).first();
   return row || null;
 }
@@ -92,7 +103,7 @@ async function api(request, env, url) {
 
   if (path === '/api/me') {
     const u = await getUser(request, env.DB);
-    return u ? json({ email: u.email, name: u.name, plan: u.plan }) : json({ fout: 'Nie ingeteken nie.' }, 401);
+    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null }) : json({ fout: 'Nie ingeteken nie.' }, 401);
   }
   if (path === '/api/export') {
     const u = await getUser(request, env.DB);
@@ -103,6 +114,13 @@ async function api(request, env, url) {
       { 'Content-Disposition': 'attachment; filename="my-stroom-data.json"' });
   }
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
+
+  if (path === '/api/payfast-itn') {
+    const cfg = config(env);
+    if (!cfg) return new Response('nie opgestel', { status: 503 });
+    const r = await processItn({ db: env.DB, cfg, bodyText: await request.text() });
+    return new Response(r.note, { status: r.status });
+  }
 
   let body = {};
   try { body = await request.json(); } catch { /* leeg */ }
@@ -156,6 +174,30 @@ async function api(request, env, url) {
     // bevestigde betaling (PayFast ITN) gestel; dit is nog nie oop nie.
     if (body.plan !== 'avod') return json({ fout: 'Betalings is nog nie oop nie.' }, 403);
     if (u.plan === 'none') await env.DB.prepare("UPDATE users SET plan = 'avod' WHERE id = ?").bind(u.id).run();
+    return json({ ok: true });
+  }
+
+  if (path === '/api/checkout') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    const cfg = config(env);
+    if (!cfg) return json({ fout: 'Betalings is nog nie oop nie.' }, 503);
+    if (!PLANS[body.plan]) return json({ fout: 'Ongeldige plan.' }, 400);
+    if (u.plan === 'svod') return json({ fout: 'Jy het reeds Premium.' }, 409);
+    const orderId = 'S' + hex(crypto.getRandomValues(new Uint8Array(12)));
+    await env.DB.prepare('INSERT INTO orders (m_payment_id, user_id, plan, created_at) VALUES (?, ?, ?, ?)')
+      .bind(orderId, u.id, body.plan, Date.now()).run();
+    return json(buildCheckout({ cfg, user: u, orderId, planKey: body.plan, origin: url.origin }));
+  }
+
+  if (path === '/api/cancel-subscription') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    if (u.plan !== 'svod' || !u.pf_token) return json({ fout: 'Geen aktiewe intekening gevind nie.' }, 404);
+    const cfg = config(env);
+    if (!cfg) return json({ fout: 'Betalings is nog nie oop nie.' }, 503);
+    if (!(await cancelSubscription(cfg, u.pf_token))) return json({ fout: 'Kon nie nou kanselleer nie. Kontak ons asseblief.' }, 502);
+    await env.DB.prepare("UPDATE users SET plan = 'avod', plan_period = NULL, pf_token = NULL WHERE id = ?").bind(u.id).run();
     return json({ ok: true });
   }
 

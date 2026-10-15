@@ -2,6 +2,8 @@
   "name": "stroom",
   "main": "src/worker.js",
   "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "assets": {
     "directory": "./site",
     "binding": "ASSETS",
