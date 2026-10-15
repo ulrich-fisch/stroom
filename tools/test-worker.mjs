@@ -58,6 +58,29 @@ await post('/api/logout', {}, cookie2);
 t('session dead after logout', (await call('/katalogus', {}, cookie2)).status === 302);
 t('other session unaffected', (await call('/katalogus', {}, cookie)).status === 200);
 
+// 6b. Rekening-selfdiens
+t('export needs login', (await call('/api/export')).status === 401);
+r = await call('/api/export', {}, cookie); const exp = await r.json();
+t('export returns own data only', r.status === 200 && exp.rekening.e_pos === 'test@stroom.co.za' && !JSON.stringify(exp).includes('hash'));
+r = await post('/api/login', { email: 'test@stroom.co.za', password: 'correct-horse' }); const cookieB = ck(r);
+t('password change: wrong current refused', (await post('/api/password', { current: 'nope', next: 'brand-new-pass' }, cookie)).status === 401);
+t('password change: too short refused', (await post('/api/password', { current: 'correct-horse', next: 'short' }, cookie)).status === 400);
+t('password change ok', (await post('/api/password', { current: 'correct-horse', next: 'brand-new-pass' }, cookie)).status === 200);
+t('other device signed out after password change', (await call('/katalogus', {}, cookieB)).status === 302);
+t('this device stays signed in', (await call('/katalogus', {}, cookie)).status === 200);
+t('old password no longer works', (await post('/api/login', { email: 'test@stroom.co.za', password: 'correct-horse' })).status === 401);
+r = await post('/api/login', { email: 'test@stroom.co.za', password: 'brand-new-pass' }); t('new password works', r.status === 200);
+const cookieC = ck(r);
+t('logout-all ends every session', (await post('/api/logout-all', {}, cookieC)).status === 200
+  && (await call('/katalogus', {}, cookieC)).status === 302 && (await call('/katalogus', {}, cookie)).status === 302);
+r = await post('/api/login', { email: 'test@stroom.co.za', password: 'brand-new-pass' }); const cookieD = ck(r);
+t('delete refused with wrong password', (await post('/api/delete-account', { password: 'nope' }, cookieD)).status === 401);
+t('delete needs login', (await post('/api/delete-account', { password: 'brand-new-pass' })).status === 401);
+t('delete ok', (await post('/api/delete-account', { password: 'brand-new-pass' }, cookieD)).status === 200);
+t('deleted account cannot log in', (await post('/api/login', { email: 'test@stroom.co.za', password: 'brand-new-pass' })).status === 401);
+t('deleted account session dead', (await call('/katalogus', {}, cookieD)).status === 302);
+t('email can be re-registered after delete', (await post('/api/register', { email: 'test@stroom.co.za', password: 'another-pass-1' })).status === 200);
+
 // 7. No database -> fail closed
 const bare = await worker.fetch(new Request('https://x.test/katalogus', { redirect: 'manual' }), { ASSETS });
 t('no DB: protected page closed', bare.status === 302);

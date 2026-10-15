@@ -94,6 +94,14 @@ async function api(request, env, url) {
     const u = await getUser(request, env.DB);
     return u ? json({ email: u.email, name: u.name, plan: u.plan }) : json({ fout: 'Nie ingeteken nie.' }, 401);
   }
+  if (path === '/api/export') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    const full = await env.DB.prepare('SELECT email, name, plan, created_at FROM users WHERE id = ?').bind(u.id).first();
+    return json({ rekening: { e_pos: full.email, naam: full.name, plan: full.plan, aangesluit: new Date(full.created_at).toISOString() },
+                  uitgevoer_op: new Date().toISOString() }, 200,
+      { 'Content-Disposition': 'attachment; filename="my-stroom-data.json"' });
+  }
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
 
   let body = {};
@@ -149,6 +157,44 @@ async function api(request, env, url) {
     if (body.plan !== 'avod') return json({ fout: 'Betalings is nog nie oop nie.' }, 403);
     if (u.plan === 'none') await env.DB.prepare("UPDATE users SET plan = 'avod' WHERE id = ?").bind(u.id).run();
     return json({ ok: true });
+  }
+
+  if (path === '/api/password') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    const key = 'pw:' + u.id;
+    if (await tooManyAttempts(env.DB, key)) return json({ fout: 'Te veel pogings. Probeer oor 15 minute weer.' }, 429);
+    const next = String(body.next || '');
+    if (next.length < 8) return json({ fout: 'Nuwe wagwoord moet minstens 8 karakters wees.' }, 400);
+    const row = await env.DB.prepare('SELECT salt, hash FROM users WHERE id = ?').bind(u.id).first();
+    const cur = await hashPassword(String(body.current || ''), row.salt);
+    if (!safeEqual(cur.hash, row.hash)) { await noteAttempt(env.DB, key); return json({ fout: 'Huidige wagwoord is verkeerd.' }, 401); }
+    const { salt, hash } = await hashPassword(next);
+    await env.DB.prepare('UPDATE users SET salt = ?, hash = ? WHERE id = ?').bind(salt, hash, u.id).run();
+    // Alle ander toestelle word afgeteken; hierdie sessie bly.
+    const token = cookieValue(request, 'stroom_sessie');
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').bind(u.id, await sha256(token)).run();
+    return json({ ok: true });
+  }
+
+  if (path === '/api/logout-all') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id).run();
+    return json({ ok: true }, 200, { 'Set-Cookie': 'stroom_sessie=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' });
+  }
+
+  if (path === '/api/delete-account') {
+    const u = await getUser(request, env.DB);
+    if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
+    const key = 'del:' + u.id;
+    if (await tooManyAttempts(env.DB, key)) return json({ fout: 'Te veel pogings. Probeer oor 15 minute weer.' }, 429);
+    const row = await env.DB.prepare('SELECT salt, hash FROM users WHERE id = ?').bind(u.id).first();
+    const cur = await hashPassword(String(body.password || ''), row.salt);
+    if (!safeEqual(cur.hash, row.hash)) { await noteAttempt(env.DB, key); return json({ fout: 'Wagwoord is verkeerd.' }, 401); }
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id).run();
+    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id).run();
+    return json({ ok: true }, 200, { 'Set-Cookie': 'stroom_sessie=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' });
   }
 
   return json({ fout: 'Nie gevind nie.' }, 404);
