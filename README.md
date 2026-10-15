@@ -11,3 +11,6 @@ Afrikaans-first streaming platform (Fischbowl Media). Webwerf + toegangsslot op 
 ## Bou
 `TAILWIND=/pad/na/tailwindcss python3 tools/build.py` (Tailwind v3 selfstaande program), dan die `site/`-lêers inskryf.
 Toets: `node --experimental-sqlite tools/test-worker.mjs`
+
+## Publisering
+Cloudflare bou en publiseer outomaties wanneer `main` verander.
