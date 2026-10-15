@@ -144,7 +144,7 @@ acct: active
         <div id="planMonthly" onclick="selectPlan('monthly')" class="plan-card selected border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition">
           <div class="flex justify-between items-center">
             <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Maandeliks</span>
-            <span class="w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-sky-400"></span></span>
+            <span class="radio-indicator w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-sky-400"></span></span>
           </div>
           <div>
             <span class="text-3xl font-black text-white">R59</span>
@@ -158,7 +158,7 @@ acct: active
           <span class="absolute top-0 right-0 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-3 py-0.5 rounded-bl-lg">Spaar 16%</span>
           <div class="flex justify-between items-center">
             <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Jaarliks</span>
-            <span class="w-4 h-4 rounded-full border-2 border-slate-700"></span>
+            <span class="radio-indicator w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center"></span>
           </div>
           <div>
             <span class="text-3xl font-black text-white">R590</span>
@@ -234,19 +234,17 @@ acct: active
 
     function selectPlan(plan) {
       selectedPlanType = plan;
-      const mCard = document.getElementById('planMonthly');
-      const aCard = document.getElementById('planAnnual');
-      const amount = document.getElementById('checkoutAmountDisplay');
-
-      if (plan === 'monthly') {
-        mCard.classList.add('selected');
-        aCard.classList.remove('selected');
-        amount.innerText = 'R59';
-      } else {
-        aCard.classList.add('selected');
-        mCard.classList.remove('selected');
-        amount.innerText = 'R590';
-      }
+      const cards = { monthly: document.getElementById('planMonthly'), annual: document.getElementById('planAnnual') };
+      Object.keys(cards).forEach(function (k) {
+        const on = k === plan;
+        cards[k].classList.toggle('selected', on);
+        const r = cards[k].querySelector('.radio-indicator');
+        r.className = 'radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center ' + (on ? 'border-sky-400' : 'border-slate-700');
+        r.innerHTML = on ? '<span class="w-2 h-2 rounded-full bg-sky-400"></span>' : '';
+      });
+      document.getElementById('checkoutBtn').innerHTML = plan === 'monthly'
+        ? 'Begin 7-Dae Gratis Toets &amp; Betaal R59'
+        : 'Aktiveer Jaarlikse Intekening &mdash; R590';
     }
 
     async function processCheckout() {
