@@ -18,6 +18,8 @@ acct: active
       <span id="planBadge" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Gratis AVOD Access</span>
     </div>
 
+    <div id="payBanner" class="hidden bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs rounded-xl px-5 py-4" role="status"></div>
+
     <!-- Membership Status Card -->
     <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
       <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800/80 pb-6">
@@ -26,8 +28,11 @@ acct: active
           <h3 id="currentPlanTitle" class="text-xl font-bold text-white tracking-tight">Stroom AVOD (Gratis Toegang)</h3>
           <p id="currentPlanDesc" class="text-xs text-slate-400 font-normal">Toegang tot gekeurde plaaslike films met advertensies.</p>
         </div>
-        <button onclick="openPaymentModal()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full transition uppercase tracking-wider self-start sm:self-auto shadow-lg">
+        <button id="upgradeBtn" onclick="openPaymentModal()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full transition uppercase tracking-wider self-start sm:self-auto shadow-lg">
           Opgradeer na Premium (SVOD)
+        </button>
+        <button id="cancelSubBtn" onclick="cancelSubscription()" class="hidden text-xs border border-slate-700 hover:border-rose-400 text-slate-300 hover:text-rose-400 px-6 py-3 rounded-full font-semibold transition uppercase tracking-wider self-start sm:self-auto">
+          Kanselleer Intekening
         </button>
       </div>
 
@@ -206,11 +211,14 @@ acct: active
     // Check existing subscription state
     fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
     if (me && me.plan === 'svod') {
+      const annual = me.plan_period === 'annual';
       document.getElementById('planBadge').className = 'text-xs bg-sky-500/10 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider';
       document.getElementById('planBadge').innerText = 'Stroom Premium (SVOD)';
-      document.getElementById('currentPlanTitle').innerText = 'Stroom Premium SVOD (R59/m)';
+      document.getElementById('currentPlanTitle').innerText = annual ? 'Stroom Premium SVOD (R590/jaar)' : 'Stroom Premium SVOD (R59/m)';
       document.getElementById('currentPlanDesc').innerText = 'Ad-vrye Full HD toegang op alle toestelle aktief.';
-      document.getElementById('paymentMethodDisplay').innerText = 'Visakaart (PayFast Recurring)';
+      document.getElementById('paymentMethodDisplay').innerText = 'PayFast (herhalende betaling)';
+      document.getElementById('upgradeBtn').classList.add('hidden');
+      document.getElementById('cancelSubBtn').classList.remove('hidden');
     }
     });
 
@@ -246,59 +254,20 @@ acct: active
       const originalText = btn.innerHTML;
       btn.innerText = "Verbind tans met PayFast...";
       btn.disabled = true;
-
-      try {
-        const response = await fetch("/api/payfast", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            plan: selectedPlanType
-          })
-        });
-
-        const rawText = await response.text();
-        let data = {};
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          console.warn("Raw non-JSON response from server:", rawText);
-        }
-
-        console.log("PayFast Onsite Response:", data);
-
-        if (data.uuid) {
-          window.payfast_do_onsite_payment({
-            uuid: data.uuid
-          }, function(result) {
-            if (result === true) {
-              activatePremiumSession();
-            } else {
-              alert("Betaling gekanselleer of onsuksesvol.");
-              btn.innerHTML = originalText;
-              btn.disabled = false;
-            }
-          });
-        } else {
-          console.warn("Geen PayFast Onsite UUID ontvang nie.");
-          alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        }
-      } catch (err) {
-        console.error("Checkout Error:", err);
-        alert("Kon nie met betaalbediener verbind nie: " + err.message);
+      const res = await startCheckout(selectedPlanType);
+      if (!res.ok) {
+        alert(res.fout);
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
     }
 
-    function activatePremiumSession() {
-      alert('Betaling ontvang. Jou lidmaatskap word geaktiveer sodra die betaling bevestig is.');
-      window.location.reload();
+    async function cancelSubscription() {
+      if (!confirm('Kanselleer jou Premium-intekening? Jy gaan terug na die gratis plan.')) return;
+      const r = await postJson('/api/cancel-subscription');
+      if (r.ok) { window.location.reload(); }
+      else { alert(r.body.fout || 'Kon nie kanselleer nie.'); }
     }
-
-
-  
 
     async function postJson(url, data) {
       const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data || {}) });
@@ -329,4 +298,19 @@ acct: active
         try { localStorage.clear(); } catch (e2) {}
         window.location.href = 'index.html';
       } else { document.getElementById('delMsg').textContent = r.body.fout || 'Iets het skeefgeloop.'; }
+    }
+
+    // Terug van PayFast: wag vir die bevestiging (ITN) en laai dan weer
+    if (new URLSearchParams(location.search).get('betaling') === 'terug') {
+      const banner = document.getElementById('payBanner');
+      banner.classList.remove('hidden');
+      banner.textContent = "Dankie! Ons wag tans vir PayFast se bevestiging. Dit neem gewoonlik 'n paar sekondes.";
+      let tries = 0;
+      const timer = setInterval(async function () {
+        tries++;
+        const r = await fetch('/api/me');
+        const me = r.ok ? await r.json() : null;
+        if (me && me.plan === 'svod') { clearInterval(timer); window.location.href = 'rekening.html'; }
+        else if (tries >= 20) { clearInterval(timer); banner.textContent = "Die bevestiging neem langer as gewoonlik. Verfris asseblief hierdie bladsy oor 'n rukkie."; }
+      }, 3000);
     }

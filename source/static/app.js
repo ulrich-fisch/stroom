@@ -40,3 +40,20 @@ function logoutSession() {
     window.location.href = 'index.html';
   });
 }
+
+// Begin 'n betaling: vra die bediener vir 'n getekende PayFast-vorm en stuur die gebruiker daarheen.
+async function startCheckout(plan) {
+  let r, d = {};
+  try {
+    r = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: plan }) });
+    d = await r.json().catch(function () { return {}; });
+  } catch (e) { return { ok: false, fout: 'Kon nie koppel nie. Probeer weer.' }; }
+  if (!r.ok) return { ok: false, fout: d.fout || 'Iets het skeefgeloop.' };
+  var f = document.createElement('form');
+  f.method = 'POST'; f.action = d.action;
+  Object.keys(d.fields).forEach(function (k) {
+    var i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = d.fields[k]; f.appendChild(i);
+  });
+  document.body.appendChild(f); f.submit();
+  return { ok: true };
+}

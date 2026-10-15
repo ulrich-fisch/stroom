@@ -81,6 +81,70 @@ t('deleted account cannot log in', (await post('/api/login', { email: 'test@stro
 t('deleted account session dead', (await call('/katalogus', {}, cookieD)).status === 302);
 t('email can be re-registered after delete', (await post('/api/register', { email: 'test@stroom.co.za', password: 'another-pass-1' })).status === 200);
 
+// 6c. Betalings (PayFast, toetsmodus met valse sleutels)
+import { formSignature, itnParamString, itnSignatureOk, md5, pfEncode, saDate } from '../src/payfast.js';
+r = await post('/api/register', { email: 'pay@stroom.co.za', name: 'Pieter van Wyk', password: 'pay-pass-1234' }); const pc = ck(r);
+await post('/api/plan', { plan: 'avod' }, pc);
+t('checkout closed without PayFast keys', (await post('/api/checkout', { plan: 'monthly' }, pc)).status === 503);
+Object.assign(env, { PAYFAST_MERCHANT_ID: '10000000', PAYFAST_MERCHANT_KEY: 'fakekey123456', PAYFAST_PASSPHRASE: 'test pass&1' });
+t('checkout needs login', (await post('/api/checkout', { plan: 'monthly' })).status === 401);
+t('checkout rejects unknown plan', (await post('/api/checkout', { plan: 'gratis' }, pc)).status === 400);
+r = await post('/api/checkout', { plan: 'monthly' }, pc); const co = await r.json();
+t('monthly checkout ok, sandbox URL', r.status === 200 && co.action === 'https://sandbox.payfast.co.za/eng/process');
+t('monthly = 7-day free trial then R59/month', co.fields.amount === '0.00' && co.fields.recurring_amount === '59.00' && co.fields.frequency === '3'
+  && co.fields.subscription_type === '1' && co.fields.billing_date === saDate(7) && co.fields.cycles === '0');
+t('callback URLs point to this site', co.fields.notify_url === 'https://x.test/api/payfast-itn' && co.fields.return_url.startsWith('https://x.test/rekening.html'));
+const { signature: sig0, ...rest0 } = co.fields;
+t('form signature verifies', sig0 === formSignature(rest0, 'test pass&1') && /^[0-9a-f]{32}$/.test(sig0));
+t('signature changes if amount tampered', formSignature({ ...rest0, amount: '1.00' }, 'test pass&1') !== sig0);
+t('merchant key/passphrase: key only in form, passphrase never sent', !JSON.stringify(co).includes('test pass'));
+r = await post('/api/checkout', { plan: 'annual' }, pc); const coA = await r.json();
+t('annual = R590 now, yearly', coA.fields.amount === '590.00' && coA.fields.recurring_amount === '590.00' && coA.fields.frequency === '6');
+t('encoding matches PHP urlencode', pfEncode("a b!'()*~@é") === 'a+b%21%27%28%29%2A%7E%40%C3%A9');
+
+const signItn = (obj, pass = 'test pass&1') => { const pairs = Object.entries(obj); const body = itnParamString(pairs) + '&signature=' + md5(itnParamString(pairs) + '&passphrase=' + pfEncode(pass)); return body; };
+const itn = (body) => worker.fetch(new Request('https://x.test/api/payfast-itn', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }), env);
+const realFetch = globalThis.fetch; let payfastSays = 'VALID'; const calls = [];
+globalThis.fetch = async (u, o) => { calls.push([String(u), o]); return new Response(String(u).includes('/validate') ? payfastSays : '', { status: 200 }); };
+const base = { m_payment_id: co.fields.m_payment_id, pf_payment_id: '1089250', payment_status: 'COMPLETE', item_name: 'Stroom', amount_gross: '0.00', amount_fee: '0.00', amount_net: '0.00', token: 'tok-abc-123', name_first: 'Pieter', merchant_id: '10000000' };
+const planOf = async () => (await (await call('/api/me', {}, pc)).json()).plan;
+
+t('ITN with no signature refused', (await itn(itnParamString(Object.entries(base)))).status === 400 && await planOf() === 'avod');
+t('ITN signed with wrong passphrase refused', (await itn(signItn(base, 'nope'))).status === 400 && await planOf() === 'avod');
+t('ITN for another merchant refused', (await itn(signItn({ ...base, merchant_id: '999' }))).status === 400);
+t('ITN for unknown order refused', (await itn(signItn({ ...base, m_payment_id: 'S0000' }))).status === 400);
+payfastSays = 'INVALID';
+t('ITN not confirmed by PayFast refused', (await itn(signItn(base))).status === 400 && await planOf() === 'avod');
+payfastSays = 'VALID';
+t('ITN with tampered amount refused', (await itn(signItn({ ...base, amount_gross: '1.00' }))).status === 400 && await planOf() === 'avod');
+t('return page alone grants nothing', await planOf() === 'avod' && (await call('/rekening.html?betaling=terug', {}, pc)).status === 200);
+t('valid confirmed ITN activates Premium', (await itn(signItn(base))).status === 200 && await planOf() === 'svod');
+t('PayFast was asked to confirm', calls.some(([u]) => u === 'https://sandbox.payfast.co.za/eng/query/validate'));
+t('/api/me shows plan period', (await (await call('/api/me', {}, pc)).json()).plan_period === 'monthly');
+t('repeat ITN is harmless', (await itn(signItn(base))).status === 200 && await planOf() === 'svod');
+t('already-premium cannot start second checkout', (await post('/api/checkout', { plan: 'monthly' }, pc)).status === 409);
+t('another user cannot use this order', (await (async () => { const o = await post('/api/register', { email: 'other@x.co', password: 'other-pass-123' }); const oc = ck(o);
+  await post('/api/plan', { plan: 'avod' }, oc); await itn(signItn({ ...base })); return (await (await call('/api/me', {}, oc)).json()).plan; })()) === 'avod');
+
+calls.length = 0;
+t('cancel needs login', (await post('/api/cancel-subscription', {})).status === 401);
+t('cancel calls PayFast API with signed headers', (await post('/api/cancel-subscription', {}, pc)).status === 200
+  && calls.some(([u, o]) => u.startsWith('https://api.payfast.co.za/subscriptions/tok-abc-123/cancel?testing=true') && o.method === 'PUT' && /^[0-9a-f]{32}$/.test(o.headers.signature) && o.headers['merchant-id'] === '10000000'));
+t('after cancel: back to free plan', await planOf() === 'avod');
+t('cancel without subscription refused', (await post('/api/cancel-subscription', {}, pc)).status === 404);
+// 'n nuwe bestelling, aktiveer en dan CANCELLED-ITN van PayFast
+r = await post('/api/checkout', { plan: 'annual' }, pc); const co2 = await r.json();
+await itn(signItn({ ...base, m_payment_id: co2.fields.m_payment_id, amount_gross: '590.00', token: 'tok-2' }));
+t('annual activation', await planOf() === 'svod' && (await (await call('/api/me', {}, pc)).json()).plan_period === 'annual');
+t('PayFast CANCELLED ITN downgrades', (await itn(signItn({ ...base, m_payment_id: co2.fields.m_payment_id, payment_status: 'CANCELLED', amount_gross: '590.00', token: 'tok-2' }))).status === 200 && await planOf() === 'avod');
+payfastSays = 'VALID';
+globalThis.fetch = async () => new Response('', { status: 500 });
+r = await post('/api/checkout', { plan: 'monthly' }, pc); const co3 = await r.json();
+await itn(signItn({ ...base, m_payment_id: co3.fields.m_payment_id }, 'test pass&1')).catch(() => {});
+globalThis.fetch = realFetch;
+delete env.PAYFAST_MERCHANT_ID; delete env.PAYFAST_MERCHANT_KEY; delete env.PAYFAST_PASSPHRASE;
+t('ITN endpoint closed without keys', (await itn('x=1')).status === 503);
+
 // 7. No database -> fail closed
 const bare = await worker.fetch(new Request('https://x.test/katalogus', { redirect: 'manual' }), { ASSETS });
 t('no DB: protected page closed', bare.status === 302);
