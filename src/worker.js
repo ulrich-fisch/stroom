@@ -113,6 +113,7 @@ async function api(request, env, url) {
                   uitgevoer_op: new Date().toISOString() }, 200,
       { 'Content-Disposition': 'attachment; filename="my-stroom-data.json"' });
   }
+  if (path === '/api/status') return json({ bou: 'betalings-1', betalings_gereed: !!config(env), db: true });
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
 
   if (path === '/api/payfast-itn') {
