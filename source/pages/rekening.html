@@ -1,0 +1,264 @@
+<!--page
+title: Stroom Cinema Club
+body: min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950
+header: app
+nav: none
+footer: app
+search: no
+head_extra: 
+acct: active
+-->
+  <!-- Account Dashboard -->
+  <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-10">
+    <div class="border-b border-slate-800/80 pb-6 flex justify-between items-end">
+      <div>
+        <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Gebruiker Dashboard</span>
+        <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">Rekening &amp; Lidmaatskap</h1>
+      </div>
+      <span id="planBadge" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Gratis AVOD Access</span>
+    </div>
+
+    <!-- Membership Status Card -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800/80 pb-6">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Huidige Plan</span>
+          <h3 id="currentPlanTitle" class="text-xl font-bold text-white tracking-tight">Stroom AVOD (Gratis Toegang)</h3>
+          <p id="currentPlanDesc" class="text-xs text-slate-400 font-normal">Toegang tot gekeurde plaaslike films met advertensies.</p>
+        </div>
+        <button onclick="openPaymentModal()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full transition uppercase tracking-wider self-start sm:self-auto shadow-lg">
+          Opgradeer na Premium (SVOD)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-300">
+        <div class="space-y-1">
+          <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Geregistreerde E-pos</span>
+          <p class="font-semibold text-white" id="accountEmail">…</p>
+        </div>
+        <div class="space-y-1">
+          <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Betaalmetode</span>
+          <p class="text-slate-400" id="paymentMethodDisplay">Geen Aktiewe Intekengeld</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profiles Overview Card -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold text-white tracking-tight">Profiele &amp; Ouerbeheer</h3>
+          <p class="text-xs text-slate-400">Bestuur kykvoorkeure en inhoudsbeperkings per profiel.</p>
+        </div>
+        <a href="profiel.html" class="text-xs border border-slate-700 hover:border-white text-white px-4 py-2 rounded-full font-semibold transition uppercase tracking-wider">
+          Bestuur
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-sky-500/20 border border-sky-400 flex items-center justify-center font-bold text-sky-400" data-self-initial>U</div>
+          <div>
+            <p class="text-xs font-bold text-white" data-self>Ulrich</p>
+            <p class="text-[10px] text-slate-500">Alle Inhoud (AL-18+)</p>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-400 flex items-center justify-center font-bold text-purple-400">F</div>
+          <div>
+            <p class="text-xs font-bold text-white">Familie</p>
+            <p class="text-[10px] text-slate-500">Beperk (13+)</p>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-400 flex items-center justify-center font-bold text-amber-400">K</div>
+          <div>
+            <p class="text-xs font-bold text-white">Kinders</p>
+            <p class="text-[10px] text-slate-500">Kindermodus (AL)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- PAYMENT PORTAL MODAL -->
+  <div id="paymentModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 relative shadow-2xl space-y-6">
+      
+      <button onclick="closePaymentModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white text-2xl font-bold px-2">&times;</button>
+
+      <div class="space-y-2 text-center sm:text-left">
+        <span class="text-xs text-sky-400 font-mono font-bold uppercase tracking-widest">Veilige Stroom Betaalportaal</span>
+        <h2 class="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">Kies jou Stroom Plan</h2>
+        <p class="text-xs text-slate-400">Geen langtermyn-kontrakte nie. Kanselleer enige tyd aanlyn.</p>
+      </div>
+
+      <!-- Plan Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- Monthly Plan -->
+        <div id="planMonthly" onclick="selectPlan('monthly')" class="plan-card selected border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Maandeliks</span>
+            <span class="w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-sky-400"></span></span>
+          </div>
+          <div>
+            <span class="text-3xl font-black text-white">R59</span>
+            <span class="text-xs text-slate-400"> / maand</span>
+          </div>
+          <p class="text-[11px] text-slate-400">7 dae gratis toetstydperk. Ad-vrye Full HD stroom op alle toestelle.</p>
+        </div>
+
+        <!-- Annual Plan -->
+        <div id="planAnnual" onclick="selectPlan('annual')" class="plan-card border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition relative overflow-hidden">
+          <span class="absolute top-0 right-0 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-3 py-0.5 rounded-bl-lg">Spaar 16%</span>
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Jaarliks</span>
+            <span class="w-4 h-4 rounded-full border-2 border-slate-700"></span>
+          </div>
+          <div>
+            <span class="text-3xl font-black text-white">R590</span>
+            <span class="text-xs text-slate-400"> / jaar</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Beste waarde. Eenmalige jaarlikse fooi vir onbeperkte toegang.</p>
+        </div>
+
+      </div>
+
+      <!-- Payment Methods Badge -->
+      <div class="space-y-3 pt-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Aanvaarde Betaalmetodes (Suid-Afrika &amp; Internasionaal)</label>
+        
+        <div class="grid grid-cols-3 gap-3 text-center text-xs font-semibold">
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>💳 Kaart</span>
+            <span class="text-[9px] text-slate-500">Visa / Mastercard</span>
+          </div>
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>🏦 Instant EFT</span>
+            <span class="text-[9px] text-slate-500">Ozow / PayFast</span>
+          </div>
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>📱 SnapScan</span>
+            <span class="text-[9px] text-slate-500">Zapper / QR</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="space-y-3 pt-4 border-t border-slate-800">
+        <button id="checkoutBtn" onclick="processCheckout()" class="w-full py-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+          Begin 7-Dae Gratis Toets &amp; Betaal <span id="checkoutAmountDisplay">R59</span>
+        </button>
+
+        <p class="text-[10px] text-slate-500 text-center leading-normal">
+          🔒 Veilige betaling deur PayFast.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  
+<!--script-->
+    // Initialize profile header
+
+    // Check existing subscription state
+    fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(function (me) {
+    if (me && me.plan === 'svod') {
+      document.getElementById('planBadge').className = 'text-xs bg-sky-500/10 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider';
+      document.getElementById('planBadge').innerText = 'Stroom Premium (SVOD)';
+      document.getElementById('currentPlanTitle').innerText = 'Stroom Premium SVOD (R59/m)';
+      document.getElementById('currentPlanDesc').innerText = 'Ad-vrye Full HD toegang op alle toestelle aktief.';
+      document.getElementById('paymentMethodDisplay').innerText = 'Visakaart (PayFast Recurring)';
+    }
+    });
+
+    let selectedPlanType = 'monthly';
+
+    function openPaymentModal() {
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    function selectPlan(plan) {
+      selectedPlanType = plan;
+      const mCard = document.getElementById('planMonthly');
+      const aCard = document.getElementById('planAnnual');
+      const amount = document.getElementById('checkoutAmountDisplay');
+
+      if (plan === 'monthly') {
+        mCard.classList.add('selected');
+        aCard.classList.remove('selected');
+        amount.innerText = 'R59';
+      } else {
+        aCard.classList.add('selected');
+        mCard.classList.remove('selected');
+        amount.innerText = 'R590';
+      }
+    }
+
+    async function processCheckout() {
+      const btn = document.getElementById('checkoutBtn');
+      const originalText = btn.innerHTML;
+      btn.innerText = "Verbind tans met PayFast...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch("/api/payfast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: selectedPlanType
+          })
+        });
+
+        const rawText = await response.text();
+        let data = {};
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          console.warn("Raw non-JSON response from server:", rawText);
+        }
+
+        console.log("PayFast Onsite Response:", data);
+
+        if (data.uuid) {
+          window.payfast_do_onsite_payment({
+            uuid: data.uuid
+          }, function(result) {
+            if (result === true) {
+              activatePremiumSession();
+            } else {
+              alert("Betaling gekanselleer of onsuksesvol.");
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+            }
+          });
+        } else {
+          console.warn("Geen PayFast Onsite UUID ontvang nie.");
+          alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      } catch (err) {
+        console.error("Checkout Error:", err);
+        alert("Kon nie met betaalbediener verbind nie: " + err.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function activatePremiumSession() {
+      alert('Betaling ontvang. Jou lidmaatskap word geaktiveer sodra die betaling bevestig is.');
+      window.location.reload();
+    }
+
+
+  

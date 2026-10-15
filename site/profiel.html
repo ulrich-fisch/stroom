@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stroom Cinema Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 selection:bg-sky-500 selection:text-slate-950">
+
+  <div class="max-w-4xl w-full text-center space-y-10">
+    <div class="space-y-2">
+      <span class="text-xs text-sky-400 font-mono uppercase tracking-widest">Stroom Cinema Club</span>
+      <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight uppercase">Wie kyk tans?</h1>
+      <p class="text-xs sm:text-sm text-slate-400 font-normal">Kies jou profiel om toegang tot jou berekende lys en voorkeure te kry.</p>
+    </div>
+
+    <!-- Profiles Grid -->
+    <div class="flex flex-wrap justify-center gap-6 sm:gap-10 pt-4">
+      
+      <!-- Profile 1 -->
+      <div onclick="selectProfile(selfName())" class="profile-card cursor-pointer group space-y-3 w-28 sm:w-36">
+        <div class="aspect-square rounded-2xl overflow-hidden border-2 border-transparent transition duration-300 shadow-2xl bg-slate-900 border-slate-800 flex items-center justify-center">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover group-hover:scale-105 transition" alt="Jou profiel">
+        </div>
+        <span class="block text-xs sm:text-sm text-slate-400 group-hover:text-white transition font-bold uppercase tracking-wider" data-self>Ulrich</span>
+      </div>
+
+      <!-- Profile 2 -->
+      <div onclick="selectProfile('Familie')" class="profile-card cursor-pointer group space-y-3 w-28 sm:w-36">
+        <div class="aspect-square rounded-2xl overflow-hidden border-2 border-transparent transition duration-300 shadow-2xl bg-slate-900 border-slate-800 flex items-center justify-center">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover group-hover:scale-105 transition" alt="Familie">
+        </div>
+        <span class="block text-xs sm:text-sm text-slate-400 group-hover:text-white transition font-bold uppercase tracking-wider">Familie</span>
+      </div>
+
+      <!-- Profile 3 -->
+      <div onclick="selectProfile('Kinders')" class="profile-card cursor-pointer group space-y-3 w-28 sm:w-36">
+        <div class="aspect-square rounded-2xl overflow-hidden border-2 border-transparent transition duration-300 shadow-2xl bg-slate-900 border-slate-800 flex items-center justify-center">
+          <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover group-hover:scale-105 transition" alt="Kinders">
+        </div>
+        <span class="block text-xs sm:text-sm text-slate-400 group-hover:text-white transition font-bold uppercase tracking-wider">Kinders</span>
+      </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="pt-8 flex justify-center items-center space-x-4">
+      <a href="katalogus.html" class="inline-block border border-slate-700 hover:border-white text-slate-300 hover:text-white px-6 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase transition">
+        Gaan na Katalogus
+      </a>
+      <a href="rekening.html" class="inline-block bg-slate-900 border border-slate-800 hover:border-slate-700 text-sky-400 px-6 py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase transition">
+        Bestuur Rekening
+      </a>
+    </div>
+  </div>
+
+  
+
+<script src="/app.js"></script>
+<script>
+    function selectProfile(name) {
+      localStorage.setItem('stroom_active_profile', name);
+      window.location.href = 'katalogus.html';
+    }
+  
+</script>
+</body>
+</html>

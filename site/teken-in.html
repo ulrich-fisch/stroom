@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toegang — Stroom Cinema Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="index.html" class="flex items-center space-x-3">
+        <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Cinema Club</span>
+      </a>
+      <a href="index.html" class="text-xs text-slate-400 hover:text-white font-semibold transition uppercase tracking-wider">
+        ← Terug na Tuisblad
+      </a>
+    </div>
+  </header>
+
+  <!-- Auth Box Container -->
+  <main class="flex-grow flex items-center justify-center p-6 my-8">
+    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 backdrop-blur-xl">
+      
+      <!-- Mode Switcher -->
+      <div class="grid grid-cols-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800/80 text-xs text-slate-400 font-bold uppercase tracking-wider">
+        <button id="tabRegister" onclick="setAuthMode('register')" class="tab-btn py-2.5 rounded-xl transition text-center">Skep Rekening</button>
+        <button id="tabLogin" onclick="setAuthMode('login')" class="tab-btn py-2.5 rounded-xl transition text-center">Teken In</button>
+      </div>
+
+      <!-- Title Header -->
+      <div class="space-y-1.5 text-center">
+        <h1 id="authTitle" class="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">Skep jou Stroom Rekening</h1>
+        <p id="authSubtitle" class="text-xs text-slate-400">Sluit aan en kry onmiddellike toegang tot Afrikaanse vermaak.</p>
+      </div>
+
+      <!-- Google Button -->
+      <button onclick="handleGoogleSignIn()" class="w-full py-3.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center space-x-3 transition shadow-sm">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.1C3.7 19.8 7.5 23 12 23z"/>
+        </svg>
+        <span id="googleBtnText">Registreer met Google</span>
+      </button>
+
+      <div class="flex items-center space-x-4">
+        <div class="flex-grow h-px bg-slate-800"></div>
+        <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Of met e-pos</span>
+        <div class="flex-grow h-px bg-slate-800"></div>
+      </div>
+
+      <!-- Auth Form -->
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        
+        <div id="nameFieldGroup" class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Volle Naam &amp; Van</label>
+          <input type="text" id="nameInput" placeholder="bv. Ulrich Fischer" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 transition placeholder-slate-600"/>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">E-posadres</label>
+          <input type="email" id="emailInput" required placeholder="naam@voorbeeld.co.za" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 transition placeholder-slate-600"/>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Wagwoord</label>
+            <a href="#" id="forgotPasswordLink" onclick="alert('Wagwoord-herstel kom binnekort. Kontak ulrich@fischbowlpro.com vir hulp.'); return false;" class="text-[11px] text-sky-400 hover:underline hidden">Wagwoord vergeet?</a>
+          </div>
+          <input type="password" id="passwordInput" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 transition placeholder-slate-600"/>
+        </div>
+
+        <!-- Keep me signed in Checkbox -->
+        <div class="flex items-center space-x-2.5 pt-1">
+          <input type="checkbox" id="rememberMe" checked class="w-4 h-4 rounded bg-slate-950 border-slate-800 text-sky-500 focus:ring-sky-500/20"/>
+          <label for="rememberMe" class="text-xs text-slate-400 cursor-pointer selection:bg-none">Hou my ingeteken op hierdie toestel</label>
+        </div>
+
+        <button type="submit" id="submitBtn" class="w-full py-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg mt-2">
+          Skep Gratis Rekening
+        </button>
+      </form>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+  </footer>
+
+  
+
+<script>
+    // As daar reeds 'n geldige sessie is, gaan direk voort
+    fetch('/api/me').then(function (r) { if (r.ok) window.location.href = 'profiel.html'; }).catch(function () {});
+
+    let currentMode = 'register';
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMode = urlParams.get('mode') || 'register';
+    setAuthMode(initialMode);
+
+    function setAuthMode(mode) {
+      currentMode = mode;
+      const tabRegister = document.getElementById('tabRegister');
+      const tabLogin = document.getElementById('tabLogin');
+      const authTitle = document.getElementById('authTitle');
+      const authSubtitle = document.getElementById('authSubtitle');
+      const googleBtnText = document.getElementById('googleBtnText');
+      const nameFieldGroup = document.getElementById('nameFieldGroup');
+      const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+      const submitBtn = document.getElementById('submitBtn');
+
+      if (mode === 'login') {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+
+        authTitle.innerText = "Teken in op Stroom";
+        authSubtitle.innerText = "Voer jou besonderhede in om toegang tot jou rekening te kry.";
+        googleBtnText.innerText = "Teken in met Google";
+        submitBtn.innerText = "Teken In";
+
+        nameFieldGroup.classList.add('hidden');
+        forgotPasswordLink.classList.remove('hidden');
+      } else {
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+
+        authTitle.innerText = "Skep jou Stroom Rekening";
+        authSubtitle.innerText = "Sluit aan en kry onmiddellike toegang tot Afrikaanse vermaak.";
+        googleBtnText.innerText = "Registreer met Google";
+        submitBtn.innerText = "Skep Gratis Rekening";
+
+        nameFieldGroup.classList.remove('hidden');
+        forgotPasswordLink.classList.add('hidden');
+      }
+    }
+
+    function showError(msg) {
+      let el = document.getElementById('authError');
+      if (!el) {
+        el = document.createElement('p');
+        el.id = 'authError';
+        el.className = 'text-xs text-rose-400 text-center';
+        el.setAttribute('role', 'alert');
+        document.getElementById('submitBtn').insertAdjacentElement('beforebegin', el);
+      }
+      el.textContent = msg;
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const label = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = 'Een oomblik...';
+      try {
+        const res = await fetch(currentMode === 'register' ? '/api/register' : '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('emailInput').value,
+            name: document.getElementById('nameInput').value,
+            password: document.getElementById('passwordInput').value,
+            remember: document.getElementById('rememberMe').checked
+          })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) { showError(data.fout || 'Iets het skeefgeloop. Probeer weer.'); return; }
+        localStorage.setItem('stroom_logged_in', 'true');
+        localStorage.setItem('stroom_active_profile', data.name || 'Profiel');
+        // Nuwe rekening -> kies plan (gratis of betaald). Bestaande -> profiel.
+        window.location.href = currentMode === 'register' ? 'kies-plan.html' : 'profiel.html';
+      } catch (err) {
+        showError('Kon nie koppel nie. Kyk jou internet en probeer weer.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = label;
+      }
+    }
+
+    function handleGoogleSignIn() {
+      showError('Google-aanmelding kom binnekort. Gebruik asseblief e-pos en wagwoord.');
+    }
+  
+</script>
+</body>
+</html>

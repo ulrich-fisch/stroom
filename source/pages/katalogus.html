@@ -1,0 +1,447 @@
+<!--page
+title: Stroom Cinema Club
+body: min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950
+header: app
+nav: katalogus
+footer: app
+search: yes
+head_extra: 
+-->
+  <!-- MUBI Spotlight Banner -->
+  <section class="relative min-h-[70vh] flex items-end pb-16 px-6 sm:px-12 bg-cover bg-center border-b border-slate-800/80"
+           style="background-image: linear-gradient(to top, #070c18 10%, rgba(7,12,24,0.3) 50%, rgba(7,12,24,0.85) 100%), url('https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1920&q=80');">
+    
+    <div class="max-w-3xl space-y-4 pt-20">
+      <div class="flex items-center space-x-3 text-xs font-bold tracking-widest uppercase">
+        <span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px]">Film van die Dag</span>
+        <span id="matchPercentageHero" class="text-emerald-400 font-mono">98% Pas vir jou</span>
+        <span class="border border-slate-700 px-2 py-0.5 rounded text-slate-400">13+</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight leading-none uppercase">Die Erfenis van die Karoo</h1>
+      
+      <p class="text-slate-300 text-sm sm:text-base font-normal max-w-xl leading-relaxed">
+        'n Visuele meesterstuk wat die stilte, die argitektuur en die menslikheid van die Karoo vasvang. Eksklusief op Stroom.
+      </p>
+
+      <div class="pt-2 flex flex-wrap items-center gap-3">
+        <button onclick="openInfoModal('karoo')" 
+                class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-7 py-3 rounded-full text-xs uppercase tracking-widest transition flex items-center space-x-2">
+          <span>ℹ Meer Inligting</span>
+        </button>
+
+        <button onclick="startPlayer('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', 'Die Erfenis van die Karoo', 'Fischbowl Media')" 
+                class="bg-white hover:bg-slate-200 text-slate-950 font-bold px-6 py-3 rounded-full text-xs uppercase tracking-widest transition">
+          ▶ Speel Film
+        </button>
+
+        <button onclick="toggleWatchlist('Die Erfenis van die Karoo', 'Fischbowl Media', 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4')"
+                class="border border-slate-700 hover:border-white text-white px-5 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition">
+          + My Lys
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter & Controls Section -->
+  <main class="max-w-7xl mx-auto px-6 py-10 w-full space-y-10">
+
+    <!-- Filters Bar -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-800">
+      <div class="flex flex-wrap gap-2">
+        <button onclick="setTypeFilter('all', this)" class="type-btn active text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-300 hover:text-white transition">Alle Inhoud</button>
+        <button onclick="setTypeFilter('film', this)" class="type-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white transition">Films / Movies</button>
+        <button onclick="setTypeFilter('reeks', this)" class="type-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white transition">Reekse / Series</button>
+      </div>
+
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <label for="genreSelect" class="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Genre Filter:</label>
+        <select id="genreSelect" onchange="filterFilms()" class="w-full md:w-56 px-4 py-2 bg-slate-900 border border-slate-800 rounded-full text-xs text-white focus:outline-none focus:border-sky-500 transition">
+          <option value="all">Alle Genres</option>
+          <option value="aksie">Aksie &amp; Spanning</option>
+          <option value="komedie">Komedie</option>
+          <option value="dokumenter">Dokumentêre</option>
+          <option value="drama">Drama</option>
+          <option value="kuns">Kuns &amp; Musiek</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- My Watchlist Section -->
+    <div id="watchlistSection" class="space-y-4 hidden">
+      <h2 class="text-xl font-bold text-sky-400 tracking-wider uppercase">My Lys (Bewaarde Inhoud)</h2>
+      <div id="watchlistGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-2"></div>
+    </div>
+
+    <!-- Catalogue Grid -->
+    <div class="space-y-4">
+      <h2 class="text-2xl font-bold text-white tracking-tight uppercase">Verken die Katalogus</h2>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="catalogGrid">
+        
+        <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
+             data-title="Spoorloos in die Nag Piet Joubert" data-type="film" data-genre="drama"
+             onclick="openInfoModal('spoorloos')">
+          <div class="aspect-[16/10] relative">
+            <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Film">
+            <span class="absolute top-3 left-3 bg-slate-950/80 text-sky-400 border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Kortfilm</span>
+            <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">14m</span>
+          </div>
+          <div class="p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <span id="match-spoorloos" class="text-emerald-400 font-bold text-xs">95% Pas</span>
+              <span class="text-xs text-slate-400">👍 95</span>
+            </div>
+            <h3 class="font-bold text-white text-base tracking-tight leading-snug">Spoorloos in die Nag</h3>
+            <p class="text-xs text-slate-400">Regie: Piet Joubert • Drama</p>
+          </div>
+        </div>
+
+        <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
+             data-title="Die Laaste Opvoer Annelize Marais" data-type="film" data-genre="kuns"
+             onclick="openInfoModal('laaste')">
+          <div class="aspect-[16/10] relative">
+            <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Film">
+            <span class="absolute top-3 left-3 bg-slate-950/80 text-purple-400 border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Kuns &amp; Musiek</span>
+            <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">22m</span>
+          </div>
+          <div class="p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <span id="match-laaste" class="text-emerald-400 font-bold text-xs">92% Pas</span>
+              <span class="text-xs text-slate-400">👍 88</span>
+            </div>
+            <h3 class="font-bold text-white text-base tracking-tight leading-snug">Die Laaste Opvoer</h3>
+            <p class="text-xs text-slate-400">Regie: Annelize Marais • Musiek</p>
+          </div>
+        </div>
+
+        <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
+             data-title="Nagval oor Pretoria Jaco Botes" data-type="reeks" data-genre="aksie"
+             onclick="openInfoModal('pretoria')">
+          <div class="aspect-[16/10] relative">
+            <img src="https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Reeks">
+            <span class="absolute top-3 left-3 bg-slate-950/80 text-red-400 border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Reeks • S1</span>
+            <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">Seisoen 1</span>
+          </div>
+          <div class="p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <span id="match-pretoria" class="text-emerald-400 font-bold text-xs">96% Pas</span>
+              <span class="text-xs text-slate-400">👍 120</span>
+            </div>
+            <h3 class="font-bold text-white text-base tracking-tight leading-snug">Nagval oor Pretoria</h3>
+            <p class="text-xs text-slate-400">Regie: Jaco Botes • Spanning</p>
+          </div>
+        </div>
+
+        <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
+             data-title="Sout van die Aarde Fischbowl Media" data-type="film" data-genre="dokumenter"
+             onclick="openInfoModal('sout')">
+          <div class="aspect-[16/10] relative">
+            <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Dokumentêr">
+            <span class="absolute top-3 left-3 bg-slate-950/80 text-sky-400 border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Dokumentêr</span>
+            <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">52m</span>
+          </div>
+          <div class="p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <span id="match-sout" class="text-emerald-400 font-bold text-xs">94% Pas</span>
+              <span class="text-xs text-slate-400">👍 104</span>
+            </div>
+            <h3 class="font-bold text-white text-base tracking-tight leading-snug">Sout van die Aarde</h3>
+            <p class="text-xs text-slate-400">Regie: Fischbowl Media • Kultuur</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Netflix Info Modal -->
+  <div id="infoModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full my-auto overflow-hidden shadow-2xl relative">
+      <div id="infoBanner" class="relative aspect-video sm:aspect-[21/9] bg-cover bg-center flex items-end p-6 sm:p-8">
+        <button onclick="closeInfoModal()" class="absolute top-4 right-4 z-20 bg-slate-950/80 hover:bg-white hover:text-slate-950 text-white p-2 rounded-full text-xl transition">&times;</button>
+        <div class="relative z-10 space-y-3">
+          <span id="infoTypeBadge" class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase">---</span>
+          <h2 id="infoTitle" class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">---</h2>
+          
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button id="infoPlayBtn" onclick="" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-full text-xs uppercase tracking-widest transition flex items-center space-x-2">
+              <span>▶ Speel</span>
+            </button>
+            <button id="infoListBtn" onclick="" class="border border-slate-700 hover:border-white text-white px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">
+              + My Lys
+            </button>
+          </div>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+      </div>
+
+      <div class="p-6 sm:p-8 space-y-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-2 space-y-3">
+            <div class="flex items-center space-x-3 text-xs font-bold font-mono">
+              <span id="infoMatch" class="text-emerald-400">95% Pas</span>
+              <span id="infoYear" class="text-slate-400">2025</span>
+              <span id="infoAge" class="border border-slate-700 px-1.5 py-0.2 rounded text-slate-400">13+</span>
+              <span id="infoRuntime" class="text-slate-400">-- min</span>
+            </div>
+            <p id="infoSynopsis" class="text-slate-300 text-sm leading-relaxed font-normal">---</p>
+          </div>
+          <div class="space-y-2 text-xs text-slate-400 border-l border-slate-800/80 pl-4">
+            <p><strong class="text-slate-200">Regie:</strong> <span id="infoDirector">---</span></p>
+            <p><strong class="text-slate-200">Genre:</strong> <span id="infoGenre">---</span></p>
+            <p><strong class="text-slate-200">Taal:</strong> Afrikaans</p>
+          </div>
+        </div>
+
+        <div id="infoEpisodesSection" class="pt-6 border-t border-slate-800 space-y-4 hidden">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white uppercase tracking-tight">Episodes &amp; Dele</h3>
+            <select id="seasonSelector" class="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none">
+              <option value="1">Seisoen 1</option>
+            </select>
+          </div>
+          <div id="episodesList" class="space-y-3"></div>
+        </div>
+
+        <div class="pt-6 border-t border-slate-800 space-y-4">
+          <h3 class="text-lg font-bold text-white uppercase tracking-tight">Meer Soos Hierdie</h3>
+          <div id="moreLikeThisGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Player Modal -->
+  <div id="playerModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-2 sm:p-6">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full overflow-hidden shadow-2xl relative player-container group">
+      <div class="aspect-video bg-black relative">
+        <video id="videoPlayer" class="w-full h-full object-contain" onclick="togglePlayPause()"></video>
+
+        <button id="skipIntroBtn" onclick="skipIntro()" 
+                class="absolute bottom-20 right-6 z-30 bg-slate-950/90 hover:bg-sky-500 hover:text-slate-950 text-white border border-slate-700 font-bold text-xs px-5 py-2.5 rounded-full transition shadow-lg">
+          Slaan Inleiding Oor &rarr;
+        </button>
+
+        <div class="player-overlay absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/60 flex flex-col justify-between p-4 pointer-events-none">
+          <div class="flex justify-between items-center pointer-events-auto">
+            <div>
+              <h3 id="modalTitle" class="font-bold text-white text-lg tracking-tight">---</h3>
+              <p id="modalCredit" class="text-xs text-slate-400">---</p>
+            </div>
+            <button onclick="closePlayer()" class="text-slate-400 hover:text-white text-3xl font-bold px-2">&times;</button>
+          </div>
+
+          <div class="space-y-3 pointer-events-auto">
+            <div class="flex items-center space-x-3">
+              <span id="currentTime" class="text-[11px] font-mono text-slate-400">0:00</span>
+              <input type="range" id="progressBar" min="0" max="100" value="0" onchange="seekVideo(this.value)" 
+                     class="w-full accent-sky-400 h-1 bg-slate-800 rounded-lg cursor-pointer"/>
+              <span id="durationTime" class="text-[11px] font-mono text-slate-400">0:00</span>
+            </div>
+
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-4 text-sm">
+                <button onclick="togglePlayPause()" id="playPauseBtn" class="text-white hover:text-sky-400 font-bold text-lg">▶</button>
+                <button onclick="skipTime(-10)" class="text-slate-300 hover:text-white text-xs font-mono">↺ 10s</button>
+                <button onclick="skipTime(10)" class="text-slate-300 hover:text-white text-xs font-mono">10s ↻</button>
+                <button onclick="toggleMute()" id="muteBtn" class="text-slate-300 hover:text-white text-xs">🔊</button>
+              </div>
+
+              <div class="flex items-center space-x-3">
+                <span class="text-[10px] bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">HD 1080p</span>
+                <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white text-sm">⛶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Master Footer -->
+  
+<!--script-->
+    // Session Init
+
+
+
+    const titlesData = {
+      'karoo': {
+        title: 'Die Erfenis van die Karoo', type: 'Dokumentêr', year: '2026', age: '13+', runtime: '54 min', match: '98%',
+        director: 'Fischbowl Media', genre: 'Kultuur & Erfenis',
+        banner: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1600&q=80',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        synopsis: "'n Visuele meesterstuk wat die stilte, die argitektuur en die menslikheid van die Karoo vasvang. Eksklusief op Stroom.",
+        moreLikeThis: ['sout', 'spoorloos', 'laaste']
+      },
+      'spoorloos': {
+        title: 'Spoorloos in die Nag', type: 'Kortfilm', year: '2025', age: '16+', runtime: '14 min', match: '95%',
+        director: 'Piet Joubert', genre: 'Drama & Spanning',
+        banner: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1600&q=80',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        synopsis: "Wanneer 'n geheimsinnige vreemdeling op 'n stil plattelandse dorp aankom, ontrafel 'n ou familiegeheim.",
+        moreLikeThis: ['pretoria', 'laaste', 'karoo']
+      },
+      'laaste': {
+        title: 'Die Laaste Opvoer', type: 'Kortfilm', year: '2024', age: '13+', runtime: '22 min', match: '92%',
+        director: 'Annelize Marais', genre: 'Kuns & Musiek',
+        banner: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1600&q=80',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+        synopsis: "'n Begaagde klavierspeler veg teen tyd en verlies om haar finale optrede in die Historiese Teater van Stellenbosch te lewer.",
+        moreLikeThis: ['spoorloos', 'sout', 'karoo']
+      },
+      'pretoria': {
+        title: 'Nagval oor Pretoria', type: 'Reeks (S1)', year: '2025', age: '16+', runtime: '6 Episodes', match: '96%',
+        director: 'Jaco Botes', genre: 'Aksie & Spanning',
+        banner: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackMinimercial.mp4',
+        synopsis: "'n Hoë-spanning polisiereeks wat afspeel in die nagtelike strate van Pretoria.",
+        episodes: [
+          { ep: 'Ep 1', title: 'Die Eerste Skaduwee', duration: '28 min', desc: "Speurder Nel ondersoek 'n inbraak in die hoofstad.", url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackMinimercial.mp4' },
+          { ep: 'Ep 2', title: 'Geheime Spore', duration: '31 min', desc: "'n Belangrike getuie weier om met die polisie te praat.", url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' }
+        ],
+        moreLikeThis: ['spoorloos', 'sout', 'karoo']
+      },
+      'sout': {
+        title: 'Sout van die Aarde', type: 'Dokumentêr', year: '2025', age: 'AL', runtime: '52 min', match: '94%',
+        director: 'Fischbowl Media', genre: 'Dokumentêr',
+        banner: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        synopsis: "'n Hartroerende blik op die boerderygemeenskappe van Suid-Afrika.",
+        moreLikeThis: ['karoo', 'laaste', 'spoorloos']
+      }
+    };
+
+    function openInfoModal(key) {
+      const data = titlesData[key];
+      if (!data) return;
+      document.getElementById('infoBanner').style.backgroundImage = `url('${data.banner}')`;
+      document.getElementById('infoTypeBadge').innerText = data.type;
+      document.getElementById('infoTitle').innerText = data.title;
+      document.getElementById('infoMatch').innerText = `${data.match} Pas`;
+      document.getElementById('infoYear').innerText = data.year;
+      document.getElementById('infoAge').innerText = data.age;
+      document.getElementById('infoRuntime').innerText = data.runtime;
+      document.getElementById('infoSynopsis').innerText = data.synopsis;
+      document.getElementById('infoDirector').innerText = data.director;
+      document.getElementById('infoGenre').innerText = data.genre;
+
+      document.getElementById('infoPlayBtn').onclick = () => { closeInfoModal(); startPlayer(data.videoUrl, data.title, data.director); };
+      document.getElementById('infoListBtn').onclick = () => { toggleWatchlist(data.title, data.director, data.banner, data.videoUrl); };
+
+      const epSection = document.getElementById('infoEpisodesSection');
+      const epList = document.getElementById('episodesList');
+      if (data.episodes && data.episodes.length > 0) {
+        epSection.classList.remove('hidden');
+        epList.innerHTML = data.episodes.map(ep => `
+          <div onclick="closeInfoModal(); startPlayer('${ep.url}', '${data.title} - ${ep.title}', '${ep.duration}')" 
+               class="p-3 bg-slate-950 hover:bg-slate-800 rounded-xl border border-slate-800 cursor-pointer flex justify-between items-center transition">
+            <div class="space-y-1">
+              <span class="text-[10px] font-mono text-sky-400 font-bold uppercase">${ep.ep} • ${ep.duration}</span>
+              <h4 class="text-sm font-bold text-white">${ep.title}</h4>
+              <p class="text-xs text-slate-400 leading-normal">${ep.desc}</p>
+            </div>
+            <span class="text-xs bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full font-bold">▶ Speel</span>
+          </div>
+        `).join('');
+      } else { epSection.classList.add('hidden'); }
+
+      const recGrid = document.getElementById('moreLikeThisGrid');
+      if (data.moreLikeThis && data.moreLikeThis.length > 0) {
+        recGrid.innerHTML = data.moreLikeThis.map(recKey => {
+          const item = titlesData[recKey];
+          if (!item) return '';
+          return `
+            <div onclick="openInfoModal('${recKey}')" class="bg-slate-950 rounded-xl overflow-hidden border border-slate-800 hover:border-sky-500/50 cursor-pointer p-2 space-y-2 transition">
+              <img src="${item.banner}" class="w-full aspect-video object-cover rounded-lg" />
+              <div class="p-1">
+                <span class="text-[9px] text-emerald-400 font-mono font-bold">${item.match} Pas</span>
+                <h4 class="text-xs font-bold text-white leading-tight">${item.title}</h4>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('infoModal').classList.remove('hidden');
+    }
+
+    function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
+
+    const player = document.getElementById('videoPlayer');
+    const playBtn = document.getElementById('playPauseBtn');
+    const progressBar = document.getElementById('progressBar');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationTimeEl = document.getElementById('durationTime');
+
+    function startPlayer(url, title, credit) {
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalCredit').innerText = credit;
+      player.src = url; player.load();
+      document.getElementById('playerModal').classList.remove('hidden');
+      player.play(); playBtn.innerText = '❚❚';
+    }
+
+    function togglePlayPause() { if (player.paused) { player.play(); playBtn.innerText = '❚❚'; } else { player.pause(); playBtn.innerText = '▶'; } }
+    function skipTime(s) { player.currentTime += s; }
+    function skipIntro() { player.currentTime += 20; }
+    function seekVideo(val) { player.currentTime = (val / 100) * player.duration; }
+    function toggleMute() { player.muted = !player.muted; document.getElementById('muteBtn').innerText = player.muted ? '🔇' : '🔊'; }
+    function toggleFullscreen() { if (!document.fullscreenElement) { player.requestFullscreen(); } else { document.exitFullscreen(); } }
+    function closePlayer() { player.pause(); document.getElementById('playerModal').classList.add('hidden'); }
+
+    player.ontimeupdate = () => {
+      if (!isNaN(player.duration)) {
+        progressBar.value = (player.currentTime / player.duration) * 100;
+        currentTimeEl.innerText = formatTime(player.currentTime);
+        durationTimeEl.innerText = formatTime(player.duration);
+        document.getElementById('skipIntroBtn').classList.toggle('hidden', player.currentTime > 30);
+      }
+    };
+
+    function formatTime(sec) { const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return `${m}:${s < 10 ? '0' : ''}${s}`; }
+
+    let currentTypeFilter = 'all';
+    function setTypeFilter(type, btn) {
+      currentTypeFilter = type;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); filterFilms();
+    }
+
+    function filterFilms() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const genre = document.getElementById('genreSelect').value;
+      document.querySelectorAll('.film-item').forEach(item => {
+        const title = item.getAttribute('data-title').toLowerCase();
+        const type = item.getAttribute('data-type');
+        const itemGenre = item.getAttribute('data-genre');
+        item.style.display = (title.includes(q) && (currentTypeFilter === 'all' || type === currentTypeFilter) && (genre === 'all' || itemGenre === genre)) ? 'block' : 'none';
+      });
+    }
+
+    function getWatchlist() { return JSON.parse(localStorage.getItem('stroom_watchlist') || '[]'); }
+    function toggleWatchlist(title, credit, img, videoUrl) {
+      let list = getWatchlist(); const index = list.findIndex(i => i.title === title);
+      if (index === -1) { list.push({ title, credit, img, videoUrl }); } else { list.splice(index, 1); }
+      localStorage.setItem('stroom_watchlist', JSON.stringify(list)); renderWatchlist();
+    }
+
+    function renderWatchlist() {
+      const list = getWatchlist(); const sec = document.getElementById('watchlistSection'); const grid = document.getElementById('watchlistGrid');
+      if (list.length === 0) { sec.classList.add('hidden'); return; }
+      sec.classList.remove('hidden');
+      grid.innerHTML = list.map(item => `
+        <div class="min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="startPlayer('${item.videoUrl}', '${item.title}', '${item.credit}')">
+          <div class="aspect-video relative"><img src="${item.img}" class="w-full h-full object-cover" /></div>
+          <div class="p-4 flex justify-between items-center">
+            <div><h3 class="font-bold text-white text-sm">${item.title}</h3><p class="text-xs text-slate-400">${item.credit}</p></div>
+            <button onclick="event.stopPropagation(); toggleWatchlist('${item.title}', '${item.credit}', '${item.img}', '${item.videoUrl}')" class="text-xs text-rose-400 hover:text-white">Verwyder</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderWatchlist();
+  

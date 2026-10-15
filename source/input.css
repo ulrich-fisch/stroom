@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+.mubi-card { transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1); }
+    .mubi-card:hover { transform: translateY(-4px) scale(1.02); z-index: 30; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8); }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .player-overlay { opacity: 0; transition: opacity 0.3s ease; }
+    .player-container:hover .player-overlay { opacity: 1; }
+    .type-btn.active { background-color: #38bdf8; color: #020617; font-weight: 700; }
+
+
+.hero-gradient { background: radial-gradient(circle at top center, rgba(56, 189, 248, 0.15) 0%, rgba(7, 12, 24, 0.95) 70%); }
+
+.tab-btn.active { background-color: #38bdf8; color: #020617; font-weight: 800; }
+
+.plan-card.selected { border-color: #38bdf8; background-color: rgba(56, 189, 248, 0.08); }
+
+.profile-card:hover img { border-color: #38bdf8; }

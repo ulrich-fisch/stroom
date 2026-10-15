@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stroom: die tuiste van Afrikaanse stories</title>
+<meta name="description" content="Stroom bring Afrikaanse flieks, reekse en dokumentêre programme op een plek bymekaar. In die maak.">
+<style>
+:root {
+  --night: #0f2233;
+  --deep: #163248;
+  --mist: #dfe8ec;
+  --straw: #e6c27a;
+  --muted: #9db1bd;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: inherit; }
+html, body { margin: 0; }
+body {
+  background: var(--night);
+  color: var(--mist);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.hero {
+  position: relative;
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  padding: 4rem 1.5rem 13rem;
+  background: linear-gradient(180deg, var(--night) 0%, var(--deep) 100%);
+  overflow: hidden;
+}
+.waves { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; pointer-events: none; }
+.wave { position: absolute; left: 0; width: 4800px; height: 120px; fill: none; stroke: var(--straw); stroke-linecap: round; }
+.w1 { bottom: 20%; stroke-width: 2; opacity: .9; animation: flow 22s linear infinite; }
+.w2 { bottom: 34%; stroke-width: 1.5; opacity: .5; animation: flow 34s linear infinite reverse; }
+.w3 { bottom: 8%;  stroke-width: 1;   opacity: .3; animation: flow 48s linear infinite; }
+@keyframes flow { to { transform: translateX(-600px); } }
+.inner { position: relative; max-width: 44rem; margin: 0 auto; width: 100%; }
+h1 {
+  margin: 0 0 1rem;
+  font-family: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(4.5rem, 18vw, 9rem);
+  line-height: .95;
+  letter-spacing: -0.02em;
+  color: var(--mist);
+}
+.tagline { margin: 0 0 .75rem; font-size: clamp(1.25rem, 3.5vw, 1.75rem); color: var(--straw); font-family: "Iowan Old Style", Palatino, Georgia, serif; }
+.lead { margin: 0; max-width: 34rem; font-size: 1.1rem; color: var(--muted); }
+.signup { margin-top: 2rem; max-width: 30rem; }
+.signup label { display: block; margin-bottom: .5rem; color: var(--mist); font-size: 1.05rem; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.signup input[type="email"] { flex: 1 1 14rem; min-width: 0; padding: .85rem 1rem; font: inherit; color: var(--mist); background: rgba(15,34,51,.7); border: 1px solid rgba(223,232,236,.35); border-radius: 6px; }
+.signup input[type="email"]::placeholder { color: var(--muted); }
+.signup input[type="email"]:focus-visible, .signup button:focus-visible { outline: 2px solid var(--straw); outline-offset: 2px; }
+.signup button { padding: .85rem 1.4rem; font: inherit; font-weight: 600; color: var(--night); background: var(--straw); border: 0; border-radius: 6px; cursor: pointer; }
+.signup button:disabled { opacity: .6; cursor: default; }
+.consent { margin: .75rem 0 0; font-size: .85rem; color: var(--muted); }
+.msg { margin: .75rem 0 0; min-height: 1.5rem; color: var(--straw); }
+a { color: var(--straw); }
+.hp { position: absolute; left: -9999px; }
+main { max-width: 44rem; margin: 0 auto; padding: 3.5rem 1.5rem 2rem; }
+h2 { margin: 0 0 1.25rem; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-weight: 400; font-size: 1.75rem; }
+ul { margin: 0 0 2.5rem; padding: 0; list-style: none; }
+li { padding: 1rem 0; border-top: 1px solid rgba(223,232,236,.15); max-width: 38rem; }
+li:last-child { border-bottom: 1px solid rgba(223,232,236,.15); }
+.status { color: var(--straw); font-size: 1.05rem; }
+footer { max-width: 44rem; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; color: var(--muted); font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) { .wave { animation: none; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="waves" aria-hidden="true">
+    <svg class="wave w3" viewBox="0 0 4800 120"><path d="M0 60 Q150 20 300 60 T600 60 T900 60 T1200 60 T1500 60 T1800 60 T2100 60 T2400 60 T2700 60 T3000 60 T3300 60 T3600 60 T3900 60 T4200 60 T4500 60 T4800 60"/></svg>
+    <svg class="wave w2" viewBox="0 0 4800 120"><path d="M0 60 Q150 0 300 60 T600 60 T900 60 T1200 60 T1500 60 T1800 60 T2100 60 T2400 60 T2700 60 T3000 60 T3300 60 T3600 60 T3900 60 T4200 60 T4500 60 T4800 60"/></svg>
+    <svg class="wave w1" viewBox="0 0 4800 120"><path d="M0 60 Q150 100 300 60 T600 60 T900 60 T1200 60 T1500 60 T1800 60 T2100 60 T2400 60 T2700 60 T3000 60 T3300 60 T3600 60 T3900 60 T4200 60 T4500 60 T4800 60"/></svg>
+  </div>
+  <div class="inner">
+    <h1>Stroom</h1>
+    <p class="tagline">Die tuiste van Afrikaanse stories.</p>
+    <p class="lead">Flieks, reekse en dokumentêre programme, in jou eie taal, op een plek.</p>
+    <form class="signup" id="signup" action="https://api.web3forms.com/submit" method="POST">
+      <input type="hidden" name="access_key" value="8422ee05-4316-45bb-8cb1-f024e4bfdbe2">
+      <input type="hidden" name="subject" value="Nuwe Stroom-inskrywing">
+      <input type="hidden" name="from_name" value="Stroom webwerf">
+      <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label for="email">Wil jy eerste weet wanneer Stroom begin?</label>
+      <div class="row">
+        <input id="email" type="email" name="email" required autocomplete="email" placeholder="jy@voorbeeld.co.za">
+        <button type="submit">Laat my weet</button>
+      </div>
+      <p class="consent">Ons stuur jou net nuus oor Stroom. Jy kan enige tyd uitskryf. Deur in te skryf stem jy in dat Fischbowl jou e-posadres hiervoor stoor. Lees ons <a href="/privaatheid">privaatheidskennisgewing</a>.</p>
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</header>
+
+<main>
+  <h2>Wat jy kan verwag</h2>
+  <ul>
+    <li>Afrikaanse flieks en reekse, nuut en lankal vergete.</li>
+    <li>Kortfilms en dokumentêre programme van onafhanklike filmmakers.</li>
+    <li>'n Plek waar filmmakers hul werk kan wys en 'n gehoor kan vind.</li>
+  </ul>
+  <p class="status">Stroom is in die maak. Meer binnekort.</p>
+</main>
+
+<footer>&copy; 2026 Fischbowl &middot; <a href="/privaatheid">Privaatheid</a></footer>
+<script>
+(function () {
+  var f = document.getElementById('signup'), m = document.getElementById('msg');
+  if (!f) return;
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var b = f.querySelector('button');
+    b.disabled = true; m.textContent = 'Een oomblik...';
+    fetch(f.action, { method: 'POST', headers: { Accept: 'application/json' }, body: new FormData(f) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.success) { m.textContent = 'Dankie! Ons laat jou weet.'; f.reset(); }
+        else { m.textContent = 'Iets het skeefgeloop. Probeer asseblief weer.'; b.disabled = false; }
+      })
+      .catch(function () { m.textContent = 'Iets het skeefgeloop. Probeer asseblief weer.'; b.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
