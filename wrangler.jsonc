@@ -1,5 +1,5 @@
 {
-  "name": "stroom-app",
+  "name": "stroom",
   "main": "src/worker.js",
   "compatibility_date": "2026-01-01",
   "assets": {
