@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kies Jou Plan — Stroom Cinema Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+  <script src="https://www.payfast.co.za/onsite/engine.js"></script>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="index.html" class="flex items-center space-x-3">
+        <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Cinema Club</span>
+      </a>
+      <span class="text-xs text-slate-400 font-mono">Stap 2 van 3: Plan-Keuse</span>
+    </div>
+  </header>
+
+  <!-- Plan Selection Container -->
+  <main class="flex-grow flex items-center justify-center p-6 my-8">
+    <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 backdrop-blur-xl relative">
+      
+      <div class="space-y-2 text-center sm:text-left border-b border-slate-800/80 pb-6">
+        <span class="text-xs text-sky-400 font-mono font-bold uppercase tracking-widest">VEILIGE STROOM BETAALPORTAAL</span>
+        <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">KIES JOU STROOM PLAN</h1>
+        <p class="text-xs text-slate-400">Geen langtermyn-kontrakte nie. Kanselleer of verander jou plan enige tyd aanlyn.</p>
+      </div>
+
+      <!-- Plan Cards Grid (3 Options: Gratis AVOD, Maandeliks SVOD, Jaarliks SVOD) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Card 1: Gratis AVOD -->
+        <div id="planAvod" onclick="selectPlan('avod')" class="plan-card border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Gratis AVOD</span>
+              <span class="radio-indicator w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center"></span>
+            </div>
+            <div>
+              <span class="text-3xl font-black text-white">R0</span>
+              <span class="text-xs text-slate-400"> / altyd</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-normal">Kyk gekeurde Afrikaanse rolprente met af-en-toe kort advertensies.</p>
+          </div>
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Basiese Toegang</span>
+        </div>
+
+        <!-- Card 2: Maandeliks Premium (Default) -->
+        <div id="planMonthly" onclick="selectPlan('monthly')" class="plan-card selected border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Maandeliks</span>
+              <span class="radio-indicator w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-sky-400"></span></span>
+            </div>
+            <div>
+              <span class="text-3xl font-black text-white">R59</span>
+              <span class="text-xs text-slate-400"> / maand</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-normal">7 dae gratis toetstydperk. Ad-vrye Full HD stroom op alle toestelle.</p>
+          </div>
+          <span class="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Gewildste Keuse</span>
+        </div>
+
+        <!-- Card 3: Jaarliks Premium -->
+        <div id="planAnnual" onclick="selectPlan('annual')" class="plan-card border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition relative overflow-hidden flex flex-col justify-between">
+          <span class="absolute top-0 right-0 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-3 py-0.5 rounded-bl-lg">Spaar 16%</span>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Jaarliks</span>
+              <span class="radio-indicator w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center"></span>
+            </div>
+            <div>
+              <span class="text-3xl font-black text-white">R590</span>
+              <span class="text-xs text-slate-400"> / jaar</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-normal">Beste waarde. Eenmalige jaarlikse fooi vir onbeperkte ad-vrye toegang.</p>
+          </div>
+          <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Beste Waarde</span>
+        </div>
+
+      </div>
+
+      <!-- Payment Methods Badge -->
+      <div id="paymentBadgeSection" class="space-y-3 pt-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">AANVAARDE BETAALMETODES (SUID-AFRIKA &amp; INTERNASIONAAL)</label>
+        
+        <div class="grid grid-cols-3 gap-3 text-center text-xs font-semibold">
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>💳 Kaart</span>
+            <span class="text-[9px] text-slate-500">Visa / Mastercard</span>
+          </div>
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>🏦 Instant EFT</span>
+            <span class="text-[9px] text-slate-500">Ozow / PayFast</span>
+          </div>
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
+            <span>📱 SnapScan</span>
+            <span class="text-[9px] text-slate-500">Zapper / QR</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="space-y-3 pt-4 border-t border-slate-800">
+        <button id="actionBtn" onclick="confirmPlanChoice()" class="w-full py-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+          BEGIN 7-DAE GRATIS TOETS &amp; BETAAL <span id="btnAmount">R59</span>
+        </button>
+
+        <p class="text-[10px] text-slate-500 text-center leading-normal">
+          🔒 Veilige betaling deur PayFast.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+  </footer>
+
+  
+
+<script>
+    let selectedPlan = 'monthly';
+
+    function selectPlan(plan) {
+      selectedPlan = plan;
+      const avod = document.getElementById('planAvod');
+      const monthly = document.getElementById('planMonthly');
+      const annual = document.getElementById('planAnnual');
+      const btn = document.getElementById('actionBtn');
+      const payBadge = document.getElementById('paymentBadgeSection');
+
+      // Reset card visual borders
+      [avod, monthly, annual].forEach(card => card.classList.remove('selected'));
+
+      if (plan === 'avod') {
+        avod.classList.add('selected');
+        payBadge.classList.add('opacity-40');
+        btn.innerText = "GAAN VOORT MET GRATIS ACCESS (AVOD)";
+      } else if (plan === 'monthly') {
+        monthly.classList.add('selected');
+        payBadge.classList.remove('opacity-40');
+        btn.innerHTML = 'BEGIN 7-DAE GRATIS TOETS &amp; BETAAL R59';
+      } else if (plan === 'annual') {
+        annual.classList.add('selected');
+        payBadge.classList.remove('opacity-40');
+        btn.innerHTML = 'AKTIVEER JAARLIKSE SUBSKRIPSIE — R590';
+      }
+    }
+
+    async function confirmPlanChoice() {
+      if (selectedPlan === 'avod') {
+        const r = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: 'avod' })
+        });
+        if (r.ok) { window.location.href = 'profiel.html'; }
+        else { alert('Kon nie jou plan stoor nie. Teken asseblief weer in.'); window.location.href = 'teken-in.html?mode=login'; }
+        return;
+      }
+
+      // Premium SVOD PayFast Trigger
+      const btn = document.getElementById('actionBtn');
+      const originalText = btn.innerHTML;
+      btn.innerText = "Verbind tans met PayFast...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch("/api/payfast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: selectedPlan
+          })
+        });
+
+        const rawText = await response.text();
+        let data = {};
+        try { data = JSON.parse(rawText); } catch(e) {}
+
+        if (data.uuid && typeof window.payfast_do_onsite_payment === 'function') {
+          window.payfast_do_onsite_payment({
+            uuid: data.uuid
+          }, function(result) {
+            if (result === true) {
+              localStorage.setItem('stroom_subscription', 'svod_active');
+              window.location.href = 'profiel.html';
+            } else {
+              alert("Betaling gekanselleer of onsuksesvol.");
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+            }
+          });
+        } else {
+          alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      } catch (err) {
+        console.error("PayFast Connection Error:", err);
+        alert("Betalings is nog nie oop nie. Stroom is in toetsfase en jy is nie gehef nie.");
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+  
+</script>
+</body>
+</html>

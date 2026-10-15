@@ -1,0 +1,55 @@
+<header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-8">
+        <a href="katalogus.html" class="flex items-center space-x-3">
+          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+          <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Cinema Club</span>
+        </a>
+        <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+          <a href="katalogus.html" class="{{nav:katalogus}}">Katalogus</a>
+          <a href="joernaal.html" class="{{nav:joernaal}}">Joernaal</a>
+          <a href="oor-ons.html" class="{{nav:oor-ons}}">Oor Stroom</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        {{search}}
+        <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Skepper Portaal</a>
+
+        <div class="relative group">
+          <button class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span id="headerProfileName" class="text-xs font-semibold text-slate-300">Profiel</span>
+            <span class="text-[10px] text-slate-500">▼</span>
+          </button>
+
+          <div class="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition duration-200 z-50 backdrop-blur-xl">
+            <div class="p-2 border-b border-slate-800 space-y-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
+              <div onclick="switchProfile(selfName())" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-sky-500/30 border border-sky-400 flex items-center justify-center text-[10px] font-bold text-sky-400" data-self-initial>U</div>
+                <span class="text-xs text-slate-200 font-semibold" data-self>Ulrich</span>
+              </div>
+              <div onclick="switchProfile('Familie')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-purple-500/30 border border-purple-400 flex items-center justify-center text-[10px] font-bold text-purple-400">F</div>
+                <span class="text-xs text-slate-200 font-semibold">Familie</span>
+              </div>
+              <div onclick="switchProfile('Kinders')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-amber-500/30 border border-amber-400 flex items-center justify-center text-[10px] font-bold text-amber-400">K</div>
+                <span class="text-xs text-slate-200 font-semibold">Kinders</span>
+              </div>
+            </div>
+
+            <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
+              <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
+              <a href="rekening.html" class="{{acct}}">Rekening / Planne</a>
+              <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <div class="pt-2 border-t border-slate-800">
+                <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>

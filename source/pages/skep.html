@@ -1,0 +1,73 @@
+<!--page
+title: Stroom Cinema Club
+body: min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950
+header: app
+nav: none
+footer: app
+search: no
+head_extra: 
+-->
+  <!-- Creator Form Portal -->
+  <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-10">
+    <div class="text-center space-y-3 max-w-2xl mx-auto">
+      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Vir Filmmakers &amp; Vervaardigers</span>
+      <h1 class="text-4xl sm:text-5xl font-black text-white uppercase tracking-tight">Word Deel van Stroom</h1>
+      <p class="text-slate-400 font-normal text-sm leading-relaxed">
+        Dien jou film in en genereer 'n nie-eksklusiewe Voorneme-ooreenkoms (LOI). Jy behou 100% van jou intellektuele eiendom.
+      </p>
+    </div>
+
+    <form action="https://api.web3forms.com/submit" method="POST" class="space-y-8 bg-slate-900/90 p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl">
+      <input type="hidden" name="access_key" value="8422ee05-4316-45bb-8cb1-f024e4bfdbe2" />
+      <input type="hidden" name="subject" value="Nuwe Filmmaker LOI" />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Naam &amp; Van</label>
+          <input type="text" id="creatorName" name="creator_name" required placeholder="bv. Johan van der Merwe" oninput="updateLOI()"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">E-posadres</label>
+          <input type="email" name="email" required placeholder="johan@produksies.co.za" 
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Titel van Projek</label>
+          <input type="text" id="projectTitle" name="project_title" required placeholder="bv. Die Laaste Rit" oninput="updateLOI()"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Inhoud Tipe</label>
+          <select id="projectType" name="project_type" onchange="updateLOI()" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="Kortfilm">Kortfilm</option>
+            <option value="Speelfilm">Speelfilm</option>
+            <option value="Dokumentêr">Dokumentêr</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-800 space-y-3">
+        <span class="text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Digitale Ooreenkoms Voorskou (LOI)</span>
+        <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
+          <p class="font-bold text-white uppercase text-center border-b border-slate-800 pb-2">LETTER OF INTENT — NIE-EKSKLUSIEF</p>
+          <p><strong>Partye:</strong> Fischbowl Media &amp; <span id="loiName" class="text-sky-400">[Jou Naam]</span></p>
+          <p><strong>Titel:</strong> <span id="loiTitle" class="text-sky-400">[Titel van Projek]</span> (<span id="loiType" class="text-sky-400">Kortfilm</span>)</p>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 px-6 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+        Dien Film in &amp; Signeer LOI
+      </button>
+    </form>
+  </main>
+
+  <!-- Master Footer -->
+  
+<!--script-->
+    function updateLOI() {
+      document.getElementById('loiName').innerText = document.getElementById('creatorName').value || '[Jou Naam]';
+      document.getElementById('loiTitle').innerText = document.getElementById('projectTitle').value || '[Titel van Projek]';
+      document.getElementById('loiType').innerText = document.getElementById('projectType').value;
+    }
+  

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stroom Cinema Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+<header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-8">
+        <a href="katalogus.html" class="flex items-center space-x-3">
+          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+          <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Cinema Club</span>
+        </a>
+        <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+          <a href="katalogus.html" class="hover:text-white transition">Katalogus</a>
+          <a href="joernaal.html" class="hover:text-white transition">Joernaal</a>
+          <a href="oor-ons.html" class="hover:text-white transition">Oor Stroom</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        
+        <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Skepper Portaal</a>
+
+        <div class="relative group">
+          <button class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span id="headerProfileName" class="text-xs font-semibold text-slate-300">Profiel</span>
+            <span class="text-[10px] text-slate-500">▼</span>
+          </button>
+
+          <div class="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition duration-200 z-50 backdrop-blur-xl">
+            <div class="p-2 border-b border-slate-800 space-y-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
+              <div onclick="switchProfile(selfName())" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-sky-500/30 border border-sky-400 flex items-center justify-center text-[10px] font-bold text-sky-400" data-self-initial>U</div>
+                <span class="text-xs text-slate-200 font-semibold" data-self>Ulrich</span>
+              </div>
+              <div onclick="switchProfile('Familie')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-purple-500/30 border border-purple-400 flex items-center justify-center text-[10px] font-bold text-purple-400">F</div>
+                <span class="text-xs text-slate-200 font-semibold">Familie</span>
+              </div>
+              <div onclick="switchProfile('Kinders')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-amber-500/30 border border-amber-400 flex items-center justify-center text-[10px] font-bold text-amber-400">K</div>
+                <span class="text-xs text-slate-200 font-semibold">Kinders</span>
+              </div>
+            </div>
+
+            <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
+              <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
+              <a href="rekening.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Rekening / Planne</a>
+              <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <div class="pt-2 border-t border-slate-800">
+                <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Creator Form Portal -->
+  <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-10">
+    <div class="text-center space-y-3 max-w-2xl mx-auto">
+      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Vir Filmmakers &amp; Vervaardigers</span>
+      <h1 class="text-4xl sm:text-5xl font-black text-white uppercase tracking-tight">Word Deel van Stroom</h1>
+      <p class="text-slate-400 font-normal text-sm leading-relaxed">
+        Dien jou film in en genereer 'n nie-eksklusiewe Voorneme-ooreenkoms (LOI). Jy behou 100% van jou intellektuele eiendom.
+      </p>
+    </div>
+
+    <form action="https://api.web3forms.com/submit" method="POST" class="space-y-8 bg-slate-900/90 p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl">
+      <input type="hidden" name="access_key" value="8422ee05-4316-45bb-8cb1-f024e4bfdbe2" />
+      <input type="hidden" name="subject" value="Nuwe Filmmaker LOI" />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Naam &amp; Van</label>
+          <input type="text" id="creatorName" name="creator_name" required placeholder="bv. Johan van der Merwe" oninput="updateLOI()"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">E-posadres</label>
+          <input type="email" name="email" required placeholder="johan@produksies.co.za" 
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Titel van Projek</label>
+          <input type="text" id="projectTitle" name="project_title" required placeholder="bv. Die Laaste Rit" oninput="updateLOI()"
+                 class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Inhoud Tipe</label>
+          <select id="projectType" name="project_type" onchange="updateLOI()" class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="Kortfilm">Kortfilm</option>
+            <option value="Speelfilm">Speelfilm</option>
+            <option value="Dokumentêr">Dokumentêr</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-800 space-y-3">
+        <span class="text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Digitale Ooreenkoms Voorskou (LOI)</span>
+        <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
+          <p class="font-bold text-white uppercase text-center border-b border-slate-800 pb-2">LETTER OF INTENT — NIE-EKSKLUSIEF</p>
+          <p><strong>Partye:</strong> Fischbowl Media &amp; <span id="loiName" class="text-sky-400">[Jou Naam]</span></p>
+          <p><strong>Titel:</strong> <span id="loiTitle" class="text-sky-400">[Titel van Projek]</span> (<span id="loiType" class="text-sky-400">Kortfilm</span>)</p>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 px-6 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+        Dien Film in &amp; Signeer LOI
+      </button>
+    </form>
+  </main>
+
+  <!-- Master Footer -->
+  
+
+<footer class="text-center py-10 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <div class="max-w-7xl mx-auto px-6 space-y-4">
+      <p class="text-slate-400 font-semibold tracking-wider uppercase">STROOM — Die Tuisruimte van Afrikaanse Vermaak</p>
+      <p class="space-x-4">
+        <a href="katalogus.html" class="hover:text-slate-300">Katalogus</a>
+        <a href="joernaal.html" class="hover:text-slate-300">Joernaal</a>
+        <a href="oor-ons.html" class="hover:text-slate-300">Oor Stroom</a>
+        <a href="skep.html" class="hover:text-slate-300">Skepper Portaal</a>
+        <a href="privaatheid.html" class="hover:text-slate-300">Privaatheid</a>
+      </p>
+      <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+    </div>
+  </footer>
+
+<script src="/app.js"></script>
+<script>
+    function updateLOI() {
+      document.getElementById('loiName').innerText = document.getElementById('creatorName').value || '[Jou Naam]';
+      document.getElementById('loiTitle').innerText = document.getElementById('projectTitle').value || '[Titel van Projek]';
+      document.getElementById('loiType').innerText = document.getElementById('projectType').value;
+    }
+  
+</script>
+</body>
+</html>
