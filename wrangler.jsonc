@@ -11,5 +11,8 @@
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "stroom-db" }
+  ],
+  "r2_buckets": [
+    { "binding": "VIDEOS", "bucket_name": "stroom-videos" }
   ]
 }
