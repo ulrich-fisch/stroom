@@ -198,7 +198,10 @@
       if (r.ok) {
         msg.className = 'text-sm text-center text-emerald-400';
         msg.textContent = 'Dankie! Jou film is ontvang en wag vir keuring. Ons kontak jou per e-pos.';
-        document.getElementById('skepForm').reset(); updateLOI(); btn.classList.add('hidden');
+        const em = document.getElementById('accountEmailField').value, nm = document.getElementById('creatorName').value;
+        document.getElementById('skepForm').reset();
+        document.getElementById('accountEmailField').value = em; document.getElementById('creatorName').value = nm;
+        updateLOI(); btn.classList.add('hidden');
       } else {
         msg.className = 'text-sm text-center text-rose-400';
         msg.textContent = d.fout || 'Kon nie nou indien nie. Probeer asseblief weer.';
