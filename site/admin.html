@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stroom Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+<header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-8">
+        <a href="katalogus.html" class="flex items-center space-x-3">
+          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        </a>
+        <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+          <a href="katalogus.html" class="hover:text-white transition">Katalogus</a>
+          <a href="joernaal.html" class="hover:text-white transition">Joernaal</a>
+          <a href="oor-ons.html" class="hover:text-white transition">Oor Stroom</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        
+        <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Cinema Club</a>
+
+        <div class="relative group">
+          <button class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span id="headerProfileName" class="text-xs font-semibold text-slate-300">Profiel</span>
+            <span class="text-[10px] text-slate-500">▼</span>
+          </button>
+
+          <div class="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition duration-200 z-50 backdrop-blur-xl">
+            <div class="p-2 border-b border-slate-800 space-y-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
+              <div onclick="switchProfile(selfName())" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-sky-500/30 border border-sky-400 flex items-center justify-center text-[10px] font-bold text-sky-400" data-self-initial>U</div>
+                <span class="text-xs text-slate-200 font-semibold" data-self>Ulrich</span>
+              </div>
+              <div onclick="switchProfile('Familie')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-purple-500/30 border border-purple-400 flex items-center justify-center text-[10px] font-bold text-purple-400">F</div>
+                <span class="text-xs text-slate-200 font-semibold">Familie</span>
+              </div>
+              <div onclick="switchProfile('Kinders')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
+                <div class="w-6 h-6 rounded-lg bg-amber-500/30 border border-amber-400 flex items-center justify-center text-[10px] font-bold text-amber-400">K</div>
+                <span class="text-xs text-slate-200 font-semibold">Kinders</span>
+              </div>
+            </div>
+
+            <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
+              <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
+              <a href="rekening.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Rekening / Planne</a>
+              <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
+              <div class="pt-2 border-t border-slate-800">
+                <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10 w-full space-y-8">
+    <div class="space-y-2">
+      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Slegs vir die eienaar</span>
+      <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">Stroom Admin</h1>
+      <p class="text-sm text-slate-400">Bestuur inhoud, advertensies en Cinema Club-inskrywings. Niks verskyn vir lede voor jy dit publiseer nie.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-4">
+      <button data-tab="titels" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-700 text-white">Titels</button>
+      <button data-tab="ads" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Advertensies</button>
+      <button data-tab="inskrywings" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Inskrywings (Cinema Club)</button>
+      <button data-tab="toets" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Toetsing</button>
+    </div>
+
+    <p id="msg" class="hidden text-sm"></p>
+
+    <!-- TITELS -->
+    <section id="tab-titels" class="space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white uppercase tracking-tight">Titels</h2>
+        <button onclick="nuweTitel()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full uppercase tracking-wider">+ Nuwe titel</button>
+      </div>
+
+      <form id="titelForm" class="hidden bg-slate-900/90 p-6 rounded-2xl border border-slate-800 space-y-5">
+        <input type="hidden" id="t_id">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label class="block md:col-span-2"><span class="lbl">Titel</span><input id="t_titel" required maxlength="120" class="inp"></label>
+          <label class="block"><span class="lbl">Tipe</span><select id="t_tipe" class="inp"></select></label>
+          <label class="block"><span class="lbl">Regisseur / Maker</span><input id="t_regisseur" maxlength="80" class="inp"></label>
+          <label class="block"><span class="lbl">Genre</span><select id="t_genre" class="inp"></select></label>
+          <label class="block"><span class="lbl">Jaar</span><input id="t_jaar" maxlength="4" class="inp" placeholder="2026"></label>
+          <label class="block"><span class="lbl">Ouderdomsgradering</span><input id="t_ouderdom" maxlength="6" class="inp" placeholder="13+"></label>
+          <label class="block"><span class="lbl">Speeltyd</span><input id="t_speeltyd" maxlength="20" class="inp" placeholder="54 min"></label>
+          <label class="block"><span class="lbl">Pas % (vertoon)</span><input id="t_pas" type="number" min="0" max="100" value="90" class="inp"></label>
+          <label class="block md:col-span-3"><span class="lbl">Beeld-skakel (https://)</span><input id="t_banner" maxlength="400" class="inp" placeholder="https://..."></label>
+          <label class="block md:col-span-3"><span class="lbl">Video-skakel (https:// .mp4)</span><input id="t_video" maxlength="400" class="inp" placeholder="https://..."></label>
+          <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
+          <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
+            <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | https://video.mp4"></textarea></label>
+        </div>
+        <div class="flex flex-wrap items-center gap-6">
+          <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="t_uitgelig"> Film van die Dag (hoofbanier)</label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">Status
+            <select id="t_status" class="inp !w-auto"><option value="konsep">Konsep (nie sigbaar nie)</option><option value="gepubliseer">Gepubliseer</option></select></label>
+        </div>
+        <div class="flex gap-3">
+          <button type="submit" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-full uppercase tracking-wider">Stoor</button>
+          <button type="button" onclick="sluitTitel()" class="text-xs border border-slate-700 text-slate-300 px-6 py-2.5 rounded-full uppercase tracking-wider">Kanselleer</button>
+        </div>
+      </form>
+
+      <div id="titelLys" class="space-y-3"></div>
+    </section>
+
+    <!-- ADVERTENSIES -->
+    <section id="tab-ads" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white uppercase tracking-tight">Advertensies (gratis lede)</h2>
+        <button onclick="nuweAd()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full uppercase tracking-wider">+ Nuwe advertensie</button>
+      </div>
+      <p class="text-xs text-slate-400 max-w-3xl">Gratis lede sien een advertensie voor elke film; Premium-lede sien nooit een nie. Is daar meer as een aktiewe advertensie, word &rsquo;n ewekansige een gekies. &ldquo;Vertonings&rdquo; tel hoeveel keer dit gespeel is.</p>
+      <form id="adForm" class="hidden bg-slate-900/90 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <input type="hidden" id="a_id">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Naam (net vir jou)</span><input id="a_naam" required maxlength="80" class="inp"></label>
+          <label class="block"><span class="lbl">Klik-skakel (adverteerder se webwerf, https://)</span><input id="a_klik" maxlength="400" class="inp"></label>
+          <label class="block md:col-span-2"><span class="lbl">Video-skakel (https:// .mp4)</span><input id="a_video" required maxlength="400" class="inp"></label>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="a_aktief" checked> Aktief</label>
+        <div class="flex gap-3">
+          <button type="submit" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-full uppercase tracking-wider">Stoor</button>
+          <button type="button" onclick="sluitAd()" class="text-xs border border-slate-700 text-slate-300 px-6 py-2.5 rounded-full uppercase tracking-wider">Kanselleer</button>
+        </div>
+      </form>
+      <div id="adLys" class="space-y-3"></div>
+    </section>
+
+    <!-- INSKRYWINGS -->
+    <section id="tab-inskrywings" class="hidden space-y-6">
+      <h2 class="text-xl font-bold text-white uppercase tracking-tight">Cinema Club-inskrywings</h2>
+      <p class="text-xs text-slate-400 max-w-3xl">Filmmakers wat Premium is, dien hier in. Kyk die film via hul skakel. Keur jy dit goed, klik &ldquo;Maak titel&rdquo; om dit as konsep in jou katalogus te begin; jy publiseer dit self.</p>
+      <div id="inskLys" class="space-y-3"></div>
+    </section>
+
+    <!-- TOETSING -->
+    <section id="tab-toets" class="hidden space-y-6">
+      <h2 class="text-xl font-bold text-white uppercase tracking-tight">Toetsing: Gratis teenoor Premium</h2>
+      <div class="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 space-y-4 max-w-2xl">
+        <p class="text-sm text-slate-300">Jou eie rekening is nou: <strong id="planNou" class="text-white">...</strong></p>
+        <p class="text-xs text-slate-400 leading-relaxed">Wissel jou eie rekening sonder betaling, en gaan speel dan &rsquo;n film in die katalogus. <strong class="text-slate-200">Gratis</strong> sien &rsquo;n advertensie voor die film; <strong class="text-slate-200">Premium</strong> sien nie. Dit werk net in toetsmodus en raak niemand anders nie.</p>
+        <div class="flex gap-3">
+          <button onclick="toetsPlan('avod')" class="text-xs border border-emerald-500/50 text-emerald-300 px-6 py-2.5 rounded-full uppercase tracking-wider hover:bg-emerald-500/10">Maak my Gratis</button>
+          <button onclick="toetsPlan('svod')" class="text-xs border border-sky-500/50 text-sky-300 px-6 py-2.5 rounded-full uppercase tracking-wider hover:bg-sky-500/10">Maak my Premium</button>
+          <a href="katalogus.html" class="text-xs bg-white text-slate-950 font-bold px-6 py-2.5 rounded-full uppercase tracking-wider">Gaan na katalogus</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <style>
+    .lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:6px; }
+    .inp { width:100%; padding:10px 14px; background:#020617; border:1px solid #1e293b; border-radius:12px; color:#fff; font-size:14px; }
+    .inp:focus { outline:none; border-color:#0ea5e9; }
+  </style>
+
+  <!-- Master Footer -->
+
+<footer class="text-center py-10 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <div class="max-w-7xl mx-auto px-6 space-y-4">
+      <p class="text-slate-400 font-semibold tracking-wider uppercase">STROOM — Die Tuisruimte van Afrikaanse Vermaak</p>
+      <p class="space-x-4">
+        <a href="katalogus.html" class="hover:text-slate-300">Katalogus</a>
+        <a href="joernaal.html" class="hover:text-slate-300">Joernaal</a>
+        <a href="oor-ons.html" class="hover:text-slate-300">Oor Stroom</a>
+        <a href="skep.html" class="hover:text-slate-300">Cinema Club</a>
+        <a href="privaatheid.html" class="hover:text-slate-300">Privaatheid</a>
+      </p>
+      <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+    </div>
+  </footer>
+
+<script src="/app.js"></script>
+<script>
+    function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    const $ = (id) => document.getElementById(id);
+    async function api(path, body) {
+      const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.fout || 'Iets het skeefgeloop.');
+      return d;
+    }
+    function boodskap(t, fout) { const m = $('msg'); m.textContent = t; m.className = 'text-sm ' + (fout ? 'text-rose-400' : 'text-emerald-400'); setTimeout(() => m.classList.add('hidden'), 5000); }
+    const wrap = (e) => { e.preventDefault(); };
+
+    document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((x) => { x.className = 'tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white'; });
+      b.className = 'tab-btn text-xs px-5 py-2 rounded-full border border-slate-700 text-white';
+      ['titels', 'ads', 'inskrywings', 'toets'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+      if (b.dataset.tab === 'toets') laaiPlan();
+    }));
+
+    // ---------- Titels ----------
+    let TITELS = [], META = { tipes: [], genres: {} };
+    function vulKeuses() {
+      $('t_tipe').replaceChildren(...META.tipes.map((t) => { const o = el('option', '', t); o.value = t; return o; }));
+      $('t_genre').replaceChildren(...Object.entries(META.genres).map(([k, v]) => { const o = el('option', '', v); o.value = k; return o; }));
+    }
+    async function laaiTitels() {
+      const d = await api('/api/admin/titels'); TITELS = d.titels; META = { tipes: d.tipes, genres: d.genres }; vulKeuses();
+      const lys = $('titelLys');
+      if (!TITELS.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', 'Nog geen titels nie.')); return; }
+      lys.replaceChildren(...TITELS.map((t) => {
+        const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
+        const left = el('div', 'space-y-1');
+        left.append(el('div', 'font-bold text-white', t.titel + (t.uitgelig ? '  ★' : '')),
+          el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''}`));
+        const right = el('div', 'flex items-center gap-3');
+        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : 'text-amber-400 border-amber-500/40'), t.status));
+        const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigTitel(t);
+        const s = el('button', 'text-xs text-rose-400 hover:text-white', 'Skrap'); s.onclick = () => skrapTitel(t);
+        right.append(w, s); row.append(left, right); return row;
+      }));
+    }
+    function vulTitelVorm(t) {
+      $('t_id').value = t.id || ''; $('t_titel').value = t.titel || ''; $('t_tipe').value = t.tipe || META.tipes[0];
+      $('t_regisseur').value = t.regisseur || ''; $('t_genre').value = t.genre_sleutel || Object.keys(META.genres)[0];
+      $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
+      $('t_pas').value = t.pas == null ? 90 : t.pas; $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
+      $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
+      $('t_status').value = t.status || 'konsep';
+      $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
+    }
+    function nuweTitel() { vulTitelVorm({}); }
+    function wysigTitel(t) { vulTitelVorm(t); }
+    function sluitTitel() { $('titelForm').classList.add('hidden'); }
+    async function skrapTitel(t) { if (!confirm('Skrap "' + t.titel + '" permanent?')) return; try { await api('/api/admin/titel-skrap', { id: t.id }); boodskap('Geskrap.'); laaiTitels(); } catch (e) { boodskap(e.message, true); } }
+    $('titelForm').addEventListener('submit', async (e) => {
+      wrap(e);
+      try {
+        await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
+          genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value, pas: $('t_pas').value,
+          banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
+          uitgelig: $('t_uitgelig').checked, status: $('t_status').value });
+        boodskap('Gestoor.'); sluitTitel(); laaiTitels();
+      } catch (er) { boodskap(er.message, true); }
+    });
+
+    // ---------- Advertensies ----------
+    async function laaiAds() {
+      const d = await api('/api/admin/ads'); const lys = $('adLys');
+      if (!d.advertensies.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', 'Nog geen advertensies nie. Gratis lede sien dan geen advertensie nie.')); return; }
+      lys.replaceChildren(...d.advertensies.map((a) => {
+        const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
+        const left = el('div', 'space-y-1'); left.append(el('div', 'font-bold text-white', a.naam), el('div', 'text-xs text-slate-400', `Vertonings: ${a.vertonings}`));
+        const right = el('div', 'flex items-center gap-3');
+        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (a.aktief ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400 border-slate-600'), a.aktief ? 'aktief' : 'af'));
+        const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigAd(a);
+        const s = el('button', 'text-xs text-rose-400 hover:text-white', 'Skrap'); s.onclick = async () => { if (!confirm('Skrap hierdie advertensie?')) return; try { await api('/api/admin/ad-skrap', { id: a.id }); laaiAds(); } catch (e) { boodskap(e.message, true); } };
+        right.append(w, s); row.append(left, right); return row;
+      }));
+    }
+    function wysigAd(a) { $('a_id').value = a.id || ''; $('a_naam').value = a.naam || ''; $('a_video').value = a.video_url || ''; $('a_klik').value = a.klik_url || ''; $('a_aktief').checked = a.aktief !== false; $('adForm').classList.remove('hidden'); }
+    function nuweAd() { wysigAd({}); }
+    function sluitAd() { $('adForm').classList.add('hidden'); }
+    $('adForm').addEventListener('submit', async (e) => {
+      wrap(e);
+      try { await api('/api/admin/ad', { id: $('a_id').value || null, naam: $('a_naam').value, video_url: $('a_video').value, klik_url: $('a_klik').value, aktief: $('a_aktief').checked }); boodskap('Gestoor.'); sluitAd(); laaiAds(); }
+      catch (er) { boodskap(er.message, true); }
+    });
+
+    // ---------- Inskrywings ----------
+    async function laaiInsk() {
+      const d = await api('/api/admin/inskrywings'); const lys = $('inskLys');
+      if (!d.inskrywings.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', 'Nog geen inskrywings nie.')); return; }
+      lys.replaceChildren(...d.inskrywings.map((i) => {
+        const row = el('div', 'bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-3');
+        const top = el('div', 'flex flex-wrap items-center justify-between gap-3');
+        const left = el('div', 'space-y-1');
+        left.append(el('div', 'font-bold text-white', `${i.title} (${i.type})`), el('div', 'text-xs text-slate-400', `${i.name} • ${i.email} • ${i.created_at.slice(0, 10)}`));
+        top.append(left, el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border text-slate-300 border-slate-600', i.status));
+        const syn = el('p', 'text-xs text-slate-300 leading-relaxed', i.synopsis);
+        const link = el('a', 'text-xs text-sky-400 underline break-all', i.link); link.href = i.link; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        const acts = el('div', 'flex flex-wrap gap-3');
+        const mk = (txt, cls, fn) => { const b = el('button', 'text-xs px-4 py-1.5 rounded-full border ' + cls, txt); b.onclick = fn; return b; };
+        const stel = (st) => async () => { try { await api('/api/admin/inskrywing-status', { id: i.id, status: st }); laaiInsk(); } catch (e) { boodskap(e.message, true); } };
+        acts.append(mk('Keur goed', 'border-emerald-500/50 text-emerald-300', stel('goedgekeur')), mk('Keur af', 'border-rose-500/50 text-rose-300', stel('afgekeur')),
+          mk('Maak titel (konsep)', 'border-sky-500/50 text-sky-300', () => { document.querySelector('[data-tab="titels"]').click(); vulTitelVorm({ titel: i.title, regisseur: i.name, sinopsis: i.synopsis, tipe: META.tipes.includes(i.type) ? i.type : META.tipes[0], status: 'konsep' }); }));
+        row.append(top, syn, link, acts); return row;
+      }));
+    }
+
+    // ---------- Toetsing ----------
+    async function laaiPlan() { const me = await api('/api/me'); $('planNou').textContent = me.plan === 'svod' ? 'Premium (geen advertensies)' : me.plan === 'avod' ? 'Gratis (met advertensies)' : me.plan; }
+    async function toetsPlan(p) { try { await api('/api/admin/toets-plan', { plan: p }); boodskap('Jou rekening is nou ' + (p === 'svod' ? 'Premium.' : 'Gratis.')); laaiPlan(); } catch (e) { boodskap(e.message, true); } }
+
+    laaiTitels().catch((e) => boodskap(e.message, true)); laaiAds().catch(() => {}); laaiInsk().catch(() => {});
+</script>
+</body>
+</html>

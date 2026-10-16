@@ -24,6 +24,7 @@ fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(func
     try { localStorage.setItem('stroom_active_profile', activeProfile); } catch (e) {}
   }
   applyNames();
+  if (me.admin) { var al = document.getElementById('adminLink'); if (al) { al.classList.remove('hidden'); al.classList.add('block'); } }
 }).catch(function () {});
 
 function switchProfile(name) {

@@ -2,11 +2,13 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
+import { handleContent, createContentTables, seedContent, adminOk } from './inhoud.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
 const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
 const NEEDS_PLAN = new Set(['profiel', 'katalogus', 'joernaal', 'oor-ons']);
+const NEEDS_ADMIN = new Set(['admin']);
 const SESSION_DAYS = 30;
 const enc = new TextEncoder();
 
@@ -62,6 +64,8 @@ function init(db) {
     for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
       try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
     }
+    await createContentTables(db);
+    await seedContent(db);
   })();
   return ready;
 }
@@ -107,7 +111,7 @@ async function api(request, env, url) {
 
   if (path === '/api/me') {
     const u = await getUser(request, env.DB);
-    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null }) : json({ fout: 'Nie ingeteken nie.' }, 401);
+    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null, admin: adminOk(u, env) }) : json({ fout: 'Nie ingeteken nie.' }, 401);
   }
   if (path === '/api/export') {
     const u = await getUser(request, env.DB);
@@ -131,6 +135,11 @@ async function api(request, env, url) {
     return json({ bou: 'betalings-2', betalings_gereed: !!c, modus: env.PAYFAST_MODE || null, handelaar: c ? c.merchantId : null,
       sleutel_lengte: String(env.PAYFAST_MERCHANT_KEY || '').length, wagfrase_lengte: String(env.PAYFAST_PASSPHRASE || '').length,
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
+  }
+  {
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/')) ? await getUser(request, env.DB) : null;
+    const c = await handleContent({ request, env, path, post, u: cu });
+    if (c) return c;
   }
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
 
@@ -287,7 +296,7 @@ async function handle(request, env) {
     let page = url.pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');
     if (page === '') page = 'index';
 
-    const protectedPage = NEEDS_SESSION.has(page) || NEEDS_PLAN.has(page);
+    const protectedPage = NEEDS_SESSION.has(page) || NEEDS_PLAN.has(page) || NEEDS_ADMIN.has(page);
     const isHtml = !page.includes('.') ;
     if (isHtml && !PUBLIC_PAGES.has(page) && !protectedPage) return env.ASSETS.fetch(request); // 404 deur Cloudflare
 
@@ -299,6 +308,7 @@ async function handle(request, env) {
     const user = await getUser(request, env.DB);
     if (!user) return redirect('/teken-in.html?mode=login');
     if (NEEDS_PLAN.has(page) && user.plan === 'none') return redirect('/kies-plan.html');
+    if (NEEDS_ADMIN.has(page) && !adminOk(user, env)) return new Response('Nie gevind nie.', { status: 404 });
 
     const res = await env.ASSETS.fetch(request);
     const out = new Response(res.body, res);
