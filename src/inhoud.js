@@ -5,7 +5,13 @@ const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
 export const TIPES = ['Dokumentêr', 'Kortfilm', 'Speelfilm', 'Reeks'];
-export const GENRES = { aksie: 'Aksie & Spanning', komedie: 'Komedie', dokumenter: 'Dokumentêre', drama: 'Drama', kuns: 'Kuns & Musiek' };
+export const GENRES = {
+  aksie: 'Aksie & Spanning', avontuur: 'Avontuur', animasie: 'Animasie', biografie: 'Biografie', dokumenter: 'Dokumentêre', drama: 'Drama',
+  familie: 'Familie & Kinders', fantasie: 'Fantasie', geloof: 'Geloof & Inspirasie', geskiedenis: 'Geskiedenis', gruwel: 'Gruwel',
+  komedie: 'Komedie', kultuur: 'Kultuur & Erfenis', kuns: 'Kuns & Musiek', liefde: 'Romanse', misdaad: 'Misdaad & Riller',
+  natuur: 'Natuur & Wild', oorlog: 'Oorlog & Militêr', platteland: 'Platteland & Boerdery', reis: 'Reis & Kos', sport: 'Sport',
+  wetenskap: 'Wetenskap & Tegnologie', wetenskapfiksie: 'Wetenskapfiksie',
+};
 const STATUSSE = ['gepubliseer', 'konsep'];
 const INSKRYWING_STATUSSE = ['hangende', 'goedgekeur', 'afgekeur'];
 
@@ -87,7 +93,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
     if (u.plan === 'none') return json({ fout: 'Kies eers jou plan.' }, 403);
     const rows = await db.prepare("SELECT * FROM titels WHERE status = 'gepubliseer' ORDER BY uitgelig DESC, id ASC").all();
-    return json({ plan: u.plan, titels: rows.results.map(publiek) });
+    return json({ plan: u.plan, genres: GENRES, titels: rows.results.map(publiek) });
   }
 
   if (path === '/api/speel' && post) {

@@ -5,6 +5,7 @@ header: app
 nav: katalogus
 footer: app
 search: yes
+filters: yes
 head_extra: 
 -->
   <!-- Spotlight Banner (gevul uit die katalogus) -->
@@ -25,25 +26,10 @@ head_extra:
   <!-- Filter & Controls Section -->
   <main class="max-w-7xl mx-auto px-6 py-10 w-full space-y-10">
 
-    <!-- Filters Bar -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-800">
-      <div class="flex flex-wrap gap-2">
-        <button onclick="setTypeFilter('all', this)" class="type-btn active text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-300 hover:text-white transition">Alle Inhoud</button>
-        <button onclick="setTypeFilter('film', this)" class="type-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white transition">Films / Movies</button>
-        <button onclick="setTypeFilter('reeks', this)" class="type-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white transition">Reekse / Series</button>
-      </div>
-
-      <div class="flex items-center space-x-3 w-full md:w-auto">
-        <label for="genreSelect" class="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Genre Filter:</label>
-        <select id="genreSelect" onchange="filterFilms()" class="w-full md:w-56 px-4 py-2 bg-slate-900 border border-slate-800 rounded-full text-xs text-white focus:outline-none focus:border-sky-500 transition">
-          <option value="all">Alle Genres</option>
-          <option value="aksie">Aksie &amp; Spanning</option>
-          <option value="komedie">Komedie</option>
-          <option value="dokumenter">Dokumentêre</option>
-          <option value="drama">Drama</option>
-          <option value="kuns">Kuns &amp; Musiek</option>
-        </select>
-      </div>
+    <!-- Aktiewe filters (kies bo in die kopstuk) -->
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
+      <p id="filterStatus" class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Alle inhoud &bull; Alle genres</p>
+      <button id="filterClear" onclick="clearFilters()" class="hidden text-xs border border-slate-700 hover:border-white text-slate-300 hover:text-white px-4 py-1.5 rounded-full transition">Maak filters skoon</button>
     </div>
 
     <!-- My Watchlist Section -->
@@ -179,17 +165,17 @@ head_extra:
 <!--script-->
     const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const jsonHdr = { 'Content-Type': 'application/json' };
-    let TITELS = [];
+    let TITELS = [], GENRES = {};
     const byKey = (slug) => TITELS.find((t) => t.slug === slug);
-    const typeKind = (t) => (t.tipe === 'Reeks' ? 'reeks' : 'film');
+    const typeKind = (t) => (t.tipe === 'Reeks' ? 'reeks' : t.tipe === 'Dokumentêr' ? 'dokumenter' : 'film');
     const badgeColor = (t) => (t.tipe === 'Reeks' ? 'text-red-400' : t.tipe === 'Kortfilm' ? 'text-sky-400' : t.genre_sleutel === 'kuns' ? 'text-purple-400' : 'text-sky-400');
 
     async function laaiKatalogus() {
       let r;
       try { r = await fetch('/api/katalogus'); } catch (e) { r = null; }
       if (!r || !r.ok) { document.getElementById('heroSynopsis').textContent = 'Kon nie die katalogus laai nie. Probeer asseblief weer.'; return; }
-      TITELS = (await r.json()).titels;
-      renderHero(); renderGrid(); renderWatchlist();
+      const d = await r.json(); TITELS = d.titels; GENRES = d.genres || {};
+      renderGenreMenu(); renderHero(); renderGrid(); renderWatchlist();
     }
 
     function renderHero() {
@@ -341,22 +327,38 @@ head_extra:
 
     function formatTime(sec) { const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return `${m}:${s < 10 ? '0' : ''}${s}`; }
 
-    let currentTypeFilter = 'all';
-    function setTypeFilter(type, btn) {
-      currentTypeFilter = type;
-      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active'); filterFilms();
+    // Filters (kopstuk-aftreklyste)
+    let typeF = 'all', genreF = 'all', typeName = 'Alle Inhoud', genreName = 'Alle genres';
+    function renderGenreMenu() {
+      const box = document.getElementById('genreItems');
+      const used = Object.keys(GENRES).filter((k) => TITELS.some((t) => t.genre_sleutel === k));
+      const mk = (v, label) => `<button type="button" onclick="setGenreFilter('${esc(v)}', '${esc(label).replace(/&#39;/g, '')}')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">${esc(label)}</button>`;
+      box.innerHTML = mk('all', 'Alle Genres') + used.map((k) => mk(k, GENRES[k])).join('');
+    }
+    function setTypeFilter(type, label) { typeF = type; typeName = label; if (document.activeElement) document.activeElement.blur(); updateFilterUi(); filterFilms(); scrollToCatalogue(); }
+    function setGenreFilter(genre, label) { genreF = genre; genreName = genre === 'all' ? 'Alle genres' : label; if (document.activeElement) document.activeElement.blur(); updateFilterUi(); filterFilms(); scrollToCatalogue(); }
+    function clearFilters() { typeF = 'all'; genreF = 'all'; typeName = 'Alle Inhoud'; genreName = 'Alle genres'; updateFilterUi(); filterFilms(); }
+    function scrollToCatalogue() { const g = document.getElementById('catalogGrid'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    function updateFilterUi() {
+      document.getElementById('typeLabel').textContent = typeF === 'all' ? 'Tipe' : typeName;
+      document.getElementById('genreLabel').textContent = genreF === 'all' ? 'Genre' : genreName;
+      document.getElementById('filterStatus').textContent = `${typeName} • ${genreName}`;
+      document.getElementById('filterClear').classList.toggle('hidden', typeF === 'all' && genreF === 'all');
     }
 
     function filterFilms() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      const genre = document.getElementById('genreSelect').value;
+      const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+      let shown = 0;
       document.querySelectorAll('.film-item').forEach(item => {
         const title = item.getAttribute('data-title');
         const type = item.getAttribute('data-type');
         const itemGenre = item.getAttribute('data-genre');
-        item.style.display = (title.includes(q) && (currentTypeFilter === 'all' || type === currentTypeFilter) && (genre === 'all' || itemGenre === genre)) ? 'block' : 'none';
+        const show = title.includes(q) && (typeF === 'all' || type === typeF) && (genreF === 'all' || itemGenre === genreF);
+        item.style.display = show ? 'block' : 'none'; if (show) shown++;
       });
+      let none = document.getElementById('geenResultate');
+      if (!none) { none = document.createElement('p'); none.id = 'geenResultate'; none.className = 'text-sm text-slate-400 col-span-full'; none.textContent = 'Niks gevind nie. Probeer \'n ander filter.'; document.getElementById('catalogGrid').after(none); }
+      none.style.display = shown || !TITELS.length ? 'none' : 'block';
     }
 
     // My Lys: slegs die titel se kode word onthou (nie die video-adres nie)

@@ -13,6 +13,18 @@ ACCT_IDLE = 'block p-2 rounded-lg hover:bg-slate-800/80 transition'
 SEARCH = ('<input type="text" id="searchInput" onkeyup="filterFilms()" placeholder="Soek films..." '
           'class="px-4 py-1.5 bg-slate-900 border border-slate-800 rounded-full text-xs text-white placeholder-slate-500 '
           'focus:outline-none focus:border-sky-500 transition w-32 sm:w-48"/>')
+MENU = ('absolute left-0 pt-2 w-60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto '
+        'group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition duration-200 z-50')
+BOX = 'bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300'
+BTN = ('flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 '
+       'transition focus:outline-none text-xs font-semibold text-slate-300')
+ITEM = 'block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition'
+def _type_item(v, label): return f'<button type="button" onclick="setTypeFilter(\'{v}\', \'{label}\')" class="{ITEM}">{label}</button>'
+FILTERS = ('<div class="flex items-center space-x-2">'
+           f'<div class="relative group"><button type="button" class="{BTN}"><span id="typeLabel">Tipe</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
+           f'<div class="{MENU}"><div class="{BOX}">' + ''.join([_type_item('all', 'Alle Inhoud'), _type_item('film', 'Films'), _type_item('reeks', 'Reekse'), _type_item('dokumenter', 'Dokument&ecirc;re')]) + '</div></div></div>'
+           f'<div class="relative group"><button type="button" class="{BTN}"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
+           f'<div class="{MENU}"><div id="genreItems" class="{BOX} max-h-80 overflow-y-auto"></div></div></div></div>')
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
          '  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">')
@@ -38,6 +50,7 @@ def build():
             for n in ('katalogus', 'joernaal', 'oor-ons'):
                 h = h.replace('{{nav:%s}}' % n, ACTIVE if meta.get('nav') == n else IDLE)
             h = h.replace('{{acct}}', ACCT_ACTIVE if meta.get('acct') == 'active' else ACCT_IDLE)
+            h = h.replace('{{filters}}', FILTERS if meta.get('filters') == 'yes' else '')
             h = h.replace('{{search}}', SEARCH if meta.get('search') == 'yes' else '')
             parts.append(h)
         parts.append(content)
