@@ -82,8 +82,9 @@ t('deleted account cannot log in', (await post('/api/login', { email: 'test@stro
 t('deleted account session dead', (await call('/katalogus', {}, cookieD)).status === 302);
 t('email can be re-registered after delete', (await post('/api/register', { email: 'test@stroom.co.za', password: 'another-pass-1' })).status === 200);
 
+const buildCheckoutForTest = (user) => buildCheckout({ cfg: { merchantId: '1', merchantKey: 'k', passphrase: 'p', process: 'x' }, user, orderId: 'S1', planKey: 'monthly', origin: 'https://x.test', now: Date.now() }).fields;
 // 6c. Betalings (PayFast, toetsmodus met valse sleutels)
-import { formSignature, itnParamString, itnSignatureOk, md5, pfEncode, saDate } from '../src/payfast.js';
+import { buildCheckout, formSignature, itnParamString, itnSignatureOk, md5, pfEncode, saDate } from '../src/payfast.js';
 r = await post('/api/register', { email: 'pay@stroom.co.za', name: 'Pieter van Wyk', password: 'pay-pass-1234' }); const pc = ck(r);
 await post('/api/plan', { plan: 'avod' }, pc);
 t('checkout closed without PayFast keys', (await post('/api/checkout', { plan: 'monthly' }, pc)).status === 503);
@@ -101,6 +102,8 @@ t('signature changes if amount tampered', formSignature({ ...rest0, amount: '1.0
 t('merchant key/passphrase: key only in form, passphrase never sent', !JSON.stringify(co).includes('test pass'));
 r = await post('/api/checkout', { plan: 'annual' }, pc); const coA = await r.json();
 t('annual = R590 now, yearly', coA.fields.amount === '590.00' && coA.fields.recurring_amount === '590.00' && coA.fields.frequency === '6');
+{ const odd = buildCheckoutForTest({ name: "Zoë O'Brien-Smit", email: 'ulrich+test@gmail.com' });
+  t('odd name cleaned, plus-email left out of the signed form', odd.name_first === 'Zoe' && odd.name_last === 'OBrien-Smit' && !('email_address' in odd) === false ? odd.email_address === '' : false); }
 t('encoding matches PHP urlencode', pfEncode("a b!'()*~@é") === 'a+b%21%27%28%29%2A%7E%40%C3%A9');
 
 const signItn = (obj, pass = 'test pass&1') => { const pairs = Object.entries(obj); const body = itnParamString(pairs) + '&signature=' + md5(itnParamString(pairs) + '&passphrase=' + pfEncode(pass)); return body; };

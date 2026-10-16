@@ -50,13 +50,18 @@ export function saDate(daysAhead = 0, now = Date.now()) {
 
 export function buildCheckout({ cfg, user, orderId, planKey, origin, now }) {
   const p = PLANS[planKey];
-  const [first, ...rest] = String(user.name || user.email.split('@')[0]).split(' ');
+  // Sommige spesiale karakters (bv. '+' in e-pos, aksente of aanhalingstekens in name) veroorsaak
+  // handtekening-foute by PayFast. Name word skoongemaak; 'n ongewone e-pos word weggelaat
+  // (PayFast vra dit dan self van die koper).
+  const clean = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 .-]/g, '').replace(/\s+/g, ' ').trim();
+  const [first, ...rest] = (clean(user.name) || clean(user.email.split('@')[0]) || 'Lid').split(' ');
+  const safeEmail = /^[A-Za-z0-9._@-]+$/.test(user.email) ? user.email : '';
   const fields = {
     merchant_id: cfg.merchantId, merchant_key: cfg.merchantKey,
     return_url: `${origin}/rekening.html?betaling=terug`,
     cancel_url: `${origin}/kies-plan.html?betaling=gekanselleer`,
     notify_url: `${origin}/api/payfast-itn`,
-    name_first: first, name_last: rest.join(' '), email_address: user.email,
+    name_first: first, name_last: rest.join(' '), email_address: safeEmail,
     m_payment_id: orderId,
     amount: p.trialDays ? '0.00' : p.recurring,
     item_name: p.item,
