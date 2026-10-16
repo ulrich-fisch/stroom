@@ -17,6 +17,12 @@ const INSKRYWING_STATUSSE = ['hangende', 'goedgekeur', 'afgekeur'];
 
 export const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
 const isHttps = (s) => /^https:\/\/[^\s"'<>]+$/i.test(s);
+// Media-adres: 'n https-skakel of 'n eie opgelaaide lêer (/media/<sleutel>)
+const MEDIA_RE = /^\/media\/[a-f0-9]{24}\.(mp4|webm|m4v|jpg|jpeg|png|webp)$/;
+const isMedia = (s) => isHttps(s) || MEDIA_RE.test(s);
+export const MEDIA_KEY = /^[a-f0-9]{24}\.(mp4|webm|m4v|jpg|jpeg|png|webp)$/;
+const MEDIA_TYPES = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+const MAX_UPLOAD = 90 * 1024 * 1024;   // Workers aanvaar tot ~100 MB per versoek
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 
 export async function createContentTables(db) {
@@ -68,7 +74,7 @@ function parseEpisodes(text) {
   for (const line of String(text || '').split('\n')) {
     if (!line.trim()) continue;
     const [ep, titel, duur, beskrywing, url] = line.split('|').map((x) => x.trim());
-    if (!titel || !isHttps(url || '')) return null;
+    if (!titel || !isMedia(url || '')) return null;
     out.push({ ep: clip(ep, 12) || `Ep ${out.length + 1}`, titel: clip(titel, 120), duur: clip(duur, 20), beskrywing: clip(beskrywing, 300), url });
   }
   return out;
@@ -86,6 +92,19 @@ export async function handleContent({ request, env, path, post, u }) {
   if (!(path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/'))) return null;
   const db = env.DB;
   const isAdmin = adminOk(u, env);
+  // Lêer-oplaai (rou lêer, nie JSON nie) - slegs die eienaar
+  if (path === '/api/admin/laai-op' && post) {
+    if (!isAdmin) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (!env.VIDEOS) return json({ fout: 'Lêer-bewaring is nog nie opgestel nie (R2).' }, 503);
+    const ext = String(new URL(request.url).searchParams.get('ext') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!MEDIA_TYPES[ext]) return json({ fout: 'Kies \'n MP4- of WebM-video, of \'n JPG/PNG/WEBP-beeld. (MKV/AVI moet eers na MP4 omgesit word, bv. met HandBrake.)' }, 400);
+    const len = Number(request.headers.get('Content-Length') || 0);
+    if (!len) return json({ fout: 'Leë lêer.' }, 400);
+    if (len > MAX_UPLOAD) return json({ fout: 'Die lêer is te groot (maks 90 MB). Druk dit eers kleiner met HandBrake.' }, 413);
+    const key = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, '0')).join('') + '.' + ext;
+    await env.VIDEOS.put(key, request.body, { httpMetadata: { contentType: MEDIA_TYPES[ext] } });
+    return json({ ok: true, url: '/media/' + key });
+  }
   const body = post ? await request.json().catch(() => ({})) : {};
 
   // ----- Lede -----
@@ -136,8 +155,8 @@ export async function handleContent({ request, env, path, post, u }) {
     const genre = GENRES[body.genre_sleutel] ? body.genre_sleutel : null;
     const banner = clip(body.banner, 400), video = clip(body.video_url, 400);
     if (!titel || !tipe || !genre) return json({ fout: 'Titel, tipe en genre is verpligtend.' }, 400);
-    if (banner && !isHttps(banner)) return json({ fout: 'Die beeld-skakel moet met https:// begin.' }, 400);
-    if (video && !isHttps(video)) return json({ fout: 'Die video-skakel moet met https:// begin.' }, 400);
+    if (banner && !isMedia(banner)) return json({ fout: 'Die beeld moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
+    if (video && !isMedia(video)) return json({ fout: 'Die video moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
     const eps = parseEpisodes(body.episodes_teks);
     if (eps === null) return json({ fout: 'Episodes: een per lyn as  Ep 1 | Titel | 28 min | Beskrywing | https://...' }, 400);
     if (status === 'gepubliseer' && !banner) return json({ fout: 'Gepubliseerde titels het \'n beeld nodig.' }, 400);
@@ -171,7 +190,7 @@ export async function handleContent({ request, env, path, post, u }) {
 
   if (path === '/api/admin/ad' && post) {
     const naam = clip(body.naam, 80), video = clip(body.video_url, 400), klik = clip(body.klik_url, 400);
-    if (!naam || !isHttps(video)) return json({ fout: 'Naam en \'n https:// video-skakel is verpligtend.' }, 400);
+    if (!naam || !isMedia(video)) return json({ fout: 'Naam en \'n video (https://-skakel of opgelaaide lêer) is verpligtend.' }, 400);
     if (klik && !isHttps(klik)) return json({ fout: 'Die klik-skakel moet met https:// begin.' }, 400);
     if (body.id) await db.prepare('UPDATE advertensies SET naam=?, video_url=?, klik_url=?, aktief=? WHERE id = ?').bind(naam, video, klik || null, body.aktief ? 1 : 0, Number(body.id)).run();
     else await db.prepare('INSERT INTO advertensies (naam, video_url, klik_url, aktief, created_at) VALUES (?,?,?,?,?)').bind(naam, video, klik || null, body.aktief === false ? 0 : 1, Date.now()).run();
@@ -203,4 +222,24 @@ export async function handleContent({ request, env, path, post, u }) {
   }
 
   return json({ fout: 'Nie gevind nie.' }, 404);
+}
+
+// Bedien opgelaaide media (slegs vir ingetekende lede met 'n plan), met Range-ondersteuning vir video
+export async function serveMedia(request, env, u, key) {
+  if (!u) return new Response('Nie ingeteken nie.', { status: 401 });
+  if (u.plan === 'none') return new Response('Kies eers jou plan.', { status: 403 });
+  if (!env.VIDEOS || !MEDIA_KEY.test(key)) return new Response('Nie gevind nie.', { status: 404 });
+  const ranged = request.headers.has('Range');
+  const obj = await env.VIDEOS.get(key, ranged ? { range: request.headers } : undefined);
+  if (!obj) return new Response('Nie gevind nie.', { status: 404 });
+  const headers = { 'Content-Type': (obj.httpMetadata && obj.httpMetadata.contentType) || 'application/octet-stream',
+    'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600' };
+  let status = 200;
+  if (ranged && obj.range) {
+    let { offset, length, suffix } = obj.range;
+    if (suffix != null) { offset = obj.size - suffix; length = suffix; }
+    offset = offset || 0; length = length == null ? obj.size - offset : length;
+    headers['Content-Range'] = `bytes ${offset}-${offset + length - 1}/${obj.size}`; headers['Content-Length'] = String(length); status = 206;
+  } else headers['Content-Length'] = String(obj.size);
+  return new Response(request.method === 'HEAD' ? null : obj.body, { status, headers });
 }

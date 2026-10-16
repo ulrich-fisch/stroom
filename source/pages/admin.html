@@ -41,11 +41,15 @@ head_extra:
           <label class="block"><span class="lbl">Ouderdomsgradering</span><input id="t_ouderdom" maxlength="6" class="inp" placeholder="13+"></label>
           <label class="block"><span class="lbl">Speeltyd</span><input id="t_speeltyd" maxlength="20" class="inp" placeholder="54 min"></label>
           <label class="block"><span class="lbl">Pas % (vertoon)</span><input id="t_pas" type="number" min="0" max="100" value="90" class="inp"></label>
-          <label class="block md:col-span-3"><span class="lbl">Beeld-skakel (https://)</span><input id="t_banner" maxlength="400" class="inp" placeholder="https://..."></label>
-          <label class="block md:col-span-3"><span class="lbl">Video-skakel (https:// .mp4)</span><input id="t_video" maxlength="400" class="inp" placeholder="https://..."></label>
+          <label class="block md:col-span-3"><span class="lbl">Beeld (poster): laai op, of plak &rsquo;n https://-skakel</span><input id="t_banner" maxlength="400" class="inp" placeholder="/media/... of https://...">
+            <input type="file" accept="image/jpeg,image/png,image/webp" onchange="laaiOp(this, 't_banner')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
+          <label class="block md:col-span-3"><span class="lbl">Video: laai op (MP4 of WebM, maks 90 MB), of plak &rsquo;n https://-skakel</span><input id="t_video" maxlength="400" class="inp" placeholder="/media/... of https://...">
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_video')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
           <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
-            <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | https://video.mp4"></textarea></label>
+            <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | /media/... of https://video.mp4"></textarea>
+            <span class="block mt-2 text-[11px] text-slate-500">Episode-video nodig? Laai dit hier op en plak die skakel in die lyn hierbo:</span>
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span></label>
         </div>
         <div class="flex flex-wrap items-center gap-6">
           <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="t_uitgelig"> Film van die Dag (hoofbanier)</label>
@@ -73,7 +77,8 @@ head_extra:
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label class="block"><span class="lbl">Naam (net vir jou)</span><input id="a_naam" required maxlength="80" class="inp"></label>
           <label class="block"><span class="lbl">Klik-skakel (adverteerder se webwerf, https://)</span><input id="a_klik" maxlength="400" class="inp"></label>
-          <label class="block md:col-span-2"><span class="lbl">Video-skakel (https:// .mp4)</span><input id="a_video" required maxlength="400" class="inp"></label>
+          <label class="block md:col-span-2"><span class="lbl">Video: laai op (MP4 of WebM), of plak &rsquo;n https://-skakel</span><input id="a_video" required maxlength="400" class="inp" placeholder="/media/... of https://...">
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 'a_video')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
         </div>
         <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="a_aktief" checked> Aktief</label>
         <div class="flex gap-3">
@@ -132,6 +137,27 @@ head_extra:
       ['titels', 'ads', 'inskrywings', 'toets'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
       if (b.dataset.tab === 'toets') laaiPlan();
     }));
+
+    // ---------- Lêer-oplaai (na R2) ----------
+    function laaiOp(input, targetId) {
+      const f = input.files && input.files[0]; if (!f) return;
+      const status = input.parentElement.querySelector('.up-status');
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (f.size > 90 * 1024 * 1024) { status.textContent = 'Te groot (maks 90 MB). Druk dit eers kleiner met HandBrake.'; status.className = 'up-status ml-2 text-xs text-rose-400'; input.value = ''; return; }
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/admin/laai-op?ext=' + encodeURIComponent(ext));
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) { status.className = 'up-status ml-2 text-xs text-slate-300'; status.textContent = 'Laai op... ' + Math.round(e.loaded / e.total * 100) + '%'; } };
+      xhr.onload = () => {
+        let d = {}; try { d = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 200 && d.url) {
+          if (targetId) document.getElementById(targetId).value = d.url;
+          status.className = 'up-status ml-2 text-xs text-emerald-400'; status.textContent = targetId ? 'Opgelaai.' : 'Opgelaai. Skakel: ' + d.url;
+        } else { status.className = 'up-status ml-2 text-xs text-rose-400'; status.textContent = d.fout || 'Oplaai het misluk.'; }
+        input.value = '';
+      };
+      xhr.onerror = () => { status.className = 'up-status ml-2 text-xs text-rose-400'; status.textContent = 'Oplaai het misluk. Probeer weer.'; };
+      xhr.send(f);
+    }
 
     // ---------- Titels ----------
     let TITELS = [], META = { tipes: [], genres: {} };

@@ -2,7 +2,7 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
-import { handleContent, createContentTables, seedContent, adminOk } from './inhoud.js';
+import { handleContent, createContentTables, seedContent, adminOk, serveMedia } from './inhoud.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
@@ -291,6 +291,11 @@ async function api(request, env, url) {
 async function handle(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) return api(request, env, url);
+    if (url.pathname.startsWith('/media/')) {
+      if (!env.DB) return new Response('Dienste is tydelik nie beskikbaar nie.', { status: 503 });
+      await init(env.DB);
+      return serveMedia(request, env, await getUser(request, env.DB), url.pathname.slice(7));
+    }
 
     // Bladsy-naam: /katalogus.html en /katalogus -> "katalogus"; / -> "index"
     let page = url.pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');

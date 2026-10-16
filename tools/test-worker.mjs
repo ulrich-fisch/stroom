@@ -243,4 +243,33 @@ await post('/api/admin/inskrywing-status', { id: mkI.id, status: 'goedgekeur' },
 t('admin: can approve submission', (await (await call('/api/admin/inskrywings', {}, ow)).json()).inskrywings.find((x) => x.id === mkI.id).status === 'goedgekeur');
 t('admin: rejects bad submission status', (await post('/api/admin/inskrywing-status', { id: mkI.id, status: 'gepubliseer' }, ow)).status === 400);
 
+// 6f. Eie lêers (R2)
+const store = new Map();
+const up = (path, bytes, cookie, extra = {}) => worker.fetch(new Request('https://x.test' + path, { method: 'POST', body: bytes, headers: { 'Content-Length': String(bytes.length), ...(cookie ? { Cookie: cookie } : {}), ...extra } }), env);
+t('upload: R2 not configured -> 503', (await up('/api/admin/laai-op?ext=mp4', new Uint8Array(10), ow)).status === 503);
+env.VIDEOS = {
+  put: async (key, body, o) => { const buf = new Uint8Array(await new Response(body).arrayBuffer()); store.set(key, { buf, httpMetadata: o.httpMetadata }); },
+  get: async (key, o) => { const e = store.get(key); if (!e) return null; let body = e.buf, range;
+    if (o && o.range) { const m = /bytes=(\d*)-(\d*)/.exec(o.range.get('Range')); const a = Number(m[1]), b = m[2] ? Number(m[2]) : e.buf.length - 1; body = e.buf.slice(a, b + 1); range = { offset: a, length: body.length }; }
+    return { body, size: e.buf.length, httpMetadata: e.httpMetadata, range }; } };
+const bytes = new Uint8Array(1000).map((_, i) => i % 256);
+t('upload: member cannot', (await up('/api/admin/laai-op?ext=mp4', bytes, lid)).status === 404);
+t('upload: anonymous cannot', (await up('/api/admin/laai-op?ext=mp4', bytes)).status === 404);
+t('upload: .mkv refused with hint', (await up('/api/admin/laai-op?ext=mkv', bytes, ow)).status === 400);
+t('upload: .exe refused', (await up('/api/admin/laai-op?ext=exe', bytes, ow)).status === 400);
+r = await up('/api/admin/laai-op?ext=mp4', bytes, ow); const upj = await r.json();
+t('upload: admin mp4 ok', r.status === 200 && /^\/media\/[0-9a-f]{24}\.mp4$/.test(upj.url) && store.size === 1);
+t('media: anonymous refused', (await call(upj.url)).status === 401);
+r = await call(upj.url, {}, lid);
+t('media: member gets full file', r.status === 200 && (await r.arrayBuffer()).byteLength === 1000 && r.headers.get('Accept-Ranges') === 'bytes');
+r = await call(upj.url, { headers: { Range: 'bytes=10-19' } }, lid);
+t('media: range request -> 206', r.status === 206 && r.headers.get('Content-Range') === 'bytes 10-19/1000' && (await r.arrayBuffer()).byteLength === 10);
+t('media: bad key 404', (await call('/media/..%2F..%2Fetc.mp4', {}, lid)).status === 404 && (await call('/media/abc.mp4', {}, lid)).status === 404);
+r = await post('/api/admin/titel', { titel: 'Eie Toets', tipe: 'Kortfilm', genre_sleutel: 'drama', jaar: 2026, ouderdom: 'PG', speeltyd: '1 min', pas: 90, banner: upj.url, video_url: upj.url, sinopsis: 'x', uitgelig: false, status: 'gepubliseer' }, ow);
+t('admin: title with uploaded /media URLs accepted', r.status === 200);
+r = await post('/api/admin/ad', { naam: 'Eie Ad', video_url: upj.url, klik_url: '', aktief: true }, ow);
+t('admin: ad with uploaded /media video accepted', r.status === 200);
+t('admin: title with http:// still refused', (await post('/api/admin/titel', { titel: 'Sleg', tipe: 'Kortfilm', genre_sleutel: 'drama', video_url: 'http://x.example/a.mp4', status: 'gepubliseer' }, ow)).status === 400);
+delete env.VIDEOS;
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
