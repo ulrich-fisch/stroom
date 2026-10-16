@@ -69,6 +69,8 @@ export function buildCheckout({ cfg, user, orderId, planKey, origin, now }) {
     billing_date: saDate(p.trialDays, now),
     recurring_amount: p.recurring, frequency: p.frequency, cycles: '0',
   };
+  // Leë velde word glad nie gestuur nie (PayFast tel hulle andersins dalk in sy eie berekening)
+  for (const k of Object.keys(fields)) if (String(fields[k]).trim() === '') delete fields[k];
   fields.signature = formSignature(fields, cfg.passphrase);
   return { action: cfg.process, fields };
 }

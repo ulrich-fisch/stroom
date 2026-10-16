@@ -103,7 +103,9 @@ t('merchant key/passphrase: key only in form, passphrase never sent', !JSON.stri
 r = await post('/api/checkout', { plan: 'annual' }, pc); const coA = await r.json();
 t('annual = R590 now, yearly', coA.fields.amount === '590.00' && coA.fields.recurring_amount === '590.00' && coA.fields.frequency === '6');
 { const odd = buildCheckoutForTest({ name: "Zoë O'Brien-Smit", email: 'ulrich+test@gmail.com' });
-  t('odd name cleaned, plus-email left out of the signed form', odd.name_first === 'Zoe' && odd.name_last === 'OBrien-Smit' && !('email_address' in odd) === false ? odd.email_address === '' : false); }
+  t('odd name cleaned, plus-email left out of the form', odd.name_first === 'Zoe' && odd.name_last === 'OBrien-Smit' && !('email_address' in odd)); }
+{ const one = buildCheckoutForTest({ name: 'Ulrich', email: 'ulibbulli@gmail.com' });
+  t('one-word name: blank surname not sent at all', one.name_first === 'Ulrich' && !('name_last' in one) && Object.values(one).every((v) => String(v) !== '')); }
 t('encoding matches PHP urlencode', pfEncode("a b!'()*~@é") === 'a+b%21%27%28%29%2A%7E%40%C3%A9');
 
 const signItn = (obj, pass = 'test pass&1') => { const pairs = Object.entries(obj); const body = itnParamString(pairs) + '&signature=' + md5(itnParamString(pairs) + '&passphrase=' + pfEncode(pass)); return body; };
