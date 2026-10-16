@@ -177,4 +177,70 @@ t('ITN endpoint closed without keys', (await itn('x=1')).status === 503);
 const bare = await worker.fetch(new Request('https://x.test/katalogus', { redirect: 'manual' }), { ASSETS });
 t('no DB: protected page closed', bare.status === 302);
 t('no DB: public page still up', (await worker.fetch(new Request('https://x.test/'), { ASSETS })).status === 200);
+
+// 6e. Inhoud, admin en advertensies
+r = await post('/api/register', { email: 'eienaar@stroom.co.za', name: 'Eienaar Een', password: 'eienaar-pass-1' }); const ow = ck(r);
+await post('/api/plan', { plan: 'avod' }, ow);
+r = await post('/api/register', { email: 'lid@stroom.co.za', name: 'Lid Een', password: 'lid-pass-12345' }); const lid = ck(r);
+t('katalogus: needs a plan first', (await call('/api/katalogus', {}, lid)).status === 403);
+await post('/api/plan', { plan: 'avod' }, lid);
+t('katalogus: needs login', (await call('/api/katalogus')).status === 401);
+r = await call('/api/katalogus', {}, lid); let kat = await r.json();
+t('katalogus: demo titles seeded, no video addresses leaked', r.status === 200 && kat.titels.length === 5 && !JSON.stringify(kat).includes('.mp4') && !JSON.stringify(kat).includes('video_url'));
+t('katalogus: series episodes listed without urls', JSON.stringify(kat.titels.find((x) => x.slug === 'pretoria').episodes).includes('Die Eerste Skaduwee') && !JSON.stringify(kat).includes('http://'));
+// advertensies: gratis ja, premium nee
+r = await post('/api/speel', { slug: 'karoo' }, lid); let sp = await r.json();
+t('speel: free member gets film url + one ad', r.status === 200 && sp.url.endsWith('.mp4') && sp.advertensies.length === 1 && sp.advertensies[0].url.startsWith('https://'));
+t('speel: unknown / unpublished title refused', (await post('/api/speel', { slug: 'bestaan-nie' }, lid)).status === 404);
+t('speel: bad episode refused', (await post('/api/speel', { slug: 'pretoria', ep: 9 }, lid)).status === 404);
+r = await post('/api/speel', { slug: 'pretoria', ep: 1 }, lid); sp = await r.json();
+t('speel: episode url + title', r.status === 200 && /Geheime Spore/.test(sp.titel));
+// admin gesluit
+t('admin api closed without ADMIN_EMAIL', (await call('/api/admin/titels', {}, ow)).status === 404);
+env.ADMIN_EMAIL = 'EIENAAR@stroom.co.za';
+t('admin page: anon redirected', (await call('/admin')).status === 302);
+t('admin page: normal member gets 404', (await call('/admin.html', {}, lid)).status === 404);
+t('admin page: owner ok', (await call('/admin.html', {}, ow)).status === 200);
+t('admin api: member refused', (await call('/api/admin/titels', {}, lid)).status === 404 && (await post('/api/admin/titel', { titel: 'X' }, lid)).status === 404);
+t('/api/me: admin flag only for owner', (await (await call('/api/me', {}, ow)).json()).admin === true && (await (await call('/api/me', {}, lid)).json()).admin === false);
+// titel-bestuur
+const nuut = { titel: 'My Nuwe Film', tipe: 'Kortfilm', genre_sleutel: 'drama', regisseur: 'Ek', banner: 'https://img.example/a.jpg', video_url: 'https://vid.example/a.mp4', status: 'gepubliseer', sinopsis: 'Toets' };
+t('admin: rejects non-https video', (await post('/api/admin/titel', { ...nuut, video_url: 'javascript:alert(1)' }, ow)).status === 400);
+t('admin: rejects bad type', (await post('/api/admin/titel', { ...nuut, tipe: 'Reklame' }, ow)).status === 400);
+t('admin: published needs a video', (await post('/api/admin/titel', { ...nuut, video_url: '' }, ow)).status === 400);
+t('admin: bad episode line refused', (await post('/api/admin/titel', { ...nuut, tipe: 'Reeks', episodes_teks: 'Ep 1 | Titel | 10 min | beskrywing | http://nie-https' }, ow)).status === 400);
+r = await post('/api/admin/titel', nuut, ow); const mk = await r.json();
+t('admin: create published title', r.status === 200 && mk.slug === 'my-nuwe-film');
+t('member now sees new title', (await (await call('/api/katalogus', {}, lid)).json()).titels.some((x) => x.slug === 'my-nuwe-film'));
+r = await call('/api/admin/titels', {}, ow); const al = await r.json(); const mine = al.titels.find((x) => x.slug === 'my-nuwe-film');
+await post('/api/admin/titel', { ...nuut, id: mine.id, status: 'konsep' }, ow);
+t('draft hidden from members and cannot be played', !(await (await call('/api/katalogus', {}, lid)).json()).titels.some((x) => x.slug === 'my-nuwe-film') && (await post('/api/speel', { slug: 'my-nuwe-film' }, lid)).status === 404);
+await post('/api/admin/titel-skrap', { id: mine.id }, ow);
+t('admin: delete title', !(await (await call('/api/admin/titels', {}, ow)).json()).titels.some((x) => x.slug === 'my-nuwe-film'));
+// advertensies-bestuur en Premium sonder advertensies
+t('admin: ad needs https video', (await post('/api/admin/ad', { naam: 'X', video_url: 'ftp://x' }, ow)).status === 400);
+await post('/api/admin/ad', { naam: 'Tweede Ad', video_url: 'https://vid.example/ad2.mp4', klik_url: 'https://adverteerder.example', aktief: true }, ow);
+let ads = (await (await call('/api/admin/ads', {}, ow)).json()).advertensies;
+t('admin: ads listed with view counts', ads.length === 2 && ads.some((x) => x.vertonings >= 1));
+for (const a of ads) await post('/api/admin/ad', { id: a.id, naam: a.naam, video_url: a.video_url, klik_url: a.klik_url, aktief: false }, ow);
+t('no active ads -> free member plays straight away', (await (await post('/api/speel', { slug: 'karoo' }, lid)).json()).advertensies.length === 0);
+for (const a of ads) await post('/api/admin/ad', { id: a.id, naam: a.naam, video_url: a.video_url, klik_url: a.klik_url, aktief: true }, ow);
+// premium sien nooit advertensies
+r = await post('/api/admin/toets-plan', { plan: 'svod' }, ow);
+t('toets-plan: owner can switch to Premium (sandbox)', r.status === 200 && (await (await call('/api/me', {}, ow)).json()).plan === 'svod');
+sp = await (await post('/api/speel', { slug: 'karoo' }, ow)).json();
+t('premium member: film plays with NO ads', sp.url.endsWith('.mp4') && sp.advertensies.length === 0);
+t('toets-plan: normal member cannot', (await post('/api/admin/toets-plan', { plan: 'svod' }, lid)).status === 404);
+env.PAYFAST_MODE = 'live';
+t('toets-plan: blocked in live mode', (await post('/api/admin/toets-plan', { plan: 'avod' }, ow)).status === 403);
+delete env.PAYFAST_MODE;
+// inskrywings
+await post('/api/skep', { name: 'Maker', title: 'Toets Film', type: 'Kortfilm', link: 'https://vimeo.com/1', synopsis: 'x', agree: true }, ow);
+r = await call('/api/admin/inskrywings', {}, ow); const ins = await r.json();
+const mkI = ins.inskrywings.find((x) => x.title === 'Toets Film');
+t('admin: sees submissions', !!mkI && mkI.status === 'hangende');
+await post('/api/admin/inskrywing-status', { id: mkI.id, status: 'goedgekeur' }, ow);
+t('admin: can approve submission', (await (await call('/api/admin/inskrywings', {}, ow)).json()).inskrywings.find((x) => x.id === mkI.id).status === 'goedgekeur');
+t('admin: rejects bad submission status', (await post('/api/admin/inskrywing-status', { id: mkI.id, status: 'gepubliseer' }, ow)).status === 400);
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
