@@ -2,7 +2,7 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
-import { config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
+import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
 const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
@@ -124,7 +124,14 @@ async function api(request, env, url) {
     const rows = await env.DB.prepare('SELECT id, name, email, title, type, link, synopsis, status, created_at FROM indienings ORDER BY id DESC LIMIT 200').all();
     return json({ inskrywings: rows.results.map((r) => ({ ...r, created_at: new Date(r.created_at).toISOString() })) });
   }
-  if (path === '/api/status') return json({ bou: 'betalings-1', betalings_gereed: !!config(env), db: true });
+  if (path === '/api/status') {
+    const c = config(env);
+    // Geen geheime waardes nie: slegs lengtes en 'n kort vingerafdruk om te vergelyk
+    const fp = (v) => md5(String(v || '')).slice(0, 6);
+    return json({ bou: 'betalings-2', betalings_gereed: !!c, modus: env.PAYFAST_MODE || null, handelaar: c ? c.merchantId : null,
+      sleutel_lengte: String(env.PAYFAST_MERCHANT_KEY || '').length, wagfrase_lengte: String(env.PAYFAST_PASSPHRASE || '').length,
+      wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
+  }
   if (!post) return json({ fout: 'Nie gevind nie.' }, 404);
 
   if (path === '/api/payfast-itn') {
