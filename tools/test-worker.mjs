@@ -365,4 +365,10 @@ t('profiele: delete cascades', r.status === 200 && (await DB.prepare('SELECT COU
 const only = (await (await call('/api/profiele', {}, ander)).json()).profiele[0];
 t('profiele: last profile cannot be deleted', (await post('/api/profiel-skrap', { id: only.id }, ander)).status === 400);
 
+// 6i. Rakke: kyk-tellings en nuutheid
+const k3 = (await (await call('/api/katalogus?profiel=' + P1.id, {}, lid)).json()).titels;
+const kk = k3.find((x) => x.slug === 'karoo');
+t('shelves: plays counted per title, recent only', kk.kyke >= 3 && k3.find((x) => x.slug !== 'karoo' && x.kyke === 0) !== undefined);
+t('shelves: titles carry a created time, no video addresses', k3.every((x) => x.nuut > 0) && !JSON.stringify(k3).includes('video_url'));
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
