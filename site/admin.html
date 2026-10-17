@@ -106,11 +106,18 @@
             <input type="file" accept="image/jpeg,image/png,image/webp" onchange="laaiOp(this, 't_banner')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Video: laai op (MP4 of WebM, maks 90 MB), of plak &rsquo;n https://-skakel</span><input id="t_video" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_video')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
+          <div class="block md:col-span-3 -mt-2 rounded-xl border border-slate-800 p-3">
+            <span class="lbl">Groot film of reeks-episode (enige grootte, MP4/MOV/MKV): laai op na Cloudflare Stream</span>
+            <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, 't_video')" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span>
+            <p class="text-[11px] text-slate-500 mt-1">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</p>
+          </div>
           <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
           <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
             <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | /media/... of https://video.mp4"></textarea>
             <span class="block mt-2 text-[11px] text-slate-500">Episode-video nodig? Laai dit hier op en plak die skakel in die lyn hierbo:</span>
-            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span></label>
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span>
+            <span class="block mt-2 text-[11px] text-slate-500">Of groot episode (Cloudflare Stream):</span>
+            <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span></label>
         </div>
         <div class="flex flex-wrap items-center gap-6">
           <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="t_uitgelig"> Film van die Dag (hoofbanier)</label>
@@ -233,6 +240,61 @@
       };
       xhr.onerror = () => { status.className = 'up-status ml-2 text-xs text-rose-400'; status.textContent = 'Oplaai het misluk. Probeer weer.'; };
       xhr.send(f);
+    }
+
+    // ---------- Groot lêers: direk na Cloudflare Stream (hervatbaar, stukkie vir stukkie) ----------
+    const CHUNK = 50 * 1024 * 1024;   // moet 'n veelvoud van 256 KiB wees
+    function stuur(url, offset, blob, onProg) {
+      return new Promise((res, rej) => {
+        const x = new XMLHttpRequest(); x.open('PATCH', url);
+        x.setRequestHeader('Tus-Resumable', '1.0.0'); x.setRequestHeader('Upload-Offset', String(offset));
+        x.setRequestHeader('Content-Type', 'application/offset+octet-stream');
+        x.upload.onprogress = (e) => { if (e.lengthComputable) onProg(offset + e.loaded); };
+        x.onload = () => (x.status === 204 || x.status === 200) ? res(Number(x.getResponseHeader('Upload-Offset')) || offset + blob.size) : rej(new Error('status ' + x.status));
+        x.onerror = () => rej(new Error('netwerk')); x.send(blob);
+      });
+    }
+    async function bepaalOffset(url) {
+      const r = await fetch(url, { method: 'HEAD', headers: { 'Tus-Resumable': '1.0.0' } });
+      return Number(r.headers.get('Upload-Offset')) || 0;
+    }
+    async function laaiStream(input, targetId) {
+      const f = input.files && input.files[0]; if (!f) return;
+      const status = input.parentElement.querySelector('.up-status');
+      const say = (t, c) => { status.textContent = t; status.className = 'up-status ml-2 text-xs ' + (c || 'text-slate-300'); };
+      try {
+        say('Berei voor...');
+        const r = await fetch('/api/admin/stream-laai-op', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ size: f.size, naam: f.name }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.uploadUrl) { say(d.fout || 'Kon nie begin nie.', 'text-rose-400'); input.value = ''; return; }
+        let offset = 0, fails = 0;
+        while (offset < f.size) {
+          try {
+            const end = Math.min(offset + CHUNK, f.size);
+            offset = await stuur(d.uploadUrl, offset, f.slice(offset, end), (n) => say('Laai op... ' + Math.round(n / f.size * 100) + '%  (laat hierdie bladsy oop)'));
+            fails = 0;
+          } catch (e) {
+            if (++fails > 5) throw e;
+            say('Verbinding het gedrup, probeer weer...', 'text-amber-400');
+            await new Promise((ok) => setTimeout(ok, 2000 * fails));
+            try { offset = await bepaalOffset(d.uploadUrl); } catch (e2) { /* probeer weer */ }
+          }
+        }
+        if (targetId) document.getElementById(targetId).value = d.verwysing;
+        say('Opgelaai. Cloudflare verwerk nou die video...', 'text-amber-400');
+        kykStatus(d.uid, status, targetId ? null : d.verwysing);
+      } catch (e) { say('Oplaai het misluk. Kies die lêer weer om voort te gaan.', 'text-rose-400'); }
+      input.value = '';
+    }
+    async function kykStatus(uid, status, wys) {
+      for (let i = 0; i < 360; i++) {
+        await new Promise((ok) => setTimeout(ok, 5000));
+        try {
+          const r = await fetch('/api/admin/stream-status?uid=' + uid); const d = await r.json();
+          if (d.gereed) { status.className = 'up-status ml-2 text-xs text-emerald-400 select-all'; status.textContent = 'Gereed.' + (wys ? ' Skakel: ' + wys : '') + (d.duur ? ' (' + Math.round(d.duur / 60) + ' min)' : ''); return; }
+          if (d.toestand === 'error') { status.className = 'up-status ml-2 text-xs text-rose-400'; status.textContent = 'Cloudflare kon nie die video verwerk nie' + (d.fout_kode ? ' (' + d.fout_kode + ')' : '') + '.'; return; }
+        } catch (e) { /* probeer weer */ }
+      }
     }
 
     // ---------- Titels ----------
