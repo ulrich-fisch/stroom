@@ -70,41 +70,60 @@
 
   <!-- Intro-skerm: die STROOM-logo verskyn kortliks, een keer per sessie -->
   <style>
-    #intro { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #02030b; cursor: pointer;
-      animation: introOut .6s ease 2.4s forwards; }
-    #intro .wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-    #intro .logo { font: italic 900 clamp(2.6rem, 11vw, 6.5rem)/1 Inter, system-ui, sans-serif; text-transform: uppercase; padding: 0 .2em;
+    /* Gedeelde toneel: logo + stroom (golflyn) + vis wat oor die logo spring */
+    .scn { position: relative; width: min(86vw, 640px); aspect-ratio: 2 / 1; container-type: inline-size; }
+    .scn .lw { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .scn .logo { font: italic 900 14cqw/1 Inter, system-ui, sans-serif; text-transform: uppercase; padding: 0 .2em; opacity: 0;
       background: linear-gradient(100deg, #fff 0 38%, #38bdf8 50%, #fff 62% 100%); background-size: 260% 100%; background-position: 100% 0;
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      animation: introLogo 1s cubic-bezier(.2,.7,.2,1) .15s both, introSweep 1.1s ease-in-out 1s forwards; }
-    #intro svg { width: min(60vw, 340px); height: 20px; overflow: visible; }
-    #intro path { fill: none; stroke: #38bdf8; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 340; stroke-dashoffset: 340;
-      filter: drop-shadow(0 0 6px rgba(56,189,248,.7)); animation: introWave 1s ease-in-out 1s forwards; }
+      -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .scn svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .scn .stream { fill: none; stroke: #38bdf8; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 360; stroke-dashoffset: 360; filter: drop-shadow(0 0 5px rgba(56,189,248,.7)); }
+    .scn .fish { opacity: 0; }
+    .scn .rip { fill: none; stroke: #7dd3fc; stroke-width: 1.2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+    .scn .rip.go { animation: ripple .8s ease-out forwards; }
+    .scn .drop { fill: #bae6fd; opacity: 0; transform-box: fill-box; transform-origin: center; }
+    .scn .drop.go { animation: droplet .7s ease-out forwards; }
+    @keyframes ripple { from { opacity: .95; transform: scale(.3); } to { opacity: 0; transform: scale(3.4); } }
+    @keyframes droplet { 0% { opacity: 1; transform: translate(0,0); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
     @keyframes introLogo { from { opacity: 0; transform: scale(1.35); letter-spacing: .55em; filter: blur(14px); } to { opacity: 1; transform: scale(1); letter-spacing: .12em; filter: blur(0); } }
     @keyframes introSweep { to { background-position: 0 0; } }
     @keyframes introWave { to { stroke-dashoffset: 0; } }
     @keyframes introOut { to { opacity: 0; visibility: hidden; pointer-events: none; } }
-    #stinger .wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-    #stinger .logo { font: italic 900 clamp(2rem, 8vw, 4.5rem)/1 Inter, system-ui, sans-serif; text-transform: uppercase; padding: 0 .2em; opacity: 0;
-      background: linear-gradient(100deg, #fff 0 38%, #38bdf8 50%, #fff 62% 100%); background-size: 260% 100%; background-position: 100% 0;
-      -webkit-background-clip: text; background-clip: text; color: transparent; }
-    #stinger svg { width: min(50%, 280px); height: 18px; overflow: visible; }
-    #stinger path { fill: none; stroke: #38bdf8; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 340; stroke-dashoffset: 340; filter: drop-shadow(0 0 6px rgba(56,189,248,.7)); }
-    #stinger.on { animation: stingerOut .35s ease 1.65s forwards; }
+
+    /* Intro-skerm (een keer per sessie) */
+    #intro { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #02030b; cursor: pointer;
+      animation: introOut .6s ease 3s forwards; }
+    #intro .logo { animation: introLogo 1s cubic-bezier(.2,.7,.2,1) .15s both, introSweep 1.1s ease-in-out 1s forwards; }
+    #intro .stream { animation: introWave 1s ease-in-out .8s forwards; }
+
+    /* Stinger voor elke titel, in die speler */
+    #stinger.on { animation: introOut .35s ease 2.45s forwards; }
+    #stinger .scn { width: min(82%, 560px); }
     #stinger.on .logo { animation: introLogo .7s cubic-bezier(.2,.7,.2,1) 0s both, introSweep .8s ease-in-out .6s forwards; }
-    #stinger.on path { animation: introWave .8s ease-in-out .6s forwards; }
-    @keyframes stingerOut { to { opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) { #stinger.on .logo { animation: none; opacity: 1; background-position: 0 0; } #stinger.on path { animation: none; stroke-dashoffset: 0; } }
+    #stinger.on .stream { animation: introWave .8s ease-in-out .5s forwards; }
+
     @media (prefers-reduced-motion: reduce) {
-      #intro { animation: introOut .4s ease .9s forwards; }
-      #intro .logo { animation: none; background-position: 0 0; }
-      #intro path { animation: none; stroke-dashoffset: 0; }
+      #intro { animation: introOut .4s ease 1s forwards; }
+      #intro .logo, #stinger.on .logo { animation: none; opacity: 1; background-position: 0 0; }
+      #intro .stream, #stinger.on .stream { animation: none; stroke-dashoffset: 0; }
+      #stinger.on { animation: introOut .35s ease 1.2s forwards; }
     }
   </style>
   <div id="intro" aria-hidden="true" onclick="this.remove()">
-    <div class="wrap">
-      <span class="logo">Stroom</span>
-      <svg viewBox="0 0 340 20" preserveAspectRatio="none"><path d="M2 10 C 30 -2, 55 22, 85 10 S 140 -2, 170 10 S 225 22, 255 10 S 310 -2, 338 10"/></svg>
+    <div class="scn">
+      <div class="lw"><span class="logo">Stroom</span></div>
+      <svg viewBox="0 0 400 200" aria-hidden="true">
+        <path class="stream" d="M30 150 C 58 138, 83 162, 113 150 S 168 138, 198 150 S 253 162, 283 150 S 338 138, 366 150"/>
+        <ellipse class="rip r1" cx="72" cy="150" rx="9" ry="2.6"/><ellipse class="rip r2" cx="330" cy="150" rx="9" ry="2.6"/>
+        <circle class="drop d1" cx="326" cy="146" r="1.8" style="--dx:-12px;--dy:-14px"/><circle class="drop d2" cx="332" cy="146" r="1.5" style="--dx:2px;--dy:-18px"/><circle class="drop d3" cx="338" cy="147" r="1.8" style="--dx:13px;--dy:-12px"/>
+        <g class="fish"><g transform="scale(1.15)">
+          <path d="M-13 0 C-7 -9 8 -9 15 0 C8 9 -7 9 -13 0 Z" fill="#38bdf8"/>
+          <path d="M-12 0 L-24 -8 L-20 0 L-24 8 Z" fill="#0ea5e9"/>
+          <path d="M-2 -6 L2 -12 L6 -6 Z" fill="#0ea5e9"/>
+          <path d="M-8 1 C-2 5 6 5 12 1 C6 7 -2 7 -8 1 Z" fill="#e0f2fe" opacity=".85"/>
+          <circle cx="9" cy="-1.6" r="1.5" fill="#02030b"/>
+        </g></g>
+      </svg>
     </div>
   </div>
 
@@ -249,10 +268,21 @@
         </div>
         <div id="stinger" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#02030b] cursor-pointer" onclick="endStinger()">
           <button onclick="event.stopPropagation(); closePlayer()" class="absolute top-3 right-4 text-slate-400 hover:text-white text-3xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
-          <div class="wrap">
-            <span class="logo">Stroom</span>
-            <svg viewBox="0 0 340 20" preserveAspectRatio="none"><path d="M2 10 C 30 -2, 55 22, 85 10 S 140 -2, 170 10 S 225 22, 255 10 S 310 -2, 338 10"/></svg>
-          </div>
+          <div class="scn">
+          <div class="lw"><span class="logo">Stroom</span></div>
+          <svg viewBox="0 0 400 200" aria-hidden="true">
+            <path class="stream" d="M30 150 C 58 138, 83 162, 113 150 S 168 138, 198 150 S 253 162, 283 150 S 338 138, 366 150"/>
+            <ellipse class="rip r1" cx="72" cy="150" rx="9" ry="2.6"/><ellipse class="rip r2" cx="330" cy="150" rx="9" ry="2.6"/>
+            <circle class="drop d1" cx="326" cy="146" r="1.8" style="--dx:-12px;--dy:-14px"/><circle class="drop d2" cx="332" cy="146" r="1.5" style="--dx:2px;--dy:-18px"/><circle class="drop d3" cx="338" cy="147" r="1.8" style="--dx:13px;--dy:-12px"/>
+            <g class="fish"><g transform="scale(1.15)">
+              <path d="M-13 0 C-7 -9 8 -9 15 0 C8 9 -7 9 -13 0 Z" fill="#38bdf8"/>
+              <path d="M-12 0 L-24 -8 L-20 0 L-24 8 Z" fill="#0ea5e9"/>
+              <path d="M-2 -6 L2 -12 L6 -6 Z" fill="#0ea5e9"/>
+              <path d="M-8 1 C-2 5 6 5 12 1 C6 7 -2 7 -8 1 Z" fill="#e0f2fe" opacity=".85"/>
+              <circle cx="9" cy="-1.6" r="1.5" fill="#02030b"/>
+            </g></g>
+          </svg>
+        </div>
         </div>
       </div>
       <div id="voorBalk" class="hidden flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800 flex">
@@ -287,11 +317,32 @@
 
 <script src="/app.js"></script>
 <script>
+    // Die vis spring uit die stroom, oor die logo en duik weer in (SVG-eenhede, 400x200)
+    function fishJump(root) {
+      const g = root.querySelector('.fish'), r1 = root.querySelector('.r1'), r2 = root.querySelector('.r2');
+      const drops = root.querySelectorAll('.drop');
+      [r1, r2, ...drops].forEach((e) => { e.classList.remove('go'); void e.getBoundingClientRect(); });
+      const P = [[72, 150], [112, -14], [288, -14], [328, 150]], DUR = 1000, t0 = performance.now();
+      const bez = (t) => { const u = 1 - t; return [0, 1].map((i) => u*u*u*P[0][i] + 3*u*u*t*P[1][i] + 3*u*t*t*P[2][i] + t*t*t*P[3][i]); };
+      let raf = 0, done = false;
+      r1.classList.add('go');
+      const tick = (now) => {
+        const t = Math.min(1, (now - t0) / DUR), [x, y] = bez(t), [x2, y2] = bez(Math.min(1, t + 0.02));
+        const ang = Math.atan2(y2 - y, x2 - x) * 180 / Math.PI;
+        g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(1)})`);
+        g.style.opacity = t < 0.04 || t > 0.97 ? 0 : 1;
+        if (t < 1) { raf = requestAnimationFrame(tick); }
+        else { done = true; g.style.opacity = 0; r2.classList.add('go'); drops.forEach((d) => d.classList.add('go')); }
+      };
+      raf = requestAnimationFrame(tick);
+      return () => { if (!done) { cancelAnimationFrame(raf); g.style.opacity = 0; } };
+    }
+
     (function () {   // Intro net een keer per sessie
       const el = document.getElementById('intro'); if (!el) return;
       let seen = false;
       try { seen = sessionStorage.getItem('stroom_intro') === '1'; sessionStorage.setItem('stroom_intro', '1'); } catch (e) {}
-      if (seen) el.remove(); else setTimeout(() => { if (el.parentNode) el.remove(); }, 3200);
+      if (seen) el.remove(); else { setTimeout(() => { if (el.parentNode) fishJump(el); }, 1050); setTimeout(() => { if (el.parentNode) el.remove(); }, 3800); }
     })();
     const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const jsonHdr = { 'Content-Type': 'application/json' };
@@ -406,7 +457,7 @@
     }
 
     // Voor elke titel: die STROOM-stinger (Premium dadelik, Gratis ná die advertensie). Die film laai intussen onder.
-    let stingerTimer = null;
+    let stingerTimer = null, fishTimer = null, fishStop = null;
     function playFilm() {
       endAdUi(); adMode = false;
       detachHls();
@@ -414,10 +465,11 @@
       playBtn.innerText = '❚❚';
       const st = document.getElementById('stinger');
       st.classList.remove('hidden', 'on'); void st.offsetWidth; st.classList.add('on');   // herstart die animasie
-      clearTimeout(stingerTimer); stingerTimer = setTimeout(endStinger, 2100);
+      clearTimeout(stingerTimer); stingerTimer = setTimeout(endStinger, 2900);
+      clearTimeout(fishTimer); if (fishStop) fishStop(); fishTimer = setTimeout(() => { fishStop = fishJump(st); }, 950);
     }
     function endStinger() {
-      clearTimeout(stingerTimer); stingerTimer = null;
+      clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; }
       const st = document.getElementById('stinger');
       if (st.classList.contains('hidden')) return;
       st.classList.add('hidden'); st.classList.remove('on');
@@ -470,7 +522,7 @@
     function seekVideo(val) { if (adMode) return; player.currentTime = (val / 100) * player.duration; }
     function toggleMute() { player.muted = !player.muted; document.getElementById('muteBtn').innerText = player.muted ? '🔇' : '🔊'; }
     function toggleFullscreen() { const box = document.querySelector('.player-container'); if (!document.fullscreenElement) { box.requestFullscreen(); } else { document.exitFullscreen(); } }
-    function closePlayer() { adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
+    function closePlayer() { adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
 
     player.ontimeupdate = () => {
       if (adMode) {
