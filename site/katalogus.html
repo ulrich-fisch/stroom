@@ -170,17 +170,6 @@
       <div class="aspect-video bg-black relative">
         <video id="videoPlayer" class="w-full h-full object-contain" onclick="togglePlayPause()"></video>
 
-        <div id="adBar" class="hidden absolute top-4 left-4 right-4 z-40 flex items-center justify-between gap-3 pointer-events-none">
-          <span class="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full pointer-events-auto">Advertensie <span id="adCount"></span></span>
-          <div class="flex items-center gap-3 pointer-events-auto">
-            <a id="adLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs bg-slate-950/90 border border-slate-700 text-white px-4 py-1.5 rounded-full">Besoek adverteerder &#8599;</a>
-            <button onclick="toggleMute(); document.getElementById('adMuteBtn').innerText = player.muted ? '🔇' : '🔊'" id="adMuteBtn" class="text-sm bg-slate-950/90 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Klank">🔊</button>
-            <button onclick="toggleFullscreen()" class="text-sm bg-slate-950/90 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Volskerm">&#x26F6;</button>
-            <button id="adSkipBtn" onclick="skipAd()" disabled class="text-xs bg-slate-950/90 border border-slate-700 text-white px-4 py-1.5 rounded-full opacity-60">Oorslaan</button>
-            <button onclick="closePlayer()" class="text-slate-300 hover:text-white text-2xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
-          </div>
-        </div>
-
         <button id="skipIntroBtn" onclick="skipIntro()" 
                 class="absolute bottom-20 right-6 z-30 bg-slate-950/90 hover:bg-sky-500 hover:text-slate-950 text-white border border-slate-700 font-bold text-xs px-5 py-2.5 rounded-full transition shadow-lg">
           Slaan Inleiding Oor &rarr;
@@ -217,6 +206,16 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      <div id="adBar" class="hidden flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800 flex">
+        <span class="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Advertensie <span id="adCount"></span></span>
+        <div class="flex flex-wrap items-center gap-3">
+          <a id="adLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full">Besoek adverteerder &#8599;</a>
+          <button onclick="toggleMute(); document.getElementById('adMuteBtn').innerText = player.muted ? '🔇' : '🔊'" id="adMuteBtn" class="text-sm bg-slate-950 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Klank">🔊</button>
+          <button onclick="toggleFullscreen()" class="text-sm bg-slate-950 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Volskerm">&#x26F6;</button>
+          <button id="adSkipBtn" onclick="skipAd()" disabled class="text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full opacity-60">Oorslaan</button>
+          <button onclick="closePlayer()" class="text-slate-300 hover:text-white text-2xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
         </div>
       </div>
     </div>
