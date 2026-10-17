@@ -3,6 +3,7 @@
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
 import { handleContent, createContentTables, seedContent, adminOk, serveMedia } from './inhoud.js';
+import { handleMember, createMemberTables, isMemberPath } from './lede.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
@@ -65,6 +66,7 @@ function init(db) {
       try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
     }
     await createContentTables(db);
+    await createMemberTables(db);
     await seedContent(db);
   })();
   return ready;
@@ -137,7 +139,9 @@ async function api(request, env, url) {
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
   }
   {
-    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/')) ? await getUser(request, env.DB) : null;
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path)) ? await getUser(request, env.DB) : null;
+    const m = await handleMember({ request, env, path, post, u: cu });
+    if (m) return m;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }

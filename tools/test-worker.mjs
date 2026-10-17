@@ -7,7 +7,7 @@ const stmt = (q) => { let args = []; const o = {
   run: async () => { const r = sql.prepare(q).run(...args); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; },
   first: async () => sql.prepare(q).get(...args) ?? null,
   all: async () => ({ results: sql.prepare(q).all(...args) }),
-  _exec: () => sql.exec(q) }; return o; };
+  _exec: () => { sql.prepare(q).run(...args); } }; return o; };
 const DB = { prepare: stmt, batch: async (list) => { list.forEach((s) => s._exec()); } };
 const ASSETS = { fetch: async (req) => new Response('PAGE ' + new URL(req.url).pathname, { status: 200 }) };
 const env = { DB, ASSETS };
@@ -312,5 +312,57 @@ t('episode with stream video plays via HLS', ep.status === 200 && sp.hls === tru
 delete env.STREAM_CODE;
 t('playback without stream setup -> clear error, no leak', (await post('/api/speel', { slug: slugS }, lid)).status === 503);
 globalThis.fetch = prevFetch; delete env.CF_ACCOUNT_ID; delete env.CF_STREAM_TOKEN;
+
+// 6h. Profiele, My Lys, gaan voort en gradering
+r = await call('/api/profiele'); t('profiele: needs login', r.status === 401);
+r = await call('/api/profiele', {}, lid); let pj = await r.json(); const P1 = pj.profiele[0];
+t('profiele: default profile created from account name', r.status === 200 && pj.profiele.length === 1 && P1.naam === 'Lid Een' && pj.maks === 5);
+r = await post('/api/profiel-nuut', { naam: 'Kinders', avatar: 3, kinders: true }, lid); const P2id = (await r.json()).id;
+t('profiele: add kids profile', r.status === 200 && P2id > P1.id);
+t('profiele: empty name refused', (await post('/api/profiel-nuut', { naam: '  ' }, lid)).status === 400);
+for (let i = 0; i < 3; i++) await post('/api/profiel-nuut', { naam: 'X' + i }, lid);
+t('profiele: max 5', (await post('/api/profiel-nuut', { naam: 'Ses' }, lid)).status === 400);
+r = await post('/api/register', { email: 'ander@stroom.co.za', name: 'Ander', password: 'ander-pass-12345' }); const ander = ck(r);
+await post('/api/plan', { plan: 'avod' }, ander);
+t('profiele: cannot edit someone else\'s', (await post('/api/profiel-wysig', { id: P1.id, naam: 'Hack' }, ander)).status === 404);
+t('profiele: cannot delete someone else\'s', (await post('/api/profiel-skrap', { id: P1.id }, ander)).status === 404);
+t('lys: cannot use someone else\'s profile', (await post('/api/lys', { profiel: P1.id, slug: 'karoo', aan: true }, ander)).status === 400 && (await call('/api/vordering?profiel=' + P1.id, {}, ander)).status === 400);
+t('katalogus: foreign profile refused', (await call('/api/katalogus?profiel=' + P1.id, {}, ander)).status === 400);
+// My Lys
+await post('/api/lys', { profiel: P1.id, slug: 'karoo', aan: true }, lid); await post('/api/lys', { profiel: P1.id, slug: 'karoo', aan: true }, lid);
+t('lys: saved once, per profile', (await (await call('/api/lys?profiel=' + P1.id, {}, lid)).json()).slugs.join() === 'karoo' && (await (await call('/api/lys?profiel=' + P2id, {}, lid)).json()).slugs.length === 0);
+await post('/api/lys', { profiel: P1.id, slug: 'karoo', aan: false }, lid);
+t('lys: removed', (await (await call('/api/lys?profiel=' + P1.id, {}, lid)).json()).slugs.length === 0);
+// Kinderprofiel
+const all = await (await call('/api/katalogus?profiel=' + P1.id, {}, lid)).json(); const kids = await (await call('/api/katalogus?profiel=' + P2id, {}, lid)).json();
+t('katalogus: kids profile only kid-safe titles', kids.kinders === true && kids.titels.length < all.titels.length && kids.titels.every((x) => /^(al|alle|all|a)$/i.test(x.ouderdom) || parseInt(x.ouderdom, 10) <= 10));
+const adult = all.titels.find((x) => !kids.titels.some((k) => k.slug === x.slug));
+t('speel: kids profile blocked from adult title', !!adult && (await post('/api/speel', { slug: adult.slug, profiel: P2id }, lid)).status === 403 && (await post('/api/speel', { slug: adult.slug, profiel: P1.id }, lid)).status === 200);
+// Gaan voort
+t('vordering: bad values refused', (await post('/api/vordering', { profiel: P1.id, slug: 'karoo', posisie: -1, duur: 100 }, lid)).status === 400);
+await post('/api/vordering', { profiel: P1.id, slug: 'karoo', ep: -1, posisie: 100, duur: 1000 }, lid);
+t('vordering: listed with position', (await (await call('/api/vordering?profiel=' + P1.id, {}, lid)).json()).items[0].posisie === 100);
+sp = await (await post('/api/speel', { slug: 'karoo', profiel: P1.id }, lid)).json();
+t('speel: resumes 3s before saved position', sp.begin === 97);
+sp = await (await post('/api/speel', { slug: 'karoo', profiel: P1.id, herbegin: true }, lid)).json();
+t('speel: start over gives begin 0', !sp.begin);
+await post('/api/vordering', { profiel: P1.id, slug: 'karoo', ep: -1, posisie: 980, duur: 1000 }, lid);
+t('vordering: finished titles leave the list', (await (await call('/api/vordering?profiel=' + P1.id, {}, lid)).json()).items.length === 0);
+// Gradering
+t('gradering: bad stars refused', (await post('/api/gradering', { profiel: P1.id, slug: 'karoo', sterre: 6 }, lid)).status === 400);
+await post('/api/gradering', { profiel: P1.id, slug: 'karoo', sterre: 5 }, lid);
+r = await post('/api/gradering', { profiel: (await (await call('/api/profiele', {}, ander)).json()).profiele[0].id, slug: 'karoo', sterre: 2 }, ander); let gj = await r.json();
+t('gradering: average + count over profiles', gj.gem === 3.5 && gj.aantal === 2 && gj.myne === 2);
+const k2 = (await (await call('/api/katalogus?profiel=' + P1.id, {}, lid)).json()).titels.find((x) => x.slug === 'karoo');
+t('katalogus: shows average and my own rating, no fake match', k2.gem === 3.5 && k2.aantal === 2 && k2.myne === 5 && k2.pas === undefined);
+t('admin list shows rating stats', (await (await call('/api/admin/titels', {}, ow)).json()).titels.find((x) => x.slug === 'karoo').aantal === 2);
+await post('/api/gradering', { profiel: P1.id, slug: 'karoo', sterre: 0 }, lid);
+t('gradering: 0 removes my rating', (await (await post('/api/gradering', { profiel: P1.id, slug: 'karoo', sterre: 0 }, lid)).json()).aantal === 1);
+// skrap
+await post('/api/lys', { profiel: P2id, slug: 'karoo', aan: true }, lid);
+r = await post('/api/profiel-skrap', { id: P2id }, lid);
+t('profiele: delete cascades', r.status === 200 && (await DB.prepare('SELECT COUNT(*) AS n FROM lys WHERE profiel_id = ?').bind(P2id).first()).n === 0);
+const only = (await (await call('/api/profiele', {}, ander)).json()).profiele[0];
+t('profiele: last profile cannot be deleted', (await post('/api/profiel-skrap', { id: only.id }, ander)).status === 400);
 
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

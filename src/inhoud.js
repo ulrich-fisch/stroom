@@ -1,6 +1,7 @@
 // Stroom: inhoud (titels), advertensies en die admin-roetes.
 // Net die eienaar (ADMIN_EMAIL) mag admin-roetes gebruik. Advertensies word slegs aan gratis lede gewys.
 
+import { eiProfiel, kinderVeilig } from './lede.js';
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
@@ -91,7 +92,7 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().
 // Wat 'n lid sien: nooit die video-adres nie (dit kom eers by /api/speel)
 const publiek = (r) => ({ slug: r.slug, titel: r.titel, tipe: r.tipe, jaar: r.jaar, ouderdom: r.ouderdom, speeltyd: r.speeltyd,
   regisseur: r.regisseur, genre_sleutel: r.genre_sleutel, genre_etiket: r.genre_etiket, banner: r.banner, sinopsis: r.sinopsis,
-  pas: r.pas, uitgelig: !!r.uitgelig, episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
+  gem: r.gem == null ? null : Math.round(r.gem * 10) / 10, aantal: r.aantal || 0, myne: r.myne || 0, uitgelig: !!r.uitgelig, episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
 
 // Hoofhanteerder. Gee null terug as die pad nie hier hoort nie.
 export async function handleContent({ request, env, path, post, u }) {
@@ -144,8 +145,16 @@ export async function handleContent({ request, env, path, post, u }) {
   if (path === '/api/katalogus' && !post) {
     if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
     if (u.plan === 'none') return json({ fout: 'Kies eers jou plan.' }, 403);
+    const pidRaw = new URL(request.url).searchParams.get('profiel');
+    const prof = pidRaw ? await eiProfiel(db, u, pidRaw) : null;
+    if (pidRaw && !prof) return json({ fout: 'Kies eers \'n profiel.' }, 400);
     const rows = await db.prepare("SELECT * FROM titels WHERE status = 'gepubliseer' ORDER BY uitgelig DESC, id ASC").all();
-    return json({ plan: u.plan, genres: GENRES, titels: rows.results.map(publiek) });
+    const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
+    const mine = new Map(prof ? (await db.prepare('SELECT slug, sterre FROM gradering WHERE profiel_id = ?').bind(prof.id).all()).results.map((x) => [x.slug, x.sterre]) : []);
+    let list = rows.results;
+    if (prof && prof.kinders) list = list.filter((r) => kinderVeilig(r.ouderdom));
+    return json({ plan: u.plan, kinders: !!(prof && prof.kinders), genres: GENRES,
+      titels: list.map((r) => publiek({ ...r, gem: (agg.get(r.slug) || {}).gem, aantal: (agg.get(r.slug) || {}).aantal, myne: mine.get(r.slug) })) });
   }
 
   if (path === '/api/speel' && post) {
@@ -153,6 +162,9 @@ export async function handleContent({ request, env, path, post, u }) {
     if (u.plan === 'none') return json({ fout: 'Kies eers jou plan.' }, 403);
     const t = await db.prepare("SELECT * FROM titels WHERE slug = ? AND status = 'gepubliseer'").bind(clip(body.slug, 80)).first();
     if (!t) return json({ fout: 'Nie gevind nie.' }, 404);
+    const prof = body.profiel ? await eiProfiel(db, u, body.profiel) : null;
+    if (body.profiel && !prof) return json({ fout: 'Kies eers \'n profiel.' }, 400);
+    if (prof && prof.kinders && !kinderVeilig(t.ouderdom)) return json({ fout: 'Hierdie titel is nie vir \'n kinderprofiel nie.' }, 403);
     let url = t.video_url, krediet = t.regisseur, titel = t.titel;
     if (body.ep != null) {
       const eps = JSON.parse(t.episodes || '[]'); const e = eps[Number(body.ep)];
@@ -180,7 +192,13 @@ export async function handleContent({ request, env, path, post, u }) {
         advertensies = [{ naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null }];
       }
     }
-    return json({ url, hls, titel, krediet, plan: u.plan, advertensies });
+    let begin = 0;
+    if (prof && !body.herbegin) {
+      const v = await db.prepare('SELECT ep, posisie, voltooi FROM vordering WHERE profiel_id = ? AND slug = ?').bind(prof.id, t.slug).first();
+      const wantEp = body.ep == null ? -1 : Number(body.ep);
+      if (v && !v.voltooi && v.ep === wantEp && v.posisie > 5) begin = Math.max(0, v.posisie - 3);   // 'n paar sekondes terug
+    }
+    return json({ url, hls, begin, slug: t.slug, ep: body.ep == null ? null : Number(body.ep), titel, krediet, plan: u.plan, advertensies });
   }
 
   // ----- Admin (slegs eienaar; almal anders kry "nie gevind") -----
@@ -189,7 +207,9 @@ export async function handleContent({ request, env, path, post, u }) {
 
   if (path === '/api/admin/titels' && !post) {
     const rows = await db.prepare('SELECT * FROM titels ORDER BY id DESC').all();
-    return json({ titels: rows.results.map((r) => ({ ...r, uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes) })), tipes: TIPES, genres: GENRES });
+    const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
+    return json({ titels: rows.results.map((r) => ({ ...r, uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes),
+      gem: agg.get(r.slug) ? Math.round(agg.get(r.slug).gem * 10) / 10 : null, aantal: agg.get(r.slug) ? agg.get(r.slug).aantal : 0 })), tipes: TIPES, genres: GENRES });
   }
 
   if (path === '/api/admin/titel' && post) {

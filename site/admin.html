@@ -39,18 +39,7 @@
           <div class="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition duration-200 z-50 backdrop-blur-xl">
             <div class="p-2 border-b border-slate-800 space-y-2">
               <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
-              <div onclick="switchProfile(selfName())" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
-                <div class="w-6 h-6 rounded-lg bg-sky-500/30 border border-sky-400 flex items-center justify-center text-[10px] font-bold text-sky-400" data-self-initial>U</div>
-                <span class="text-xs text-slate-200 font-semibold" data-self>Ulrich</span>
-              </div>
-              <div onclick="switchProfile('Familie')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
-                <div class="w-6 h-6 rounded-lg bg-purple-500/30 border border-purple-400 flex items-center justify-center text-[10px] font-bold text-purple-400">F</div>
-                <span class="text-xs text-slate-200 font-semibold">Familie</span>
-              </div>
-              <div onclick="switchProfile('Kinders')" class="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition">
-                <div class="w-6 h-6 rounded-lg bg-amber-500/30 border border-amber-400 flex items-center justify-center text-[10px] font-bold text-amber-400">K</div>
-                <span class="text-xs text-slate-200 font-semibold">Kinders</span>
-              </div>
+              <div id="headerProfiles" class="space-y-1"></div>
             </div>
 
             <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
@@ -101,7 +90,6 @@
           <label class="block"><span class="lbl">Jaar</span><input id="t_jaar" maxlength="4" class="inp" placeholder="2026"></label>
           <label class="block"><span class="lbl">Ouderdomsgradering</span><input id="t_ouderdom" maxlength="6" class="inp" placeholder="13+"></label>
           <label class="block"><span class="lbl">Speeltyd</span><input id="t_speeltyd" maxlength="20" class="inp" placeholder="54 min"></label>
-          <label class="block"><span class="lbl">Pas % (vertoon)</span><input id="t_pas" type="number" min="0" max="100" value="90" class="inp"></label>
           <label class="block md:col-span-3"><span class="lbl">Beeld (poster): laai op, of plak &rsquo;n https://-skakel</span><input id="t_banner" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="image/jpeg,image/png,image/webp" onchange="laaiOp(this, 't_banner')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Video: laai op (MP4 of WebM, maks 90 MB), of plak &rsquo;n https://-skakel</span><input id="t_video" maxlength="400" class="inp" placeholder="/media/... of https://...">
@@ -311,7 +299,7 @@
         const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
         const left = el('div', 'space-y-1');
         left.append(el('div', 'font-bold text-white', t.titel + (t.uitgelig ? '  ★' : '')),
-          el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''}`));
+          el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''} • ` + (t.aantal ? `★ ${t.gem} (${t.aantal})` : 'nog nie gegradeer nie')));
         const right = el('div', 'flex items-center gap-3');
         right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : 'text-amber-400 border-amber-500/40'), t.status));
         const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigTitel(t);
@@ -323,7 +311,7 @@
       $('t_id').value = t.id || ''; $('t_titel').value = t.titel || ''; $('t_tipe').value = t.tipe || META.tipes[0];
       $('t_regisseur').value = t.regisseur || ''; $('t_genre').value = t.genre_sleutel || Object.keys(META.genres)[0];
       $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
-      $('t_pas').value = t.pas == null ? 90 : t.pas; $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
+      $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
       $('t_status').value = t.status || 'konsep';
       $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
@@ -336,7 +324,7 @@
       wrap(e);
       try {
         await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
-          genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value, pas: $('t_pas').value,
+          genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value,
           banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
           uitgelig: $('t_uitgelig').checked, status: $('t_status').value });
         boodskap('Gestoor.'); sluitTitel(); laaiTitels();
