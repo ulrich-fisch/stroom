@@ -178,11 +178,11 @@ head_extra:
   <!-- Fullscreen Player Modal -->
   <div id="playerModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-2 sm:p-6">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full overflow-hidden shadow-2xl relative player-container group">
-      <div class="aspect-video bg-black relative">
-        <video id="videoPlayer" class="w-full h-full object-contain" onclick="togglePlayPause()"></video>
+      <div class="aspect-video bg-black relative max-h-[calc(100dvh-1rem)] mx-auto">
+        <video id="videoPlayer" class="w-full h-full object-contain" onclick="videoTap()" playsinline></video>
 
         <button id="skipIntroBtn" onclick="skipIntro()" 
-                class="absolute bottom-20 right-6 z-30 bg-slate-950/90 hover:bg-sky-500 hover:text-slate-950 text-white border border-slate-700 font-bold text-xs px-5 py-2.5 rounded-full transition shadow-lg">
+                class="absolute bottom-14 right-3 sm:bottom-20 sm:right-6 z-30 bg-slate-950/90 hover:bg-sky-500 hover:text-slate-950 text-white border border-slate-700 font-bold text-[11px] sm:text-xs px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-full transition shadow-lg">
           Slaan Inleiding Oor &rarr;
         </button>
 
@@ -223,17 +223,17 @@ head_extra:
             </div>
 
             <div class="flex justify-between items-center">
-              <div class="flex items-center space-x-4 text-sm">
+              <div class="flex items-center space-x-3 sm:space-x-4 text-sm whitespace-nowrap">
                 <button onclick="togglePlayPause()" id="playPauseBtn" class="text-white hover:text-sky-400 font-bold text-lg">▶</button>
                 <button onclick="skipTime(-10)" class="text-slate-300 hover:text-white text-xs font-mono">↺ 10s</button>
                 <button onclick="skipTime(10)" class="text-slate-300 hover:text-white text-xs font-mono">10s ↻</button>
                 <button onclick="toggleMute()" id="muteBtn" class="text-slate-300 hover:text-white text-sm w-6 text-center" aria-label="Klank">🔊</button>
-                <input type="range" id="volBar" min="0" max="100" value="100" oninput="setVolume(this.value)" aria-label="Volume" class="w-20 accent-sky-400 h-1 bg-slate-800 rounded-lg cursor-pointer"/>
+                <input type="range" id="volBar" min="0" max="100" value="100" oninput="setVolume(this.value)" aria-label="Volume" class="hidden sm:block w-20 accent-sky-400 h-1 bg-slate-800 rounded-lg cursor-pointer"/>
               </div>
 
               <div class="flex items-center space-x-3">
                 <div class="relative">
-                  <button id="qualBtn" onclick="toggleQualMenu(event)" class="text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">Kwaliteit &#9662;</button>
+                  <button id="qualBtn" onclick="toggleQualMenu(event)" class="whitespace-nowrap text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">Kwaliteit &#9662;</button>
                   <div id="qualMenu" class="hidden absolute bottom-full right-0 mb-2 w-52 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
                 </div>
                 <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white text-sm">⛶</button>
@@ -639,7 +639,27 @@ head_extra:
       else if (k === 'f') toggleFullscreen();
       else if (k === 'Escape' && !document.fullscreenElement) closePlayer();
     });
-    function toggleFullscreen() { const box = document.querySelector('.player-container'); if (!document.fullscreenElement) { box.requestFullscreen(); } else { document.exitFullscreen(); } }
+    function toggleFullscreen() {
+      const box = document.querySelector('.player-container');
+      if (box.requestFullscreen) { if (!document.fullscreenElement) box.requestFullscreen().catch(() => {}); else document.exitFullscreen(); }
+      else if (player.webkitEnterFullscreen) player.webkitEnterFullscreen();   // iPhone
+    }
+    // Raakskerms het geen "hover" nie: wys die kontroles met 'n tik en versteek dit weer ná 3 s
+    let ctlTimer = null;
+    const touchOnly = window.matchMedia('(hover: none)').matches;
+    function showControls() {
+      const ov = document.getElementById('playerOverlay'); ov.classList.add('show');
+      clearTimeout(ctlTimer);
+      ctlTimer = setTimeout(() => { if (!player.paused && document.getElementById('qualMenu').classList.contains('hidden')) ov.classList.remove('show'); }, 3000);
+    }
+    function videoTap() {
+      const ov = document.getElementById('playerOverlay');
+      if (touchOnly && !ov.classList.contains('show')) { showControls(); return; }
+      togglePlayPause(); showControls();
+    }
+    document.getElementById('playerModal').addEventListener('pointermove', showControls);
+    document.getElementById('playerOverlay').addEventListener('pointerdown', showControls);
+    player.addEventListener('pause', () => document.getElementById('playerOverlay').classList.add('show'));
     function saveProgress(force) {
       if (!cur || adMode || resumeAt > 0 || !activeProfileId || !isFinite(player.duration) || player.duration <= 0) return;
       const now = Date.now(); if (!force && now - lastSave < 15000) return; lastSave = now;
