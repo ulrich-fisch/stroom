@@ -26,6 +26,9 @@ export async function createMemberTables(db) {
       duur REAL NOT NULL DEFAULT 0, voltooi INTEGER NOT NULL DEFAULT 0, bygewerk INTEGER NOT NULL, PRIMARY KEY (profiel_id, slug))`),
     db.prepare(`CREATE TABLE IF NOT EXISTS gradering (
       profiel_id INTEGER NOT NULL, slug TEXT NOT NULL, sterre INTEGER NOT NULL, bygewerk INTEGER NOT NULL, PRIMARY KEY (profiel_id, slug))`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS kykgebeure (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, profiel_id INTEGER, ep INTEGER NOT NULL DEFAULT -1, ts INTEGER NOT NULL)`),
+    db.prepare('CREATE INDEX IF NOT EXISTS kykgebeure_slug_ts ON kykgebeure (slug, ts)'),
   ]);
 }
 

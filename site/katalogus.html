@@ -121,7 +121,7 @@
            style="background-image: linear-gradient(to top, #070c18 10%, rgba(7,12,24,0.3) 50%, rgba(7,12,24,0.85) 100%);">
     <div class="max-w-3xl space-y-4 pt-20">
       <div class="flex items-center space-x-3 text-xs font-bold tracking-widest uppercase">
-        <span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px]">Film van die Dag</span>
+        <span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px]">Keuse van die Week</span>
         <span id="heroMatch" class="text-emerald-400 font-mono"></span>
         <span id="heroAge" class="border border-slate-700 px-2 py-0.5 rounded text-slate-400"></span>
       </div>
@@ -152,6 +152,9 @@
       <div id="watchlistGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-2"></div>
     </div>
 
+    <!-- Rakke -->
+    <div id="shelves" class="space-y-10"></div>
+
     <!-- Catalogue Grid -->
     <div class="space-y-4">
       <h2 class="text-2xl font-bold text-white tracking-tight uppercase">Verken die Katalogus</h2>
@@ -178,6 +181,7 @@
               + My Lys
             </button>
             <button id="infoRestartBtn" onclick="" class="hidden border border-slate-700 hover:border-white text-slate-300 px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">&#8634; Van voor af</button>
+            <button id="infoShare" onclick="shareTitle(document.getElementById('infoListBtn').dataset.lys)" class="border border-slate-700 hover:border-white text-slate-300 px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">Deel</button>
           </div>
         </div>
         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
@@ -361,8 +365,10 @@
       if (r && r.status === 400) { activeProfileId = 0; try { localStorage.removeItem('stroom_profiel_id'); } catch (e) {} window.location.href = 'profiel.html'; return; }
       if (!r || !r.ok) { document.getElementById('heroSynopsis').textContent = 'Kon nie die katalogus laai nie. Probeer asseblief weer.'; return; }
       const d = await r.json(); TITELS = d.titels; GENRES = d.genres || {};
-      renderGenreMenu(); renderHero(); renderGrid();
+      renderGenreMenu(); renderHero(); renderGrid(); renderShelves();
       await laaiLid();
+      const want = new URLSearchParams(location.search).get('titel');
+      if (want && byKey(want)) openInfoModal(want);
     }
 
     // My Lys en kyk-vordering kom van die bediener (per profiel); ou blaaier-lys word een keer oorgedra
@@ -379,8 +385,33 @@
       renderWatchlist(); renderContinue();
     }
 
+    // Admin se uitgeligte titel wen; anders draai die keuse elke week deur die katalogus
+    function weeklyPick() {
+      const f = TITELS.find((t) => t.uitgelig); if (f || !TITELS.length) return f || null;
+      return TITELS[Math.floor(Date.now() / (7 * 86400000)) % TITELS.length];
+    }
+    function shelfCard(t) {
+      return `<div class="min-w-[220px] sm:min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}" loading="lazy"><span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
+        <div class="p-3"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3><p class="text-[11px] text-amber-300">${starTxt(t)}</p></div></div>`;
+    }
+    function renderShelves() {
+      const defs = [
+        ['Nuut Bygevoeg', [...TITELS].sort((a, b) => b.nuut - a.nuut).slice(0, 10)],
+        ['Gewild Hierdie Maand', TITELS.filter((t) => t.kyke > 0).sort((a, b) => b.kyke - a.kyke).slice(0, 10)],
+        ['Hoog Gegradeer', TITELS.filter((t) => t.gem && t.aantal >= 2 && t.gem >= 4).sort((a, b) => b.gem - a.gem).slice(0, 10)],
+        ['Kortfilms', TITELS.filter((t) => t.tipe === 'Kortfilm')],
+        ['Reekse', TITELS.filter((t) => t.tipe === 'Reeks')],
+        ['Dokumentêre', TITELS.filter((t) => t.tipe === 'Dokumentêr')],
+      ];
+      document.getElementById('shelves').innerHTML = defs.filter(([, l]) => l.length).map(([n, l]) => `<div class="space-y-3"><h2 class="text-lg font-bold text-white tracking-tight uppercase">${n}</h2><div class="flex space-x-5 overflow-x-auto no-scrollbar py-1">${l.map(shelfCard).join('')}</div></div>`).join('');
+    }
+    function shareTitle(slug) {
+      const u = location.origin + location.pathname + '?titel=' + encodeURIComponent(slug);
+      if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => { const b = document.getElementById('infoShare'); b.textContent = 'Skakel gekopieer'; setTimeout(() => { b.textContent = 'Deel'; }, 2000); }).catch(() => {});
+    }
     function renderHero() {
-      const h = TITELS.find((t) => t.uitgelig) || TITELS[0];
+      const h = weeklyPick();
       const box = document.getElementById('heroButtons'); box.replaceChildren();
       if (!h) { document.getElementById('heroTitle').textContent = 'Stroom'; document.getElementById('heroSynopsis').textContent = 'Nuwe inhoud kom binnekort.'; return; }
       document.getElementById('heroSection').style.backgroundImage = `linear-gradient(to top, #070c18 10%, rgba(7,12,24,0.3) 50%, rgba(7,12,24,0.85) 100%), url('${esc(h.banner)}')`;
@@ -458,6 +489,7 @@
           <h4 class="text-xs font-bold text-white leading-tight">${esc(item.titel)}</h4></div>
         </div>`).join('');
       document.getElementById('infoModal').classList.remove('hidden');
+      try { history.replaceState(null, '', '?titel=' + encodeURIComponent(slug)); } catch (e) {}
     }
     function drawRate(t) {
       const mine = t.myne || 0;
@@ -470,10 +502,10 @@
         const r = await jsonPost('/api/gradering', { profiel: activeProfileId, slug, sterre: n });
         if (!r.ok) return;
         const d = await r.json(); t.gem = d.gem; t.aantal = d.aantal; t.myne = d.myne;
-        drawRate(t); document.getElementById('infoMatch').innerHTML = starTxt(t); renderGrid(); renderHero();
+        drawRate(t); document.getElementById('infoMatch').innerHTML = starTxt(t); renderGrid(); renderHero(); renderShelves();
       } catch (e) {}
     }
-    function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
+    function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); try { history.replaceState(null, '', location.pathname); } catch (e) {} }
 
     // ---------- Speler (met advertensie vir gratis lede) ----------
     const player = document.getElementById('videoPlayer');
