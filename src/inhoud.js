@@ -20,6 +20,12 @@ const isHttps = (s) => /^https:\/\/[^\s"'<>]+$/i.test(s);
 // Media-adres: 'n https-skakel of 'n eie opgelaaide lêer (/media/<sleutel>)
 const MEDIA_RE = /^\/media\/[a-f0-9]{24}\.(mp4|webm|m4v|jpg|jpeg|png|webp)$/;
 const isMedia = (s) => isHttps(s) || MEDIA_RE.test(s);
+// Groot films lê by Cloudflare Stream; ons bewaar net die verwysing "stream:<32 hex>"
+const STREAM_RE = /^stream:[a-f0-9]{32}$/;
+const isVideo = (s) => isMedia(s) || STREAM_RE.test(s);
+const streamOk = (env) => !!(env.CF_ACCOUNT_ID && env.CF_STREAM_TOKEN && /^[a-z0-9]+$/i.test(String(env.STREAM_CODE || '')));
+const streamBase = (env) => `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}`;
+const b64 = (t) => btoa(unescape(encodeURIComponent(t)));
 export const MEDIA_KEY = /^[a-f0-9]{24}\.(mp4|webm|m4v|jpg|jpeg|png|webp)$/;
 const MEDIA_TYPES = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 const MAX_UPLOAD = 90 * 1024 * 1024;   // Workers aanvaar tot ~100 MB per versoek
@@ -74,7 +80,7 @@ function parseEpisodes(text) {
   for (const line of String(text || '').split('\n')) {
     if (!line.trim()) continue;
     const [ep, titel, duur, beskrywing, url] = line.split('|').map((x) => x.trim());
-    if (!titel || !isMedia(url || '')) return null;
+    if (!titel || !isVideo(url || '')) return null;
     out.push({ ep: clip(ep, 12) || `Ep ${out.length + 1}`, titel: clip(titel, 120), duur: clip(duur, 20), beskrywing: clip(beskrywing, 300), url });
   }
   return out;
@@ -105,6 +111,33 @@ export async function handleContent({ request, env, path, post, u }) {
     await env.VIDEOS.put(key, request.body, { httpMetadata: { contentType: MEDIA_TYPES[ext] } });
     return json({ ok: true, url: '/media/' + key });
   }
+  // Groot films: Cloudflare Stream (die blaaier laai direk op, die geheime sleutel bly op die bediener)
+  if (path === '/api/admin/stream-laai-op' && post) {
+    if (!isAdmin) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (!streamOk(env)) return json({ fout: 'Cloudflare Stream is nog nie opgestel nie.' }, 503);
+    const b = await request.json().catch(() => ({}));
+    const size = Number(b.size);
+    if (!Number.isFinite(size) || size < 1 || size > 30 * 1024 ** 3) return json({ fout: 'Ongeldige lêergrootte.' }, 400);
+    const r = await fetch(`${streamBase(env)}/stream?direct_user=true`, { method: 'POST', headers: {
+      Authorization: `Bearer ${env.CF_STREAM_TOKEN}`, 'Tus-Resumable': '1.0.0', 'Upload-Length': String(Math.floor(size)),
+      'Upload-Metadata': `maxDurationSeconds ${b64('14400')},requiresignedurls ,name ${b64(clip(b.naam, 100) || 'video')}` } });
+    const loc = r.headers.get('Location');
+    if (!r.ok || !loc) return json({ fout: 'Cloudflare het die oplaai geweier. Kyk of Stream geaktiveer is en of daar genoeg opberging is.' }, 502);
+    const uid = r.headers.get('stream-media-id') || (loc.match(/\/([a-f0-9]{32})(?:[/?]|$)/) || [])[1];
+    if (!uid || !/^[a-f0-9]{32}$/.test(uid)) return json({ fout: 'Kon nie die video-ID kry nie.' }, 502);
+    return json({ ok: true, uploadUrl: loc, uid, verwysing: 'stream:' + uid });
+  }
+  if (path === '/api/admin/stream-status' && !post) {
+    if (!isAdmin) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (!streamOk(env)) return json({ fout: 'Cloudflare Stream is nog nie opgestel nie.' }, 503);
+    const uid = String(new URL(request.url).searchParams.get('uid') || '');
+    if (!/^[a-f0-9]{32}$/.test(uid)) return json({ fout: 'Ongeldig.' }, 400);
+    const r = await fetch(`${streamBase(env)}/stream/${uid}`, { headers: { Authorization: `Bearer ${env.CF_STREAM_TOKEN}` } });
+    const d = await r.json().catch(() => ({}));
+    const v = d.result || {};
+    if (!r.ok || !v.uid) return json({ fout: 'Nie gevind nie.' }, 404);
+    return json({ ok: true, toestand: (v.status && v.status.state) || 'onbekend', gereed: !!v.readyToStream, duur: v.duration || 0, fout_kode: (v.status && v.status.errorReasonCode) || '' });
+  }
   const body = post ? await request.json().catch(() => ({})) : {};
 
   // ----- Lede -----
@@ -127,6 +160,17 @@ export async function handleContent({ request, env, path, post, u }) {
       url = e.url; titel = `${t.titel} - ${e.titel}`; krediet = e.duur || t.regisseur;
     }
     if (!url) return json({ fout: 'Hierdie titel is nog nie gereed om te speel nie.' }, 404);
+    let hls = false;
+    if (STREAM_RE.test(url)) {
+      if (!streamOk(env)) return json({ fout: 'Die video-diens is nog nie opgestel nie.' }, 503);
+      const uid = url.slice(7);
+      const tr = await fetch(`${streamBase(env)}/stream/${uid}/token`, { method: 'POST',
+        headers: { Authorization: `Bearer ${env.CF_STREAM_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 6 * 3600 }) });
+      const td = await tr.json().catch(() => ({}));
+      if (!tr.ok || !td.result || !td.result.token) return json({ fout: 'Kon nie nou speel nie. Probeer asseblief weer.' }, 502);
+      url = `https://customer-${env.STREAM_CODE}.cloudflarestream.com/${td.result.token}/manifest/video.m3u8`; hls = true;
+    }
     let advertensies = [];
     if (u.plan === 'avod') {          // Premium (svod) kry nooit advertensies nie
       const ads = await db.prepare('SELECT id, naam, video_url, klik_url FROM advertensies WHERE aktief = 1').all();
@@ -136,7 +180,7 @@ export async function handleContent({ request, env, path, post, u }) {
         advertensies = [{ naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null }];
       }
     }
-    return json({ url, titel, krediet, plan: u.plan, advertensies });
+    return json({ url, hls, titel, krediet, plan: u.plan, advertensies });
   }
 
   // ----- Admin (slegs eienaar; almal anders kry "nie gevind") -----
@@ -156,7 +200,7 @@ export async function handleContent({ request, env, path, post, u }) {
     const banner = clip(body.banner, 400), video = clip(body.video_url, 400);
     if (!titel || !tipe || !genre) return json({ fout: 'Titel, tipe en genre is verpligtend.' }, 400);
     if (banner && !isMedia(banner)) return json({ fout: 'Die beeld moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
-    if (video && !isMedia(video)) return json({ fout: 'Die video moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
+    if (video && !isVideo(video)) return json({ fout: 'Die video moet \'n https://-skakel, \'n opgelaaide lêer of \'n Stream-video wees.' }, 400);
     const eps = parseEpisodes(body.episodes_teks);
     if (eps === null) return json({ fout: 'Episodes: een per lyn as  Ep 1 | Titel | 28 min | Beskrywing | https://...' }, 400);
     if (status === 'gepubliseer' && !banner) return json({ fout: 'Gepubliseerde titels het \'n beeld nodig.' }, 400);

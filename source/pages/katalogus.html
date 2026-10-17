@@ -261,7 +261,7 @@ head_extra:
     const progressBar = document.getElementById('progressBar');
     const currentTimeEl = document.getElementById('currentTime');
     const durationTimeEl = document.getElementById('durationTime');
-    let adMode = false, filmUrl = null, adSkipTimer = null;
+    let adMode = false, filmUrl = null, filmHls = false, adSkipTimer = null, hlsObj = null;
     const AD_SKIP_AFTER = 5;
 
     async function speel(slug, ep) {
@@ -272,13 +272,35 @@ head_extra:
       document.getElementById('modalTitle').innerText = d.titel;
       document.getElementById('modalCredit').innerText = d.krediet || '';
       document.getElementById('playerModal').classList.remove('hidden');
-      filmUrl = d.url;
+      filmUrl = d.url; filmHls = !!d.hls;
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
     }
 
     function playFilm() {
       endAdUi(); adMode = false;
-      player.src = filmUrl; player.load(); player.play().catch(() => {}); playBtn.innerText = '❚❚';
+      detachHls();
+      if (filmHls) { startHls(filmUrl); }
+      else { player.src = filmUrl; player.load(); player.play().catch(() => {}); }
+      playBtn.innerText = '❚❚';
+    }
+
+    // Groot films kom as HLS (Cloudflare Stream). Safari speel dit self; ander blaaiers gebruik hls.js.
+    const HLS_SCRIPT = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+    function detachHls() { if (hlsObj) { try { hlsObj.destroy(); } catch (e) {} hlsObj = null; } }
+    function loadHlsLib() {
+      if (window.Hls) return Promise.resolve();
+      return new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = HLS_SCRIPT; sc.onload = res; sc.onerror = () => rej(new Error('hls')); document.head.appendChild(sc); });
+    }
+    async function startHls(url) {
+      try {
+        if (player.canPlayType('application/vnd.apple.mpegurl')) { player.src = url; player.load(); player.play().catch(() => {}); return; }
+        await loadHlsLib();
+        if (!window.Hls || !Hls.isSupported()) throw new Error('hls');
+        hlsObj = new Hls();
+        hlsObj.on(Hls.Events.ERROR, (e, data) => { if (data && data.fatal) { alert('Kon nie die video laai nie. Probeer asseblief weer.'); } });
+        hlsObj.loadSource(url); hlsObj.attachMedia(player);
+        hlsObj.on(Hls.Events.MANIFEST_PARSED, () => { player.play().catch(() => {}); });
+      } catch (e) { alert('Jou blaaier kon nie die video laai nie. Probeer asseblief weer.'); }
     }
 
     function playAd(ad) {
@@ -289,6 +311,7 @@ head_extra:
       const link = document.getElementById('voorLink');
       if (ad.klik) { link.href = ad.klik; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
       const skip = document.getElementById('voorSkip'); skip.disabled = true; skip.classList.add('opacity-60'); skip.innerText = `Oorslaan oor ${AD_SKIP_AFTER}s`;
+      detachHls();
       player.onended = () => { if (adMode) playFilm(); };
       player.onerror = () => { if (adMode) playFilm(); };          // as die advertensie nie laai nie, speel die film
       player.src = ad.url; player.load(); player.play().catch(() => { if (adMode) playFilm(); });
@@ -307,7 +330,7 @@ head_extra:
     function seekVideo(val) { if (adMode) return; player.currentTime = (val / 100) * player.duration; }
     function toggleMute() { player.muted = !player.muted; document.getElementById('muteBtn').innerText = player.muted ? '🔇' : '🔊'; }
     function toggleFullscreen() { const box = document.querySelector('.player-container'); if (!document.fullscreenElement) { box.requestFullscreen(); } else { document.exitFullscreen(); } }
-    function closePlayer() { adMode = false; endAdUi(); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
+    function closePlayer() { adMode = false; endAdUi(); detachHls(); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
 
     player.ontimeupdate = () => {
       if (adMode) {

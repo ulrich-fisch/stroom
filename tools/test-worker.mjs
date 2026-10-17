@@ -272,4 +272,45 @@ t('admin: ad with uploaded /media video accepted', r.status === 200);
 t('admin: title with http:// still refused', (await post('/api/admin/titel', { titel: 'Sleg', tipe: 'Kortfilm', genre_sleutel: 'drama', video_url: 'http://x.example/a.mp4', status: 'gepubliseer' }, ow)).status === 400);
 delete env.VIDEOS;
 
+// 6g. Groot films (Cloudflare Stream)
+const UID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+const cfCalls = []; const prevFetch = globalThis.fetch;
+globalThis.fetch = async (url, init = {}) => {
+  const u2 = String(url); if (!u2.startsWith('https://api.cloudflare.com/')) return prevFetch(url, init);
+  cfCalls.push({ url: u2, method: init.method || 'GET', headers: init.headers || {}, body: init.body });
+  if (u2.includes('direct_user=true')) return new Response(null, { status: 201, headers: { Location: 'https://upload.cloudflarestream.com/' + UID + '?tusv2=true', 'stream-media-id': UID } });
+  if (u2.endsWith('/token')) return new Response(JSON.stringify({ success: true, result: { token: 'TOKEN123' } }), { status: 200 });
+  if (u2.endsWith('/stream/' + UID)) return new Response(JSON.stringify({ success: true, result: { uid: UID, readyToStream: true, duration: 7200, status: { state: 'ready' } } }), { status: 200 });
+  return new Response('{}', { status: 404 });
+};
+const sj = (path, body, cookie) => post(path, body, cookie);
+t('stream upload: not configured -> 503', (await sj('/api/admin/stream-laai-op', { size: 1e9, naam: 'x.mp4' }, ow)).status === 503);
+env.CF_ACCOUNT_ID = 'acc123'; env.CF_STREAM_TOKEN = 'secret-token'; env.STREAM_CODE = 'abc123xyz';
+t('stream upload: member cannot', (await sj('/api/admin/stream-laai-op', { size: 1e9, naam: 'x.mp4' }, lid)).status === 404);
+t('stream upload: anonymous cannot', (await sj('/api/admin/stream-laai-op', { size: 1e9, naam: 'x.mp4' })).status === 404);
+t('stream upload: bad size refused', (await sj('/api/admin/stream-laai-op', { size: -5 }, ow)).status === 400);
+r = await sj('/api/admin/stream-laai-op', { size: 3e9, naam: 'Groot Film.mp4' }, ow); const su = await r.json();
+const upCall = cfCalls.find((c) => c.url.includes('direct_user=true'));
+t('stream upload: admin gets direct upload URL + stream reference', r.status === 200 && su.uploadUrl.startsWith('https://upload.cloudflarestream.com/') && su.verwysing === 'stream:' + UID);
+t('stream upload: signed URLs required + size forwarded + token stays server-side', /requiresignedurls/.test(upCall.headers['Upload-Metadata']) && upCall.headers['Upload-Length'] === '3000000000' && !JSON.stringify(su).includes('secret-token'));
+t('stream status: admin sees ready', (await (await call('/api/admin/stream-status?uid=' + UID, {}, ow)).json()).gereei === undefined && (await (await call('/api/admin/stream-status?uid=' + UID, {}, ow)).json()).gereed === true);
+t('stream status: member cannot, bad uid refused', (await call('/api/admin/stream-status?uid=' + UID, {}, lid)).status === 404 && (await call('/api/admin/stream-status?uid=zzz', {}, ow)).status === 400);
+r = await post('/api/admin/titel', { titel: 'Stream Film', tipe: 'Speelfilm', genre_sleutel: 'drama', banner: 'https://img.example/a.jpg', video_url: 'stream:' + UID, status: 'gepubliseer', sinopsis: 'x' }, ow);
+t('admin: title with stream video accepted', r.status === 200);
+t('admin: bad stream reference refused', (await post('/api/admin/titel', { titel: 'Sleg2', tipe: 'Speelfilm', genre_sleutel: 'drama', banner: 'https://img.example/a.jpg', video_url: 'stream:nope', status: 'gepubliseer' }, ow)).status === 400);
+const slugS = (await (await call('/api/admin/titels', {}, ow)).json()).titels.find((x) => x.titel === 'Stream Film').slug;
+t('catalogue never leaks stream reference', !JSON.stringify(await (await call('/api/katalogus', {}, lid)).json()).includes(UID));
+sp = await (await post('/api/speel', { slug: slugS }, lid)).json();
+t('free member: signed HLS url + ad', sp.hls === true && sp.url === 'https://customer-abc123xyz.cloudflarestream.com/TOKEN123/manifest/video.m3u8' && sp.advertensies.length === 1);
+const tokCall = cfCalls.find((c) => c.url.endsWith('/token'));
+t('playback token has a 6h expiry', Math.abs(JSON.parse(tokCall.body).exp - (Date.now() / 1000 + 21600)) < 60);
+t('anonymous cannot get a playback link', (await post('/api/speel', { slug: slugS }, '')).status === 401);
+const ep = await post('/api/admin/titel', { titel: 'Stream Reeks', tipe: 'Reeks', genre_sleutel: 'drama', banner: 'https://img.example/a.jpg', episodes_teks: 'Ep 1 | Eerste | 40 min | Begin | stream:' + UID, status: 'gepubliseer' }, ow);
+const slugR = (await (await call('/api/admin/titels', {}, ow)).json()).titels.find((x) => x.titel === 'Stream Reeks').slug;
+sp = await (await post('/api/speel', { slug: slugR, ep: 0 }, lid)).json();
+t('episode with stream video plays via HLS', ep.status === 200 && sp.hls === true && sp.url.includes('/TOKEN123/'));
+delete env.STREAM_CODE;
+t('playback without stream setup -> clear error, no leak', (await post('/api/speel', { slug: slugS }, lid)).status === 503);
+globalThis.fetch = prevFetch; delete env.CF_ACCOUNT_ID; delete env.CF_STREAM_TOKEN;
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
