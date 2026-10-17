@@ -208,13 +208,13 @@
           </div>
         </div>
       </div>
-      <div id="adBar" class="hidden flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800 flex">
-        <span class="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Advertensie <span id="adCount"></span></span>
+      <div id="voorBalk" class="hidden flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800 flex">
+        <span class="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Advertensie <span id="voorTel"></span></span>
         <div class="flex flex-wrap items-center gap-3">
-          <a id="adLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full">Besoek adverteerder &#8599;</a>
-          <button onclick="toggleMute(); document.getElementById('adMuteBtn').innerText = player.muted ? '🔇' : '🔊'" id="adMuteBtn" class="text-sm bg-slate-950 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Klank">🔊</button>
+          <a id="voorLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full">Besoek adverteerder &#8599;</a>
+          <button onclick="toggleMute(); document.getElementById('voorMute').innerText = player.muted ? '🔇' : '🔊'" id="voorMute" class="text-sm bg-slate-950 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Klank">🔊</button>
           <button onclick="toggleFullscreen()" class="text-sm bg-slate-950 border border-slate-700 text-white w-9 h-8 rounded-full" aria-label="Volskerm">&#x26F6;</button>
-          <button id="adSkipBtn" onclick="skipAd()" disabled class="text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full opacity-60">Oorslaan</button>
+          <button id="voorSkip" onclick="skipAd()" disabled class="text-xs bg-slate-950 border border-slate-700 text-white px-4 py-1.5 rounded-full opacity-60">Oorslaan</button>
           <button onclick="closePlayer()" class="text-slate-300 hover:text-white text-2xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
         </div>
       </div>
@@ -359,19 +359,19 @@
 
     function playAd(ad) {
       adMode = true;
-      document.getElementById('adBar').classList.remove('hidden');
+      document.getElementById('voorBalk').classList.remove('hidden');
       document.getElementById('playerOverlay').classList.add('hidden');
       document.getElementById('skipIntroBtn').classList.add('hidden');
-      const link = document.getElementById('adLink');
+      const link = document.getElementById('voorLink');
       if (ad.klik) { link.href = ad.klik; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
-      const skip = document.getElementById('adSkipBtn'); skip.disabled = true; skip.classList.add('opacity-60'); skip.innerText = `Oorslaan oor ${AD_SKIP_AFTER}s`;
+      const skip = document.getElementById('voorSkip'); skip.disabled = true; skip.classList.add('opacity-60'); skip.innerText = `Oorslaan oor ${AD_SKIP_AFTER}s`;
       player.onended = () => { if (adMode) playFilm(); };
       player.onerror = () => { if (adMode) playFilm(); };          // as die advertensie nie laai nie, speel die film
       player.src = ad.url; player.load(); player.play().catch(() => { if (adMode) playFilm(); });
     }
 
     function endAdUi() {
-      document.getElementById('adBar').classList.add('hidden');
+      document.getElementById('voorBalk').classList.add('hidden');
       document.getElementById('playerOverlay').classList.remove('hidden');
       player.onended = null; player.onerror = null;
     }
@@ -388,8 +388,8 @@
     player.ontimeupdate = () => {
       if (adMode) {
         const left = Math.max(0, Math.ceil((player.duration || 0) - player.currentTime));
-        document.getElementById('adCount').innerText = isFinite(left) && left ? `• ${left}s` : '';
-        const skip = document.getElementById('adSkipBtn');
+        document.getElementById('voorTel').innerText = isFinite(left) && left ? `• ${left}s` : '';
+        const skip = document.getElementById('voorSkip');
         if (player.currentTime >= AD_SKIP_AFTER) { skip.disabled = false; skip.classList.remove('opacity-60'); skip.innerText = 'Slaan oor ▸'; }
         else { skip.innerText = `Oorslaan oor ${Math.ceil(AD_SKIP_AFTER - player.currentTime)}s`; }
         return;
