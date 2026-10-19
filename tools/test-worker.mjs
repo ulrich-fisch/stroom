@@ -371,4 +371,7 @@ const kk = k3.find((x) => x.slug === 'karoo');
 t('shelves: plays counted per title, recent only', kk.kyke >= 3 && k3.find((x) => x.slug !== 'karoo' && x.kyke === 0) !== undefined);
 t('shelves: titles carry a created time, no video addresses', k3.every((x) => x.nuut > 0) && !JSON.stringify(k3).includes('video_url'));
 
+// 6j. Installeerbare toep: vaste lêers is openbaar, geen ingeteken inhoud
+for (const f of ['/manifest.webmanifest', '/sw.js', '/offline.html', '/icon-192.png']) t('pwa: ' + f + ' is public', (await call(f)).status === 200);
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

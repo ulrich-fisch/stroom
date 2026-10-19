@@ -24,6 +24,7 @@ FILTERS = ('<div class="flex items-center gap-2 shrink-0">'
            f'<div class="{MENU}"><div class="{BOX}">' + ''.join([_type_item('all', 'Alle Inhoud'), _type_item('film', 'Films'), _type_item('reeks', 'Reekse'), _type_item('dokumenter', 'Dokument&ecirc;re')]) + '</div></div></div>'
            f'<div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="{BTN}"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
            f'<div class="{MENU}"><div id="genreItems" class="{BOX} max-h-80 overflow-y-auto"></div></div></div></div>')
+SW_REG = "<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
          '  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">')
@@ -59,9 +60,13 @@ def build():
         if script: scripts.append('<script>\n' + script + '\n</script>')
         head_extra = ('\n  ' + meta['head_extra']) if meta.get('head_extra') else ''
         html = (f'<!DOCTYPE html>\n<html lang="af">\n<head>\n  <meta charset="UTF-8" />\n'
-                f'  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n'
+                f'  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>\n'
+                f'  <meta name="theme-color" content="#070c18">\n  <link rel="manifest" href="/manifest.webmanifest">\n'
+                f'  <link rel="icon" type="image/png" href="/favicon.png">\n  <link rel="apple-touch-icon" href="/apple-touch-icon.png">\n'
+                f'  <meta name="apple-mobile-web-app-capable" content="yes">\n  <meta name="mobile-web-app-capable" content="yes">\n'
+                f'  <meta name="apple-mobile-web-app-title" content="Stroom">\n'
                 f'  <title>{meta["title"]}</title>\n  {FONTS}\n  <link rel="stylesheet" href="/stroom.css">{head_extra}\n</head>\n'
-                f'<body class="{meta["body"]}">\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n</body>\n</html>\n')
+                f'<body class="{meta["body"]}">\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n' + SW_REG + '\n</body>\n</html>\n')
         open(f'{OUT}/{name}.html', 'w', encoding='utf-8').write(html)
     for f in os.listdir(f'{SRC}/static'):
         shutil.copy(f'{SRC}/static/{f}', f'{OUT}/{f}')

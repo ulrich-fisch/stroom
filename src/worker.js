@@ -6,7 +6,7 @@ import { handleContent, createContentTables, seedContent, adminOk, serveMedia } 
 import { handleMember, createMemberTables, isMemberPath } from './lede.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
-const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys']);
+const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
 const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
 const NEEDS_PLAN = new Set(['profiel', 'katalogus', 'joernaal', 'oor-ons']);
 const NEEDS_ADMIN = new Set(['admin']);
