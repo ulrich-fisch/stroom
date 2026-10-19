@@ -519,4 +519,96 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   t('upgrade: database down gives friendly 503', r3.status === 503 && /opgestel/.test((await r3.json()).fout));
 }
 
+// 9. PR 4: POPIA export/delete, PayFast cancel on delete, creator dashboard, statements, backup
+{
+  env.ADMIN_EMAIL = 'admin9@stroom.co.za';
+  const reg = async (e) => { sql.exec('DELETE FROM attempts'); const rr = await post('/api/register', { email: e, name: e.split('@')[0], password: 'correct-horse' }); const c = ck(rr); await post('/api/plan', { plan: 'avod' }, c); return c; };
+  const ad9 = await reg('admin9@stroom.co.za'), sk9 = await reg('maker9@stroom.co.za'), vw9 = await reg('kyker9@stroom.co.za'), vw8 = await reg('kyker8@stroom.co.za');
+  const uid = (e) => sql.prepare('SELECT id FROM users WHERE email = ?').get(e).id;
+  const skId = uid('maker9@stroom.co.za'), vwId = uid('kyker9@stroom.co.za'), v8Id = uid('kyker8@stroom.co.za');
+  const nt = { titel: 'Skepper Toets', tipe: 'Kortfilm', genre_sleutel: 'drama', status: 'konsep' };
+  t('creator: unknown e-mail refused', (await post('/api/admin/titel', { ...nt, skepper_epos: 'niemand@x.co' }, ad9)).status === 400);
+  t('creator: member cannot link a title', (await post('/api/admin/titel', { ...nt, skepper_epos: 'maker9@stroom.co.za' }, vw9)).status === 404);
+  t('creator: not a creator yet, /api/me skepper false', (await (await call('/api/me', {}, sk9)).json()).skepper === false);
+  r = await post('/api/admin/titel', { ...nt, skepper_epos: 'Maker9@stroom.co.za' }, ad9); const slug9 = (await r.json()).slug;
+  t('creator: title linked to member', r.status === 200 && sql.prepare('SELECT skepper_id FROM titels WHERE slug = ?').get(slug9).skepper_id === skId);
+  t('creator: /api/me skepper true', (await (await call('/api/me', {}, sk9)).json()).skepper === true);
+  t('creator: admin list shows e-mail', (await (await call('/api/admin/titels', {}, ad9)).json()).titels.find((x) => x.slug === slug9).skepper_epos === 'maker9@stroom.co.za');
+  t('creator: page needs login', (await call('/skepper')).status === 302 && (await call('/skepper', {}, sk9)).status === 200);
+
+  // data: 3 plays, 2 ads started (1 click), watch time, rating, reminder
+  const now = Date.now(), dag = new Date(now + 7200000).toISOString().slice(0, 10);
+  sql.exec(`INSERT INTO kykgebeure (slug, user_id, ts) VALUES ('${slug9}', ${vwId}, ${now}), ('${slug9}', ${vwId}, ${now}), ('${slug9}', ${v8Id}, ${now})`);
+  sql.exec(`INSERT INTO advertensies (naam, video_url, aktief, created_at) VALUES ('Adv', '/media/a.mp4', 1, 1)`);
+  const adId = sql.prepare('SELECT id FROM advertensies ORDER BY id DESC').get().id;
+  sql.exec(`INSERT INTO meting (ad_id, tipe, user_id, slug, ts) VALUES (${adId}, 'begin', ${vwId}, '${slug9}', ${now}), (${adId}, 'begin', ${v8Id}, '${slug9}', ${now}), (${adId}, 'klik', ${vwId}, '${slug9}', ${now})`);
+  sql.exec(`INSERT INTO kyktyd (dag, user_id, slug, sek, plan) VALUES ('${dag}', ${vwId}, '${slug9}', 3600, 'avod'), ('${dag}', ${v8Id}, '${slug9}', 1800, 'avod')`);
+  sql.exec(`INSERT INTO herinner (user_id, slug, created_at) VALUES (${vwId}, '${slug9}', 1)`);
+  sql.exec(`INSERT INTO profiele (user_id, naam, created_at) VALUES (${vwId}, 'Kyker', 1)`);
+  const pidV = sql.prepare('SELECT id FROM profiele WHERE user_id = ?').get(vwId).id;
+  sql.exec(`INSERT INTO gradering (profiel_id, slug, sterre, bygewerk) VALUES (${pidV}, '${slug9}', 5, 1)`);
+  sql.exec(`INSERT INTO lys (profiel_id, slug, created_at) VALUES (${pidV}, '${slug9}', 1)`);
+  sql.exec(`INSERT INTO vordering (profiel_id, slug, posisie, duur, voltooi, bygewerk) VALUES (${pidV}, '${slug9}', 10, 100, 1, 1)`);
+
+  await post('/api/admin/tariewe', { cpm_voorrol: 120, cpc: 4, skepper_deel: 0 }, ad9);
+  r = await call('/api/skepper/verslag?dae=30', {}, sk9); let sv = await r.json();
+  const row9 = sv.titels[0];
+  t('creator report: own title with plays, viewers, hours', r.status === 200 && row9.kyke === 3 && row9.unieke === 2 && row9.ure === 1.5);
+  t('creator report: ad impressions/clicks and value = 2/1000*120 + 1*4', row9.advertensie_kyke === 2 && row9.klikke === 1 && row9.waarde === 4.24);
+  t('creator report: rating, completion, reminders', row9.gem === 5 && row9.voltooi_pct === 100 && row9.herinnerings === 1);
+  t('creator report: share not set means 0 and flagged', sv.deel_pct === 0 && row9.deel === 0);
+  t('creator report: another member sees nothing of it', (await (await call('/api/skepper/verslag', {}, vw9)).json()).titels.length === 0);
+  t('creator report: needs login', (await call('/api/skepper/verslag')).status === 401);
+  t('creator csv ok with BOM and title', await (await call('/api/skepper/csv', {}, sk9)).arrayBuffer().then((b) => { const u = new Uint8Array(b); return u[0] === 0xEF && u[1] === 0xBB && new TextDecoder().decode(b).includes('Skepper Toets'); }));
+  t('rate: share over 100 refused', (await post('/api/admin/tariewe', { skepper_deel: 150 }, ad9)).status === 400);
+  t('rate: share saved', (await post('/api/admin/tariewe', { skepper_deel: 50 }, ad9)).status === 200);
+  sv = await (await call('/api/skepper/verslag?dae=30', {}, sk9)).json();
+  t('creator report: share 50% of 4.24 = 2.12', sv.deel_pct === 50 && sv.titels[0].deel === 2.12 && sv.totaal.deel === 2.12);
+  const mnd = dag.slice(0, 7);
+  r = await call('/api/admin/skepper-staat?maand=' + mnd, {}, ad9); const st = await r.json();
+  t('statement: one creator line with payable amount', r.status === 200 && st.skeppers.length === 1 && st.skeppers[0].e_pos === 'maker9@stroom.co.za' && st.skeppers[0].deel === 2.12 && st.totaal.deel === 2.12);
+  t('statement: other month is empty of value', (await (await call('/api/admin/skepper-staat?maand=2020-01', {}, ad9)).json()).skeppers[0].waarde === 0);
+  t('statement: members refused', (await call('/api/admin/skepper-staat', {}, sk9)).status === 404 && (await call('/api/admin/skepper-staat-csv', {}, sk9)).status === 404);
+  t('statement csv ok', await (await call('/api/admin/skepper-staat-csv?maand=' + mnd, {}, ad9)).text().then((x) => x.includes('maker9@stroom.co.za') && x.includes('2.12')));
+  r = await call('/api/admin/rugsteun', {}, ad9); const bk = await r.json();
+  t('backup: admin gets titles/ads/subtitles/settings, no members', r.status === 200 && Array.isArray(bk.titels) && bk.titels.some((x) => x.slug === slug9) && Array.isArray(bk.advertensies) && !('users' in bk) && !JSON.stringify(bk).includes('hash'));
+  t('backup: members refused', (await call('/api/admin/rugsteun', {}, vw9)).status === 404);
+
+  // export has everything
+  sql.exec(`INSERT INTO orders (m_payment_id, user_id, plan, status, created_at) VALUES ('S9', ${vwId}, 'monthly', 'complete', 1)`);
+  sql.exec(`INSERT INTO indienings (user_id, email, name, title, type, link, synopsis, created_at) VALUES (${vwId}, 'kyker9@stroom.co.za', 'K', 'Ingedien', 'Film', 'https://x.co', 'syn', 1)`);
+  const ex = await (await call('/api/export', {}, vw9)).json();
+  t('export: profiles, list, progress, rating, reminders, plays, watch time, submissions, orders', ex.profiele.length === 1 && ex.my_lys.length === 1 && ex.kykvordering.length === 1 && ex.graderings.length === 1 && ex.herinnerings.length === 1
+    && ex.kykgeskiedenis.length === 2 && ex.kykure_per_dag.length === 1 && ex.indienings.length === 1 && ex.bestellings.length === 1);
+  t('export: no password hash or other member data', !/hash|salt|kyker8/.test(JSON.stringify(ex)));
+
+  // delete: PayFast subscription cancelled first; failure blocks deletion
+  sql.exec(`UPDATE users SET pf_token = 'tok-9', plan = 'svod' WHERE id = ${vwId}`);
+  const saved = { ...env }; delete env.PAYFAST_MERCHANT_ID; delete env.PAYFAST_MERCHANT_KEY; delete env.PAYFAST_PASSPHRASE;
+  t('delete: payments not configured, subscriber refused and kept', (await post('/api/delete-account', { password: 'correct-horse' }, vw9)).status === 502 && !!sql.prepare('SELECT 1 FROM users WHERE id = ?').get(vwId));
+  Object.assign(env, { PAYFAST_MERCHANT_ID: '10000000', PAYFAST_MERCHANT_KEY: 'fakekey123456', PAYFAST_PASSPHRASE: 'test pass&1' });
+  const rf = globalThis.fetch; let putUrl = null, putOk = false;
+  globalThis.fetch = async (u, o) => { if (o && o.method === 'PUT') { putUrl = String(u); return new Response('', { status: putOk ? 200 : 500 }); } return new Response('', { status: 200 }); };
+  t('delete: PayFast cancel fails, account kept', (await post('/api/delete-account', { password: 'correct-horse' }, vw9)).status === 502 && !!sql.prepare('SELECT 1 FROM users WHERE id = ?').get(vwId));
+  putOk = true;
+  r = await post('/api/delete-account', { password: 'correct-horse' }, vw9);
+  globalThis.fetch = rf;
+  t('delete: cancels the right PayFast subscription then deletes', r.status === 200 && /tok-9\/cancel/.test(putUrl));
+  const cnt = (q) => sql.prepare(q).get().c;
+  t('delete: user, sessions, profiles, list, progress, ratings, reminders, submissions gone',
+    cnt(`SELECT COUNT(*) c FROM users WHERE id = ${vwId}`) === 0 && cnt(`SELECT COUNT(*) c FROM sessions WHERE user_id = ${vwId}`) === 0 && cnt(`SELECT COUNT(*) c FROM profiele WHERE user_id = ${vwId}`) === 0
+    && cnt(`SELECT COUNT(*) c FROM lys WHERE profiel_id = ${pidV}`) + cnt(`SELECT COUNT(*) c FROM vordering WHERE profiel_id = ${pidV}`) + cnt(`SELECT COUNT(*) c FROM gradering WHERE profiel_id = ${pidV}`) === 0
+    && cnt(`SELECT COUNT(*) c FROM herinner WHERE user_id = ${vwId}`) === 0 && cnt(`SELECT COUNT(*) c FROM indienings WHERE user_id = ${vwId}`) === 0);
+  t('delete: plays and ad measurements kept but anonymous', cnt(`SELECT COUNT(*) c FROM kykgebeure WHERE slug = '${slug9}'`) === 3 && cnt(`SELECT COUNT(*) c FROM kykgebeure WHERE user_id = ${vwId}`) === 0 && cnt(`SELECT COUNT(*) c FROM meting WHERE user_id = ${vwId}`) === 0 && cnt(`SELECT COUNT(*) c FROM meting WHERE slug = '${slug9}'`) === 3);
+  t('delete: watch hours folded into anonymous totals, not lost', cnt(`SELECT COUNT(*) c FROM kyktyd WHERE user_id = ${vwId}`) === 0 && sql.prepare(`SELECT sek FROM kyktyd WHERE user_id = 0 AND slug = '${slug9}'`).get().sek === 3600);
+  t('delete: payment orders kept for accounting', cnt(`SELECT COUNT(*) c FROM orders WHERE user_id = ${vwId}`) === 1);
+  t('delete: creator report still sees the same hours', (await (await call('/api/skepper/verslag?dae=30', {}, sk9)).json()).titels[0].ure === 1.5);
+  t('delete: other members untouched', cnt(`SELECT COUNT(*) c FROM users WHERE id = ${v8Id}`) === 1 && cnt(`SELECT COUNT(*) c FROM kyktyd WHERE user_id = ${v8Id}`) === 1);
+  // deleting a creator unlinks titles (no dangling owner)
+  t('delete creator: titles stay, link cleared', (await post('/api/delete-account', { password: 'correct-horse' }, sk9)).status === 200 && sql.prepare('SELECT skepper_id FROM titels WHERE slug = ?').get(slug9).skepper_id === null);
+  Object.keys(env).forEach((k) => { if (!(k in saved)) delete env[k]; });
+  Object.assign(env, saved);
+  delete env.PAYFAST_MERCHANT_ID; delete env.PAYFAST_MERCHANT_KEY; delete env.PAYFAST_PASSPHRASE;
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

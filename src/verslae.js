@@ -5,7 +5,7 @@ const DAY = 86400000, TZ = 7200;                                   // Suid-Afrik
 const dayExpr = (col) => `strftime('%Y-%m-%d', ${col} / 1000 + ${TZ}, 'unixepoch')`;
 const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
 
-export const DEFAULT_RATES = { cpm_voorrol: 120, cpc: 4, premium_maand: 59, premium_jaar: 590 };
+export const DEFAULT_RATES = { cpm_voorrol: 120, cpc: 4, premium_maand: 59, premium_jaar: 590, skepper_deel: 0 };
 const RATE_KEYS = Object.keys(DEFAULT_RATES);
 
 export function toestelSoort(request) {
@@ -187,7 +187,7 @@ export async function handleReports({ request, env, path, post, u }) {
     for (const k of RATE_KEYS) {
       if (b[k] == null) continue;
       const v = Number(b[k]);
-      if (!Number.isFinite(v) || v < 0 || v > 100000) return json({ fout: 'Ongeldige bedrag vir ' + k + '.' }, 400);
+      if (!Number.isFinite(v) || v < 0 || v > 100000 || (k === 'skepper_deel' && v > 100)) return json({ fout: 'Ongeldige bedrag vir ' + k + '.' }, 400);
       await db.prepare('INSERT INTO instellings (sleutel, waarde) VALUES (?, ?) ON CONFLICT(sleutel) DO UPDATE SET waarde = excluded.waarde').bind(k, String(v)).run();
     }
     return json({ ok: true, tariewe: await lesTariewe(db) });

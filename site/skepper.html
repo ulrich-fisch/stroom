@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#070c18">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Stroom">
+  <title>Skepper-paneel | Stroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+<header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap justify-between items-center gap-y-3">
+      <div class="flex items-center space-x-8">
+        <a href="katalogus.html" class="flex items-center space-x-3">
+          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        </a>
+        <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+          <a href="katalogus.html" class="hover:text-white transition">Katalogus</a>
+          <a href="joernaal.html" class="hover:text-white transition">Joernaal</a>
+          <a href="oor-ons.html" class="hover:text-white transition">Oor Stroom</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+        
+        
+        <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Cinema Club</a>
+
+        <div class="relative group ml-auto sm:ml-0 shrink-0">
+          <button onclick="toggleDd(this, event)" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-1 sm:px-3.5 sm:py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+            <span id="headerAvatar" class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style="background:linear-gradient(135deg,#38bdf8,#0369a1)">P</span>
+            <span id="headerProfileName" class="hidden sm:inline text-xs font-semibold text-slate-300">Profiel</span>
+            <span class="hidden sm:inline text-[10px] text-slate-500">▼</span>
+          </button>
+
+          <div class="dd absolute right-0 mt-2 w-64 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 transition duration-200 z-50 backdrop-blur-xl">
+            <div class="p-2 border-b border-slate-800 space-y-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
+              <div id="headerProfiles" class="space-y-1"></div>
+            </div>
+
+            <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
+              <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
+              <a href="rekening.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Rekening / Planne</a>
+              <button id="installBtn" onclick="installApp()" class="hidden w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">&#8681; Installeer Stroom-toep</button>
+              <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <a id="skepperLink" href="skepper.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Skepper-paneel</a>
+              <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
+              <div class="pt-2 border-t border-slate-800">
+                <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-12 w-full space-y-8">
+    <div class="space-y-2">
+      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Cinema Club</span>
+      <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">Skepper-paneel</h1>
+      <p class="text-slate-400 text-sm leading-relaxed max-w-2xl">Sien hoe jou titels op Stroom vaar. Geen kykers se persoonlike besonderhede word gewys nie, net totale.</p>
+    </div>
+
+    <div id="skLeeg" class="hidden bg-slate-900/90 p-8 rounded-2xl border border-slate-800 text-center space-y-3">
+      <h2 class="text-xl font-black text-white uppercase">Nog geen titels gekoppel nie</h2>
+      <p class="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">Sodra jou film gepubliseer is en aan jou rekening gekoppel is, verskyn die syfers hier. Het jy nog nie ingedien nie?</p>
+      <a href="skep.html" class="inline-block text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full uppercase tracking-wider">Dien &rsquo;n film in</a>
+    </div>
+
+    <div id="skInhoud" class="hidden space-y-6">
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="skPer" class="flex flex-wrap gap-2"></div>
+        <input id="skM" type="month" class="bg-slate-950 border border-slate-800 rounded-full px-3 py-1.5 text-xs text-white">
+        <button id="skCsv" class="ml-auto text-xs border border-slate-700 hover:border-white text-slate-300 px-4 py-1.5 rounded-full">Laai CSV af</button>
+      </div>
+      <div id="skKpi" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+      <p id="skDeel" class="text-xs text-slate-400"></p>
+      <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 overflow-x-auto"><table class="w-full text-sm text-left">
+        <thead class="text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="py-2 pr-4">Titel</th><th class="pr-4">Kyke</th><th class="pr-4">Kykers</th><th class="pr-4">Kykure</th><th class="pr-4">Voltooi</th><th class="pr-4">Gradering</th><th class="pr-4">Herinnerings</th><th>Beraamde deel</th></tr></thead>
+        <tbody id="skRye"></tbody></table></div>
+      <p class="text-[11px] text-slate-500 leading-relaxed">&ldquo;Beraamde deel&rdquo; is &rsquo;n skatting uit die advertensies wat voor jou titel gespeel het. Dit is nie &rsquo;n faktuur of &rsquo;n gewaarborgde bedrag nie; werklike uitbetaling volg die ooreenkoms tussen jou en Fischbowl Media.</p>
+    </div>
+    <p id="skFout" class="text-sm text-rose-400"></p>
+  </main>
+
+<footer class="text-center py-10 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <div class="max-w-7xl mx-auto px-6 space-y-4">
+      <p class="text-slate-400 font-semibold tracking-wider uppercase">STROOM — Die Tuisruimte van Afrikaanse Vermaak</p>
+      <p class="space-x-4">
+        <a href="katalogus.html" class="hover:text-slate-300">Katalogus</a>
+        <a href="joernaal.html" class="hover:text-slate-300">Joernaal</a>
+        <a href="oor-ons.html" class="hover:text-slate-300">Oor Stroom</a>
+        <a href="skep.html" class="hover:text-slate-300">Cinema Club</a>
+        <a href="privaatheid.html" class="hover:text-slate-300">Privaatheid</a>
+      </p>
+      <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+    </div>
+  </footer>
+
+<script src="/app.js"></script>
+<script>
+    (function () {
+      var $ = function (i) { return document.getElementById(i); };
+      var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var fmt = function (v, d) { return v == null ? '—' : Number(v).toLocaleString('af-ZA', { maximumFractionDigits: d || 0 }); };
+      var R = function (n) { return 'R ' + Number(n).toLocaleString('af-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      var Q = 'dae=30';
+      function kpi(w, l) { return '<div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-4"><div class="text-2xl font-black text-white">' + w + '</div><div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">' + l + '</div></div>'; }
+      function per() {
+        var h = '';
+        [[7, '7 dae'], [30, '30 dae'], [90, '90 dae'], [365, '1 jaar']].forEach(function (p) {
+          var on = Q === 'dae=' + p[0];
+          h += '<button data-q="dae=' + p[0] + '" class="px-3 py-1.5 rounded-full border text-xs ' + (on ? 'border-sky-500 text-sky-300 bg-sky-500/10' : 'border-slate-800 text-slate-400 hover:text-white') + '">' + p[1] + '</button>';
+        });
+        $('skPer').innerHTML = h;
+        $('skPer').querySelectorAll('button').forEach(function (b) { b.onclick = function () { Q = b.dataset.q; $('skM').value = ''; laai(); }; });
+      }
+      async function laai() {
+        per();
+        try {
+          var r = await fetch('/api/skepper/verslag?' + Q), d = await r.json();
+          if (!r.ok) throw new Error(d.fout || 'Kon nie laai nie.');
+          $('skFout').textContent = '';
+          if (!d.titels.length) { $('skLeeg').classList.remove('hidden'); $('skInhoud').classList.add('hidden'); return; }
+          $('skInhoud').classList.remove('hidden'); $('skLeeg').classList.add('hidden');
+          var t = d.totaal;
+          $('skKpi').innerHTML = kpi(fmt(t.kyke), 'Kyke') + kpi(fmt(t.ure, 1), 'Kykure') + kpi(fmt(t.advertensie_kyke), 'Advertensie-vertonings') + kpi(d.deel_pct ? R(t.deel) : '—', 'Beraamde deel');
+          $('skDeel').textContent = d.deel_pct ? 'Jou aandeel: ' + d.deel_pct + '% van die beraamde advertensiewaarde (' + R(t.waarde) + ').' : 'Jou aandeel is nog nie vasgestel nie.';
+          $('skRye').innerHTML = d.titels.map(function (x) {
+            return '<tr class="border-t border-slate-800 text-slate-200"><td class="py-2 pr-4 font-semibold">' + esc(x.titel) + (x.status !== 'gepubliseer' ? ' <span class="text-[10px] text-slate-500 uppercase">' + esc(x.status) + '</span>' : '') + '</td><td class="pr-4">' + fmt(x.kyke) + '</td><td class="pr-4">' + fmt(x.unieke) + '</td><td class="pr-4">' + fmt(x.ure, 1) + '</td><td class="pr-4">' + (x.voltooi_pct == null ? '—' : x.voltooi_pct + '%') + '</td><td class="pr-4">' + (x.gem == null ? '—' : '★ ' + x.gem + ' (' + x.aantal + ')') + '</td><td class="pr-4">' + fmt(x.herinnerings) + '</td><td>' + (d.deel_pct ? R(x.deel) : '—') + '</td></tr>';
+          }).join('');
+        } catch (e) { $('skFout').textContent = e.message; }
+      }
+      $('skM').onchange = function () { if ($('skM').value) { Q = 'maand=' + $('skM').value; laai(); } };
+      $('skCsv').onclick = function () { window.location.href = '/api/skepper/csv?' + Q; };
+      laai();
+    })();
+</script>
+<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>
+</body>
+</html>

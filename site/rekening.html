@@ -54,6 +54,7 @@
               <a href="rekening.html" class="block p-2 rounded-lg bg-slate-800/60 font-semibold text-white transition">Rekening / Planne</a>
               <button id="installBtn" onclick="installApp()" class="hidden w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">&#8681; Installeer Stroom-toep</button>
               <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <a id="skepperLink" href="skepper.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Skepper-paneel</a>
               <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
               <div class="pt-2 border-t border-slate-800">
                 <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
@@ -172,7 +173,7 @@
 
       <div class="pt-4 border-t border-slate-800 space-y-3">
         <h3 class="text-sm font-bold text-rose-400">Skrap my rekening</h3>
-        <p class="text-xs text-slate-400">Dit verwyder jou rekening en inskrywings permanent en kan nie ongedaan gemaak word nie.</p>
+        <p class="text-xs text-slate-400">Dit verwyder jou rekening, profiele, Jou Lys, kykvordering, graderings en inskrywings permanent en kan nie ongedaan gemaak word nie. Enige betaalde intekening word eers gestop. Anonieme kyksyfers (sonder jou naam) en betaalrekords vir boekhouding bly bewaar.</p>
         <form class="flex flex-wrap items-center gap-3" onsubmit="deleteAccount(event)">
           <input type="password" id="delPassword" required placeholder="Jou wagwoord" autocomplete="current-password" class="px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 transition"/>
           <button type="submit" class="text-xs bg-rose-500/10 border border-rose-500/40 hover:bg-rose-500/20 text-rose-400 font-bold px-5 py-2.5 rounded-full transition uppercase tracking-wider">Skrap Rekening</button>

@@ -7,10 +7,11 @@ import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
 import { handleBinnekort, herinnerStatements, TITEL_COLUMNS, isBinnekortPath, sharePage } from './binnekort.js';
+import { handleSkeppers, isSkepperPath, SKEPPER_COLUMNS, isSkepper } from './skeppers.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
-const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
+const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep', 'skepper']);
 const NEEDS_PLAN = new Set(['profiel', 'katalogus', 'joernaal', 'oor-ons']);
 const NEEDS_ADMIN = new Set(['admin', 'verslae']);
 const SESSION_DAYS = 30;
@@ -47,7 +48,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-19d';
+const SCHEMA = '2026-10-20a';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -103,7 +104,7 @@ async function migrate(db) {
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
     ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db),
   ]);
-  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS]);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS]);
   await seedContent(db);
 }
 
@@ -152,14 +153,29 @@ async function api(request, env, url, ctx) {
 
   if (path === '/api/me') {
     const u = await getUser(request, env.DB);
-    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null, admin: adminOk(u, env) }) : json({ fout: 'Nie ingeteken nie.' }, 401);
+    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null, admin: adminOk(u, env), skepper: await isSkepper(env.DB, u.id) }) : json({ fout: 'Nie ingeteken nie.' }, 401);
   }
   if (path === '/api/export') {
     const u = await getUser(request, env.DB);
     if (!u) return json({ fout: 'Nie ingeteken nie.' }, 401);
-    const full = await env.DB.prepare('SELECT email, name, plan, created_at FROM users WHERE id = ?').bind(u.id).first();
-    return json({ rekening: { e_pos: full.email, naam: full.name, plan: full.plan, aangesluit: new Date(full.created_at).toISOString() },
-                  uitgevoer_op: new Date().toISOString() }, 200,
+    const db = env.DB, id = u.id;
+    const full = await db.prepare('SELECT email, name, plan, plan_period, created_at FROM users WHERE id = ?').bind(id).first();
+    const all = async (sql) => (await db.prepare(sql).bind(id).all()).results;
+    const iso = (t) => (t ? new Date(t).toISOString() : null);
+    const profiele = await all('SELECT id, naam, avatar, kinders, created_at FROM profiele WHERE user_id = ? ORDER BY id');
+    const pids = 'SELECT id FROM profiele WHERE user_id = ?';
+    return json({
+      rekening: { e_pos: full.email, naam: full.name, plan: full.plan, tydperk: full.plan_period || null, aangesluit: iso(full.created_at) },
+      profiele: profiele.map((p) => ({ naam: p.naam, avatar: p.avatar, kinderprofiel: !!p.kinders, geskep: iso(p.created_at) })),
+      my_lys: (await all(`SELECT p.naam AS profiel, l.slug, l.created_at FROM lys l JOIN profiele p ON p.id = l.profiel_id WHERE l.profiel_id IN (${pids}) ORDER BY l.created_at`)).map((r) => ({ profiel: r.profiel, titel: r.slug, bygevoeg: iso(r.created_at) })),
+      kykvordering: (await all(`SELECT p.naam AS profiel, v.slug, v.ep, v.posisie, v.duur, v.voltooi, v.bygewerk FROM vordering v JOIN profiele p ON p.id = v.profiel_id WHERE v.profiel_id IN (${pids})`)).map((r) => ({ profiel: r.profiel, titel: r.slug, episode: r.ep, sekondes: Math.round(r.posisie), voltooi: !!r.voltooi, bygewerk: iso(r.bygewerk) })),
+      graderings: (await all(`SELECT p.naam AS profiel, g.slug, g.sterre, g.bygewerk FROM gradering g JOIN profiele p ON p.id = g.profiel_id WHERE g.profiel_id IN (${pids})`)).map((r) => ({ profiel: r.profiel, titel: r.slug, sterre: r.sterre, bygewerk: iso(r.bygewerk) })),
+      herinnerings: (await all('SELECT slug, created_at FROM herinner WHERE user_id = ?')).map((r) => ({ titel: r.slug, gestel: iso(r.created_at) })),
+      kykgeskiedenis: (await all('SELECT slug, ep, ts FROM kykgebeure WHERE user_id = ? ORDER BY ts DESC LIMIT 5000')).map((r) => ({ titel: r.slug, episode: r.ep, tyd: iso(r.ts) })),
+      kykure_per_dag: (await all('SELECT dag, slug, sek FROM kyktyd WHERE user_id = ? ORDER BY dag DESC LIMIT 5000')).map((r) => ({ dag: r.dag, titel: r.slug, sekondes: r.sek })),
+      indienings: (await all('SELECT title, type, link, synopsis, status, created_at FROM indienings WHERE user_id = ? ORDER BY id')).map((r) => ({ titel: r.title, tipe: r.type, skakel: r.link, sinopsis: r.synopsis, status: r.status, ingestuur: iso(r.created_at) })),
+      bestellings: (await all('SELECT m_payment_id, plan, status, created_at FROM orders WHERE user_id = ? ORDER BY created_at')).map((r) => ({ verwysing: r.m_payment_id, plan: r.plan, status: r.status, datum: iso(r.created_at) })),
+      uitgevoer_op: new Date().toISOString() }, 200,
       { 'Content-Disposition': 'attachment; filename="my-stroom-data.json"' });
   }
   if (path === '/api/skep-admin') {
@@ -178,7 +194,7 @@ async function api(request, env, url, ctx) {
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
   }
   {
-    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path) || isSubtitlePath(path) || isBinnekortPath(path)) ? await getUser(request, env.DB) : null;
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path) || isSubtitlePath(path) || isBinnekortPath(path) || isSkepperPath(path)) ? await getUser(request, env.DB) : null;
     const m = await handleMember({ request, env, path, post, u: cu });
     if (m) return m;
     const r = await handleReports({ request, env, path, post, u: cu });
@@ -187,6 +203,8 @@ async function api(request, env, url, ctx) {
     if (sb) return sb;
     const bk = await handleBinnekort({ request, env, path, post, u: cu });
     if (bk) return bk;
+    const sk = await handleSkeppers({ request, env, path, post, u: cu });
+    if (sk) return sk;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }
@@ -335,8 +353,32 @@ async function api(request, env, url, ctx) {
     const row = await env.DB.prepare('SELECT salt, hash FROM users WHERE id = ?').bind(u.id).first();
     const cur = await hashPassword(String(body.password || ''), row.salt);
     if (!safeEqual(cur.hash, row.hash)) { await noteAttempt(env.DB, key); return json({ fout: 'Wagwoord is verkeerd.' }, 401); }
-    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id).run();
-    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id).run();
+    // Eers die PayFast-intekening stop, anders bly dit aanhou om geld af te trek
+    const sub = await env.DB.prepare('SELECT pf_token FROM users WHERE id = ?').bind(u.id).first();
+    if (sub && sub.pf_token) {
+      const cfg = config(env);
+      if (!cfg || !(await cancelSubscription(cfg, sub.pf_token)))
+        return json({ fout: 'Ons kon nie jou betaalde intekening stop nie, so jou rekening is nog nie uitgevee nie. Probeer asseblief weer, of kontak ons.' }, 502);
+    }
+    const db = env.DB, id = u.id, pids = '(SELECT id FROM profiele WHERE user_id = ?)';
+    await db.batch([
+      db.prepare(`DELETE FROM lys WHERE profiel_id IN ${pids}`).bind(id),
+      db.prepare(`DELETE FROM vordering WHERE profiel_id IN ${pids}`).bind(id),
+      db.prepare(`DELETE FROM gradering WHERE profiel_id IN ${pids}`).bind(id),
+      db.prepare('DELETE FROM profiele WHERE user_id = ?').bind(id),
+      db.prepare('DELETE FROM herinner WHERE user_id = ?').bind(id),
+      // Anonieme totale bly vir verslae: kykure word na 'n anonieme rekord (0) verskuif, kyke en advertensiemetings verloor hul skakel na die lid
+      db.prepare(`INSERT INTO kyktyd (dag, user_id, slug, sek, plan) SELECT dag, 0, slug, SUM(sek), MAX(plan) FROM kyktyd WHERE user_id = ? GROUP BY dag, slug
+        ON CONFLICT (dag, user_id, slug) DO UPDATE SET sek = sek + excluded.sek`).bind(id),
+      db.prepare('DELETE FROM kyktyd WHERE user_id = ?').bind(id),
+      db.prepare('UPDATE kykgebeure SET user_id = NULL, profiel_id = NULL WHERE user_id = ?').bind(id),
+      db.prepare('UPDATE meting SET user_id = NULL WHERE user_id = ?').bind(id),
+      db.prepare('UPDATE titels SET skepper_id = NULL WHERE skepper_id = ?').bind(id),
+      db.prepare('DELETE FROM indienings WHERE user_id = ?').bind(id),
+      db.prepare('DELETE FROM attempts WHERE key IN (?, ?)').bind('pw:' + id, 'del:' + id),
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
+      db.prepare('DELETE FROM users WHERE id = ?').bind(id),
+    ]);
     return json({ ok: true }, 200, { 'Set-Cookie': 'stroom_sessie=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' });
   }
 
