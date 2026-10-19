@@ -42,36 +42,50 @@ function safeEqual(a, b) {
   return r === 0;
 }
 
+// Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
+// Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
+// net EEN vinnige navraag kos in plaas van meer as 10 stadige een (dit het inteken traag gemaak).
+const SCHEMA = '2026-10-19a';
+
 let ready;
 function init(db) {
   ready ||= (async () => {
-    await db.batch([
-      db.prepare(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT,
-        salt TEXT NOT NULL, hash TEXT NOT NULL, plan TEXT NOT NULL DEFAULT 'none',
-        created_at INTEGER NOT NULL)`),
-      db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
-        token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at INTEGER NOT NULL)`),
-      db.prepare(`CREATE TABLE IF NOT EXISTS attempts (
-        key TEXT NOT NULL, at INTEGER NOT NULL)`),
-      db.prepare(`CREATE TABLE IF NOT EXISTS orders (
-        m_payment_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, plan TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL)`),
-      db.prepare(`CREATE TABLE IF NOT EXISTS indienings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
-        title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
-    ]);
-    // Nuwe kolomme vir bestaande databasisse (fout as dit reeds bestaan word geïgnoreer)
-    for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
-      try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
-    }
-    await createContentTables(db);
-    await createMemberTables(db);
-    await createReportTables(db);
-    await seedContent(db);
-  })();
+    try {
+      const v = await db.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").first();
+      if (v && v.waarde === SCHEMA) return;
+    } catch { /* tabel bestaan nog nie: doen die volle opstelling */ }
+    await migrate(db);
+    await db.prepare("INSERT OR REPLACE INTO instellings (sleutel, waarde) VALUES ('skema', ?)").bind(SCHEMA).run();
+  })().catch((e) => { ready = null; throw e; });
   return ready;
+}
+
+async function migrate(db) {
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT,
+      salt TEXT NOT NULL, hash TEXT NOT NULL, plan TEXT NOT NULL DEFAULT 'none',
+      created_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+      token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS attempts (
+      key TEXT NOT NULL, at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS orders (
+      m_payment_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, plan TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS indienings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
+      title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
+  ]);
+  // Nuwe kolomme vir bestaande databasisse (fout as dit reeds bestaan word geïgnoreer)
+  for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
+    try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
+  }
+  await createContentTables(db);
+  await createMemberTables(db);
+  await createReportTables(db);
+  await seedContent(db);
 }
 
 function cookieValue(request, name) {
@@ -112,6 +126,8 @@ async function api(request, env, url) {
   // Slegs eie webwerf mag POST (beskerm teen kruis-werf-versoeke)
   if (post && request.headers.get('Origin') && request.headers.get('Origin') !== url.origin)
     return json({ fout: 'Ongeldige versoek.' }, 403);
+
+  if (path === '/api/warm') return json({ ok: true });
 
   if (path === '/api/me') {
     const u = await getUser(request, env.DB);
@@ -185,8 +201,14 @@ async function api(request, env, url) {
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
     const key = 'login:' + email;
-    if (await tooManyAttempts(env.DB, key)) return json({ fout: 'Te veel pogings. Probeer oor 15 minute weer.' }, 429);
-    const u = await env.DB.prepare('SELECT id, name, salt, hash FROM users WHERE email = ?').bind(email).first();
+    // Een enkele rit na die databasis: ou pogings opruim, pogings tel, gebruiker soek
+    const [, tel, gebr] = await env.DB.batch([
+      env.DB.prepare('DELETE FROM attempts WHERE at < ?').bind(Date.now() - 24 * 3600 * 1000),
+      env.DB.prepare('SELECT COUNT(*) AS n FROM attempts WHERE key = ? AND at >= ?').bind(key, Date.now() - 15 * 60 * 1000),
+      env.DB.prepare('SELECT id, name, salt, hash FROM users WHERE email = ?').bind(email),
+    ]);
+    if ((tel.results[0] || { n: 0 }).n >= 10) return json({ fout: 'Te veel pogings. Probeer oor 15 minute weer.' }, 429);
+    const u = gebr.results[0] || null;
     // Selfde werk of die gebruiker bestaan of nie (teen uitvind van rekeninge)
     const { hash } = await hashPassword(password, u ? u.salt : '00'.repeat(16));
     if (!u || !safeEqual(hash, u.hash)) {

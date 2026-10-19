@@ -7,8 +7,8 @@ const stmt = (q) => { let args = []; const o = {
   run: async () => { const r = sql.prepare(q).run(...args); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; },
   first: async () => sql.prepare(q).get(...args) ?? null,
   all: async () => ({ results: sql.prepare(q).all(...args) }),
-  _exec: () => { sql.prepare(q).run(...args); } }; return o; };
-const DB = { prepare: stmt, batch: async (list) => { list.forEach((s) => s._exec()); } };
+  _exec: () => /^\s*SELECT/i.test(q) ? { results: sql.prepare(q).all(...args) } : (sql.prepare(q).run(...args), { results: [] }) }; return o; };
+const DB = { prepare: stmt, batch: async (list) => list.map((s) => s._exec()) };
 const ASSETS = { fetch: async (req) => new Response('PAGE ' + new URL(req.url).pathname, { status: 200 }) };
 const env = { DB, ASSETS };
 const call = (path, opts = {}, cookie) => worker.fetch(new Request('https://x.test' + path, { redirect: 'manual',
@@ -406,5 +406,17 @@ t('verslag: new rate applied', rp2.advertensies.lys.find((a) => a.id === AD).ber
 for (const so of ['titels', 'adverteerders', 'dae']) { r = await call('/api/admin/verslag-csv?soort=' + so, {}, ow); t('csv ' + so + ': admin gets a download', r.status === 200 && /text\/csv/.test(r.headers.get('Content-Type')) && (await r.text()).split('\n').length > 1); }
 t('csv: members refused, bad type refused', (await call('/api/admin/verslag-csv?soort=titels', {}, lid)).status === 404 && (await call('/api/admin/verslag-csv?soort=x', {}, ow)).status === 400);
 t('verslae page: gated like admin', (await call('/verslae.html', {}, lid)).status === 404 && (await call('/verslae.html', {}, ow)).status === 200);
+
+// 7. Quick cold start: a fresh server instance on an already-set-up database must not redo the migration
+const skema = sql.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").get();
+t('startup: schema version recorded', !!skema && !!skema.waarde);
+const fresh = (await import('../src/worker.js?koue-begin')).default;
+let koue = 0; const DB2 = { prepare: (q) => { koue++; return stmt(q); }, batch: async (l) => { koue++; return l.map((x) => x._exec()); } };
+const wr = await fresh.fetch(new Request('https://x.test/api/warm', { headers: { 'Content-Type': 'application/json' } }), { DB: DB2, ASSETS });
+t('startup: cold start needs 1 database call, not 10+ (' + koue + ')', wr.status === 200 && koue === 1);
+sql.exec("DELETE FROM instellings WHERE sleutel = 'skema'");
+koue = 0; const fresh2 = (await import('../src/worker.js?koue-begin-2')).default;
+await fresh2.fetch(new Request('https://x.test/api/warm'), { DB: DB2, ASSETS });
+t('startup: missing version triggers full setup once and records it', koue > 5 && !!sql.prepare("SELECT 1 AS x FROM instellings WHERE sleutel = 'skema'").get());
 
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

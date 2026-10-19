@@ -170,13 +170,16 @@
       finally { clearTimeout(t); }
     }
 
+    // Maak die bediener wakker terwyl jy jou besonderhede intik, sodat inteken vinnig is.
+    fetch('/api/warm').catch(function () {});
+
     async function handleAuthSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
       const label = btn.innerText;
       btn.disabled = true;
       btn.innerText = 'Een oomblik...';
-      const hint = setTimeout(function () { btn.innerText = 'Swak verbinding, probeer nog...'; }, 7000);
+      const hint = setTimeout(function () { btn.innerText = 'Dit neem \'n rukkie, nog \'n oomblik...'; }, 7000);
       const url = currentMode === 'register' ? '/api/register' : '/api/login';
       const opsies = {
         method: 'POST',
