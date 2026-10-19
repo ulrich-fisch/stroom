@@ -102,3 +102,18 @@ async function startCheckout(plan) {
   document.body.appendChild(f); f.submit();
   return { ok: true };
 }
+
+
+// Kieslyste (filters en profiel): tik om oop/toe te maak; 'n tik elders of op 'n keuse maak dit toe
+function toggleDd(btn, e) {
+  if (e) e.stopPropagation();
+  var g = btn.closest('.group'), was = g.classList.contains('open');
+  document.querySelectorAll('.group.open').forEach(function (x) { x.classList.remove('open'); });
+  if (!was) g.classList.add('open');
+}
+document.addEventListener('click', function (e) {
+  document.querySelectorAll('.group.open').forEach(function (g) {
+    var m = g.querySelector('.dd');
+    if (!m || !m.contains(e.target) || e.target.closest('button,a')) g.classList.remove('open');
+  });
+});

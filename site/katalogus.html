@@ -25,18 +25,18 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div class="flex items-center space-x-2"><div class="relative group"><button type="button" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none text-xs font-semibold text-slate-300"><span id="typeLabel">Tipe</span><span class="text-[10px] text-slate-500">&#9660;</span></button><div class="absolute left-0 pt-2 w-60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition duration-200 z-50"><div class="bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300"><button type="button" onclick="setTypeFilter('all', 'Alle Inhoud')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Alle Inhoud</button><button type="button" onclick="setTypeFilter('film', 'Films')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Films</button><button type="button" onclick="setTypeFilter('reeks', 'Reekse')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Reekse</button><button type="button" onclick="setTypeFilter('dokumenter', 'Dokument&ecirc;re')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Dokument&ecirc;re</button></div></div></div><div class="relative group"><button type="button" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none text-xs font-semibold text-slate-300"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button><div class="absolute left-0 pt-2 w-60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition duration-200 z-50"><div id="genreItems" class="bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300 max-h-80 overflow-y-auto"></div></div></div></div>
+        <div class="flex items-center space-x-2"><div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none text-xs font-semibold text-slate-300"><span id="typeLabel">Tipe</span><span class="text-[10px] text-slate-500">&#9660;</span></button><div class="dd absolute left-0 pt-2 w-60 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto transition duration-200 z-50"><div class="bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300"><button type="button" onclick="setTypeFilter('all', 'Alle Inhoud')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Alle Inhoud</button><button type="button" onclick="setTypeFilter('film', 'Films')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Films</button><button type="button" onclick="setTypeFilter('reeks', 'Reekse')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Reekse</button><button type="button" onclick="setTypeFilter('dokumenter', 'Dokument&ecirc;re')" class="block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition">Dokument&ecirc;re</button></div></div></div><div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none text-xs font-semibold text-slate-300"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button><div class="dd absolute left-0 pt-2 w-60 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto transition duration-200 z-50"><div id="genreItems" class="bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300 max-h-80 overflow-y-auto"></div></div></div></div>
         <input type="text" id="searchInput" onkeyup="filterFilms()" placeholder="Soek films..." class="px-4 py-1.5 bg-slate-900 border border-slate-800 rounded-full text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition w-32 sm:w-48"/>
         <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Cinema Club</a>
 
         <div class="relative group">
-          <button class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+          <button onclick="toggleDd(this, event)" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
             <span id="headerProfileName" class="text-xs font-semibold text-slate-300">Profiel</span>
             <span class="text-[10px] text-slate-500">▼</span>
           </button>
 
-          <div class="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition duration-200 z-50 backdrop-blur-xl">
+          <div class="dd absolute right-0 mt-2 w-64 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 transition duration-200 z-50 backdrop-blur-xl">
             <div class="p-2 border-b border-slate-800 space-y-2">
               <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
               <div id="headerProfiles" class="space-y-1"></div>
@@ -167,9 +167,10 @@
   <!-- Netflix Info Modal -->
   <div id="infoModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full my-auto overflow-hidden shadow-2xl relative">
-      <div id="infoBanner" class="relative aspect-video sm:aspect-[21/9] bg-cover bg-center flex items-end p-6 sm:p-8">
+      <div id="infoBanner" class="relative sm:aspect-[21/9] bg-cover bg-center sm:flex sm:items-end max-sm:bg-[length:100%_auto] max-sm:bg-top max-sm:bg-no-repeat bg-slate-900">
         <button onclick="closeInfoModal()" class="absolute top-4 right-4 z-20 bg-slate-950/80 hover:bg-white hover:text-slate-950 text-white p-2 rounded-full text-xl transition">&times;</button>
-        <div class="relative z-10 space-y-3">
+        <div class="aspect-video sm:hidden"></div>
+        <div class="relative z-10 space-y-3 p-6 sm:p-8 max-sm:bg-slate-900">
           <span id="infoTypeBadge" class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase">---</span>
           <h2 id="infoTitle" class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">---</h2>
           
@@ -184,7 +185,7 @@
             <button id="infoShare" onclick="shareTitle(document.getElementById('infoListBtn').dataset.lys)" class="border border-slate-700 hover:border-white text-slate-300 px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">Deel</button>
           </div>
         </div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent max-sm:hidden"></div>
       </div>
 
       <div class="p-6 sm:p-8 space-y-8">

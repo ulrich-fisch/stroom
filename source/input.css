@@ -10,6 +10,10 @@ body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-ser
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+    /* Kieslyste: hover op rekenaars, tik op raakskerms (en toe weer met 'n tik elders) */
+    .dd { opacity: 0; pointer-events: none; }
+    @media (hover: hover) { .group:hover > .dd { opacity: 1; pointer-events: auto; } }
+    .group.open > .dd { opacity: 1; pointer-events: auto; }
     .player-overlay { opacity: 0; transition: opacity 0.3s ease; }
     .player-container:hover .player-overlay, .player-overlay.show { opacity: 1; }
     @media (hover: none) { #volBar { display: none; } .player-container:hover .player-overlay:not(.show) { opacity: 0; } }
