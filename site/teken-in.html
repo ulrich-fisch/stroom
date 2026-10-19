@@ -195,7 +195,7 @@
         let res = null, laaste = null;
         // Inteken mag veilig herprobeer word. 'n Nuwe rekening net as die versoek nooit by die bediener uitgekom het nie.
         for (let n = 0; n < 2 && !res; n++) {
-          try { res = await poging(url, opsies, 15000); }
+          try { res = await poging(url, opsies, 40000); if (res.status === 503 && n === 0) { res = null; await new Promise(function (r) { setTimeout(r, 3000); }); continue; } }
           catch (err) {
             laaste = err;
             if (currentMode === 'register' && err.name === 'AbortError') break;

@@ -7,7 +7,7 @@ const stmt = (q) => { let args = []; const o = {
   run: async () => { const r = sql.prepare(q).run(...args); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; },
   first: async () => sql.prepare(q).get(...args) ?? null,
   all: async () => ({ results: sql.prepare(q).all(...args) }),
-  _exec: () => /^\s*SELECT/i.test(q) ? { results: sql.prepare(q).all(...args) } : (sql.prepare(q).run(...args), { results: [] }) }; return o; };
+  _exec: () => /^\s*(SELECT|PRAGMA)/i.test(q) ? { results: sql.prepare(q).all(...args) } : (sql.prepare(q).run(...args), { results: [] }) }; return o; };
 const DB = { prepare: stmt, batch: async (list) => list.map((s) => s._exec()) };
 const ASSETS = { fetch: async (req) => new Response('PAGE ' + new URL(req.url).pathname, { status: 200 }) };
 const env = { DB, ASSETS };
@@ -448,5 +448,34 @@ sql.exec("DELETE FROM instellings WHERE sleutel = 'skema'");
 koue = 0; const fresh2 = (await import('../src/worker.js?koue-begin-2')).default;
 await fresh2.fetch(new Request('https://x.test/api/warm'), { DB: DB2, ASSETS });
 t('startup: missing version triggers full setup once and records it', koue > 5 && !!sql.prepare("SELECT 1 AS x FROM instellings WHERE sleutel = 'skema'").get());
+
+// 8. Upgrading an OLD database (before reports/subtitles) must be quick, complete and safe to repeat
+{
+  const old = new DatabaseSync(':memory:');
+  old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, salt TEXT NOT NULL, hash TEXT NOT NULL, plan TEXT NOT NULL DEFAULT 'none', created_at INTEGER NOT NULL);
+    CREATE TABLE kykgebeure (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, profiel_id INTEGER, ep INTEGER NOT NULL DEFAULT -1, ts INTEGER NOT NULL);
+    INSERT INTO kykgebeure (slug, ts) VALUES ('oud', 1);`);
+  let n = 0, ctxUsed = 0;
+  const mk = (q) => { let a = []; const o = { bind: (...x) => { a = x; return o; }, run: async () => { n++; const r = old.prepare(q).run(...a); return { meta: { last_row_id: Number(r.lastInsertRowid) } }; },
+    first: async () => { n++; return old.prepare(q).get(...a) ?? null; }, all: async () => { n++; return { results: old.prepare(q).all(...a) }; },
+    _exec: () => /^\s*(SELECT|PRAGMA)/i.test(q) ? { results: old.prepare(q).all(...a) } : (old.prepare(q).run(...a), { results: [] }) }; return o; };
+  const ODB = { prepare: (q) => mk(q), batch: async (l) => { n++; return l.map((x) => x._exec()); } };
+  const w1 = (await import('../src/worker.js?oud-1')).default;
+  const rr = await w1.fetch(new Request('https://x.test/api/warm'), { DB: ODB, ASSETS }, { waitUntil: () => { ctxUsed++; } });
+  const cols = old.prepare('PRAGMA table_info(kykgebeure)').all().map((c) => c.name); const ucols = old.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  t('upgrade: old database ready after one request', rr.status === 200 && ['user_id', 'plan', 'land', 'toestel'].every((c) => cols.includes(c)) && ucols.includes('plan_period') && ucols.includes('pf_token'));
+  t('upgrade: full setup of an old database takes few database trips (' + n + ')', n <= 8);
+  t('upgrade: old rows kept, subtitles + reports tables exist', old.prepare('SELECT COUNT(*) AS c FROM kykgebeure').get().c === 1 && !!old.prepare("SELECT 1 FROM sqlite_master WHERE name = 'onderskrifte'").get() && !!old.prepare("SELECT 1 FROM sqlite_master WHERE name = 'meting'").get());
+  t('upgrade: setup kept alive past the browser (waitUntil used)', ctxUsed === 1);
+  old.exec("DELETE FROM instellings WHERE sleutel = 'skema'");
+  const w2 = (await import('../src/worker.js?oud-2')).default;
+  const r2 = await w2.fetch(new Request('https://x.test/api/warm'), { DB: ODB, ASSETS }, { waitUntil: () => {} });
+  t('upgrade: running it again is harmless', r2.status === 200);
+  // setup failure gives a friendly 503, not a hang or crash
+  const BAD = { prepare: () => { throw new Error('db weg'); }, batch: async () => { throw new Error('db weg'); } };
+  const w3 = (await import('../src/worker.js?oud-3')).default;
+  const r3 = await w3.fetch(new Request('https://x.test/api/warm'), { DB: BAD, ASSETS }, { waitUntil: () => {} });
+  t('upgrade: database down gives friendly 503', r3.status === 503 && /opgestel/.test((await r3.json()).fout));
+}
 
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

@@ -2,10 +2,10 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
-import { handleContent, createContentTables, seedContent, adminOk, serveMedia } from './inhoud.js';
-import { handleMember, createMemberTables, isMemberPath } from './lede.js';
-import { handleReports, createReportTables, isReportPath } from './verslae.js';
-import { handleSubtitles, createSubtitleTables, isSubtitlePath } from './onderskrifte.js';
+import { handleContent, contentStatements, seedContent, adminOk, serveMedia } from './inhoud.js';
+import { handleMember, memberStatements, isMemberPath } from './lede.js';
+import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
+import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
@@ -45,20 +45,42 @@ function safeEqual(a, b) {
 
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
-// net EEN vinnige navraag kos in plaas van meer as 10 stadige een (dit het inteken traag gemaak).
-const SCHEMA = '2026-10-19b';
+// net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
+const SCHEMA = '2026-10-19c';
+
+const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
 let ready;
-function init(db) {
-  ready ||= (async () => {
-    try {
-      const v = await db.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").first();
-      if (v && v.waarde === SCHEMA) return;
-    } catch { /* tabel bestaan nog nie: doen die volle opstelling */ }
-    await migrate(db);
-    await db.prepare("INSERT OR REPLACE INTO instellings (sleutel, waarde) VALUES ('skema', ?)").bind(SCHEMA).run();
-  })().catch((e) => { ready = null; throw e; });
-  return ready;
+function init(db, ctx) {
+  if (!ready) {
+    const p = (async () => {
+      try {
+        const v = await db.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").first();
+        if (v && v.waarde === SCHEMA) return;
+      } catch { /* tabel bestaan nog nie: doen die volle opstelling */ }
+      await migrate(db);
+      await db.prepare("INSERT OR REPLACE INTO instellings (sleutel, waarde) VALUES ('skema', ?)").bind(SCHEMA).run();
+    })();
+    ready = p.catch((e) => { ready = null; throw e; });
+    // Laat die opstelling klaarmaak, selfs al verbreek die blaaier die verbinding (anders hang volgende versoeke)
+    if (ctx && ctx.waitUntil) ctx.waitUntil(p.catch(() => {}));
+  }
+  return withTimeout(ready, 25000).catch((e) => { if (e && e.message === 'tydsverloop') ready = null; throw e; });
+}
+
+// Voeg kolomme by wat ontbreek: een navraag om te kyk, een om by te voeg
+async function addColumns(db, cols) {
+  const tables = [...new Set(cols.map((c) => c[0]))];
+  let have = null;
+  try {
+    const res = await db.batch(tables.map((t) => db.prepare(`PRAGMA table_info(${t})`)));
+    have = new Set(); res.forEach((r, i) => (r.results || []).forEach((row) => have.add(tables[i] + '.' + row.name)));
+  } catch { have = null; }
+  const todo = have ? cols.filter(([t, c]) => !have.has(t + '.' + c)) : cols;
+  if (!todo.length) return;
+  const alter = ([t, c, ty]) => db.prepare(`ALTER TABLE ${t} ADD COLUMN ${c} ${ty}`);
+  if (have) { try { await db.batch(todo.map(alter)); return; } catch { /* een-een hieronder */ } }
+  for (const col of todo) { try { await alter(col).run(); } catch { /* bestaan reeds */ } }
 }
 
 async function migrate(db) {
@@ -78,15 +100,9 @@ async function migrate(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
       title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
+    ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db),
   ]);
-  // Nuwe kolomme vir bestaande databasisse (fout as dit reeds bestaan word geïgnoreer)
-  for (const q of ['ALTER TABLE users ADD COLUMN plan_period TEXT', 'ALTER TABLE users ADD COLUMN pf_token TEXT']) {
-    try { await db.prepare(q).run(); } catch { /* bestaan reeds */ }
-  }
-  await createContentTables(db);
-  await createMemberTables(db);
-  await createReportTables(db);
-  await createSubtitleTables(db);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS]);
   await seedContent(db);
 }
 
@@ -120,9 +136,11 @@ async function tooManyAttemptsN(db, key, max, windowMs) {
 const tooManyAttempts = (db, key) => tooManyAttemptsN(db, key, 10, 15 * 60 * 1000);
 const noteAttempt = (db, key) => db.prepare('INSERT INTO attempts (key, at) VALUES (?, ?)').bind(key, Date.now()).run();
 
-async function api(request, env, url) {
+async function api(request, env, url, ctx) {
   if (!env.DB) return json({ fout: 'Dienste is tydelik nie beskikbaar nie.' }, 503);
-  await init(env.DB);
+  try { await init(env.DB, ctx); } catch {
+    return json({ fout: "Die bediener word besig opgestel. Probeer oor 'n oomblik weer." }, 503, { 'Retry-After': '3' });
+  }
   const path = url.pathname;
   const post = request.method === 'POST';
   // Slegs eie webwerf mag POST (beskerm teen kruis-werf-versoeke)
@@ -322,12 +340,12 @@ async function api(request, env, url) {
   return json({ fout: 'Nie gevind nie.' }, 404);
 }
 
-async function handle(request, env) {
+async function handle(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/')) return api(request, env, url);
+    if (url.pathname.startsWith('/api/')) return api(request, env, url, ctx);
     if (url.pathname.startsWith('/media/')) {
       if (!env.DB) return new Response('Dienste is tydelik nie beskikbaar nie.', { status: 503 });
-      await init(env.DB);
+      await init(env.DB, ctx);
       return serveMedia(request, env, await getUser(request, env.DB), url.pathname.slice(7));
     }
 
@@ -343,7 +361,7 @@ async function handle(request, env) {
 
     const redirect = (to) => new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'no-store' } });
     if (!env.DB) return redirect('/teken-in.html?mode=login');
-    await init(env.DB);
+    await init(env.DB, ctx);
     const user = await getUser(request, env.DB);
     if (!user) return redirect('/teken-in.html?mode=login');
     if (NEEDS_PLAN.has(page) && user.plan === 'none') return redirect('/kies-plan.html');
@@ -357,8 +375,8 @@ async function handle(request, env) {
 
 // Veiligheidskoppe op elke antwoord
 export default {
-  async fetch(request, env) {
-    const res = await handle(request, env);
+  async fetch(request, env, ctx) {
+    const res = await handle(request, env, ctx);
     const out = new Response(res.body, res);
     out.headers.set('X-Content-Type-Options', 'nosniff');
     out.headers.set('X-Frame-Options', 'DENY');

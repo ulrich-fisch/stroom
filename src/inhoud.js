@@ -34,8 +34,7 @@ const MEDIA_TYPES = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', jp
 const MAX_UPLOAD = 90 * 1024 * 1024;   // Workers aanvaar tot ~100 MB per versoek
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 
-export async function createContentTables(db) {
-  await db.batch([
+export const contentStatements = (db) => [
     db.prepare(`CREATE TABLE IF NOT EXISTS titels (
       id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE NOT NULL, titel TEXT NOT NULL, tipe TEXT NOT NULL,
       jaar TEXT, ouderdom TEXT, speeltyd TEXT, regisseur TEXT, genre_sleutel TEXT, genre_etiket TEXT,
@@ -44,8 +43,8 @@ export async function createContentTables(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS advertensies (
       id INTEGER PRIMARY KEY AUTOINCREMENT, naam TEXT NOT NULL, video_url TEXT NOT NULL, klik_url TEXT,
       aktief INTEGER NOT NULL DEFAULT 1, vertonings INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)`),
-  ]);
-}
+];
+export const createContentTables = (db) => db.batch(contentStatements(db));
 
 const V = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
 const DEMO = [
@@ -62,19 +61,20 @@ const DEMO_EPISODES = JSON.stringify([
 
 // Eerste keer: sit die demo-inhoud en een toets-advertensie in (slegs as die tabelle leeg is)
 export async function seedContent(db) {
-  const t = await db.prepare('SELECT COUNT(*) AS n FROM titels').first();
-  if (!t.n) {
+  const tel = await db.prepare('SELECT (SELECT COUNT(*) FROM titels) AS t, (SELECT COUNT(*) FROM advertensies) AS a').first();
+  const lys = [];
+  if (!tel.t) {
     for (const d of DEMO) {
-      await db.prepare(`INSERT INTO titels (slug, titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url, sinopsis, pas, uitgelig, episodes, status, created_at)
+      lys.push(db.prepare(`INSERT INTO titels (slug, titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url, sinopsis, pas, uitgelig, episodes, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'gepubliseer', ?)`)
-        .bind(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], `https://images.unsplash.com/${d[9]}?auto=format&fit=crop&w=1600&q=80`, V + d[10], d[11], d[12], d[13], d[0] === 'pretoria' ? DEMO_EPISODES : '[]', Date.now()).run();
+        .bind(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], `https://images.unsplash.com/${d[9]}?auto=format&fit=crop&w=1600&q=80`, V + d[10], d[11], d[12], d[13], d[0] === 'pretoria' ? DEMO_EPISODES : '[]', Date.now()));
     }
   }
-  const a = await db.prepare('SELECT COUNT(*) AS n FROM advertensies').first();
-  if (!a.n) {
-    await db.prepare('INSERT INTO advertensies (naam, video_url, klik_url, created_at) VALUES (?, ?, ?, ?)')
-      .bind('Toets-advertensie', V + 'ForBiggerFun.mp4', 'https://stroom.example', Date.now()).run();
+  if (!tel.a) {
+    lys.push(db.prepare('INSERT INTO advertensies (naam, video_url, klik_url, created_at) VALUES (?, ?, ?, ?)')
+      .bind('Toets-advertensie', V + 'ForBiggerFun.mp4', 'https://stroom.example', Date.now()));
   }
+  if (lys.length) await db.batch(lys);
 }
 
 // Episodes: een per lyn, "Ep 1 | Titel | 28 min | Beskrywing | https://..."

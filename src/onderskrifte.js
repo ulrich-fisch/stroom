@@ -14,13 +14,11 @@ const fmt = (m) => `${String(m[1] || 0).padStart(2, '0')}:${m[2].padStart(2, '0'
 const MAX_BYTES = 400 * 1024;
 const CUE_RE = /(?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}\s*-->\s*(?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}/;
 
-export async function createSubtitleTables(db) {
-  await db.batch([
-    db.prepare(`CREATE TABLE IF NOT EXISTS onderskrifte (
-      slug TEXT NOT NULL, ep INTEGER NOT NULL DEFAULT -1, taal TEXT NOT NULL, vtt TEXT NOT NULL, cues INTEGER NOT NULL DEFAULT 0,
-      created_at INTEGER NOT NULL, PRIMARY KEY (slug, ep, taal))`),
-  ]);
-}
+export const subtitleStatements = (db) => [
+  db.prepare(`CREATE TABLE IF NOT EXISTS onderskrifte (
+    slug TEXT NOT NULL, ep INTEGER NOT NULL DEFAULT -1, taal TEXT NOT NULL, vtt TEXT NOT NULL, cues INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL, PRIMARY KEY (slug, ep, taal))`),
+];
 
 // SRT of VTT -> skoon WebVTT. Gee { vtt, cues } of { fout }.
 export function toVtt(raw) {

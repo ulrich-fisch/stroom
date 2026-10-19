@@ -15,8 +15,7 @@ export function kinderVeilig(ouderdom) {
   return Number.isFinite(n) && n <= 10;
 }
 
-export async function createMemberTables(db) {
-  await db.batch([
+export const memberStatements = (db) => [
     db.prepare(`CREATE TABLE IF NOT EXISTS profiele (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, naam TEXT NOT NULL, avatar INTEGER NOT NULL DEFAULT 0,
       kinders INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)`),
@@ -30,8 +29,8 @@ export async function createMemberTables(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS kykgebeure (
       id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, profiel_id INTEGER, ep INTEGER NOT NULL DEFAULT -1, ts INTEGER NOT NULL)`),
     db.prepare('CREATE INDEX IF NOT EXISTS kykgebeure_slug_ts ON kykgebeure (slug, ts)'),
-  ]);
-}
+];
+export const createMemberTables = (db) => db.batch(memberStatements(db));
 
 const naam0 = (u) => clip(u.name || String(u.email || '').split('@')[0], 20) || 'Profiel';
 
