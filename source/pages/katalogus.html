@@ -89,7 +89,7 @@ head_extra:
     <!-- Aktiewe filters (kies bo in die kopstuk) -->
     <div class="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
       <p id="filterStatus" class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Alle inhoud &bull; Alle genres</p>
-      <button id="filterClear" onclick="clearFilters()" class="hidden text-xs border border-slate-700 hover:border-white text-slate-300 hover:text-white px-4 py-1.5 rounded-full transition">Maak filters skoon</button>
+      <button id="filterClear" onclick="clearFilters()" class="hidden text-xs border border-slate-700 hover:border-white text-slate-300 hover:text-white px-4 py-1.5 rounded-full transition">Maak soek skoon</button>
     </div>
 
     <!-- Gaan voort (kyk-vordering) -->
@@ -109,7 +109,7 @@ head_extra:
 
     <!-- Catalogue Grid -->
     <div class="space-y-4">
-      <h2 class="text-2xl font-bold text-white tracking-tight uppercase">Verken die Katalogus</h2>
+      <h2 id="katalogusTitel" class="text-2xl font-bold text-white tracking-tight uppercase">Verken die Katalogus</h2>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="catalogGrid"></div>
     </div>
@@ -386,12 +386,14 @@ head_extra:
         <button data-lys="${esc(h.slug)}" onclick="toggleWatchlist('${esc(h.slug)}')" class="border border-slate-600 hover:border-white text-white w-11 h-11 rounded-full text-base transition flex items-center justify-center" aria-label="My Lys" title="My Lys">${LYS.has(h.slug) ? '&#10003;' : '+'}</button>`;
     }
 
+    // Soek ignoreer hoofletters en tekens (ê, ë, ô...)
+    const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     function renderGrid() {
       const grid = document.getElementById('catalogGrid');
       if (!TITELS.length) { grid.innerHTML = '<p class="text-sm text-slate-400 col-span-full">Nuwe inhoud kom binnekort.</p>'; return; }
       grid.innerHTML = TITELS.map((t) => `
         <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
-             data-title="${esc((t.titel + ' ' + (t.regisseur || '')).toLowerCase())}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
+             data-title="${esc(norm([t.titel, t.regisseur, t.genre_etiket, t.tipe, t.jaar, t.sinopsis].join(' ')))}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
              onclick="openInfoModal('${esc(t.slug)}')">
           <div class="aspect-[16/10] relative">
             <img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}">
@@ -575,8 +577,18 @@ head_extra:
 
     // ----- Kwaliteit -----
     const QUALS = [2160, 1440, 1080, 720, 480, 360];
-    let qualChoice = 'auto';
-    try { qualChoice = localStorage.getItem('stroom_kwaliteit') || 'auto'; } catch (e) {}
+    let qualChoice = 'auto', qualSaved = false;
+    try { const q = localStorage.getItem('stroom_kwaliteit'); if (q) { qualChoice = q; qualSaved = true; } } catch (e) {}
+    // Op mobiele data (of as die toestel "Data Saver" aan het) begin ons in Databespaarder, tensy jy self gekies het.
+    function mobieleData() {
+      const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection; if (!c) return false;
+      return !!c.saveData || c.type === 'cellular' || /(^|-)2g$|^3g$/.test(c.effectiveType || '');
+    }
+    function autoSpaar() { return !qualSaved && mobieleData(); }
+    function kwaliteitKeuse() { return autoSpaar() ? 'saver' : qualChoice; }
+    // Rowwe skatting van data per uur (GB) per kwaliteit
+    const GB_UUR = { 360: 0.3, 480: 0.5, 720: 1, 1080: 2, 1440: 3.5, 2160: 7 };
+    const gbTxt = (h) => { const g = GB_UUR[h]; return g ? '\u2248' + (g < 1 ? Math.round(g * 1000) + ' MB' : g + ' GB') + '/uur' : ''; };
     const qLabel = (h) => (h >= 2160 ? '4K' : h + 'p');
     const hlsHeights = () => (hlsObj && hlsObj.levels ? hlsObj.levels.map((l) => l.height) : []);
     function availHeights() { const hs = hlsHeights(); return hs.length ? hs : (player.videoHeight ? [player.videoHeight] : []); }
@@ -584,27 +596,31 @@ head_extra:
       if (!hlsObj || !hlsObj.levels || !hlsObj.levels.length) return;
       const hs = hlsHeights();
       hlsObj.autoLevelCapping = -1; hlsObj.currentLevel = -1;
-      if (qualChoice === 'saver') {
+      const qc = kwaliteitKeuse();
+      if (qc === 'saver') {
         let cap = -1; hs.forEach((h, i) => { if (h <= 480 && (cap < 0 || h > hs[cap])) cap = i; });
         hlsObj.autoLevelCapping = cap >= 0 ? cap : hs.indexOf(Math.min.apply(null, hs));
-      } else if (qualChoice !== 'auto') {
-        const i = hs.indexOf(Number(qualChoice)); if (i >= 0) hlsObj.currentLevel = i;
+      } else if (qc !== 'auto') {
+        const i = hs.indexOf(Number(qc)); if (i >= 0) hlsObj.currentLevel = i;
       }
     }
     function setQual(v) {
-      qualChoice = String(v); try { localStorage.setItem('stroom_kwaliteit', qualChoice); } catch (e) {}
+      qualChoice = String(v); qualSaved = true; try { localStorage.setItem('stroom_kwaliteit', qualChoice); } catch (e) {}
       applyQuality(); renderQualMenu(); updateQualBtn(); document.getElementById('qualMenu').classList.add('hidden');
     }
     function updateQualBtn() {
       const h = player.videoHeight; const b = document.getElementById('qualBtn');
       const cur = h ? qLabel(h) : '';
-      b.innerHTML = (qualChoice === 'auto' ? 'Auto' : qualChoice === 'saver' ? 'Spaar' : qLabel(Number(qualChoice))) + (cur && (qualChoice === 'auto' || qualChoice === 'saver') ? ' &bull; ' + cur : '') + ' &#9662;';
+      const qc = kwaliteitKeuse();
+      b.innerHTML = (qc === 'auto' ? 'Auto' : qc === 'saver' ? 'Spaar' : qLabel(Number(qc))) + (cur && (qc === 'auto' || qc === 'saver') ? ' &bull; ' + cur : '') + ' &#9662;';
     }
     function renderQualMenu() {
       const av = availHeights(); const multi = hlsHeights().length > 1;
-      const row = (v, label, ok, note) => `<button ${ok ? `onclick="setQual('${v}')"` : 'disabled'} class="w-full flex justify-between items-center text-left px-3 py-1.5 rounded-lg ${ok ? 'hover:bg-slate-800 text-slate-200' : 'text-slate-600 cursor-not-allowed'} ${String(qualChoice) === String(v) ? 'bg-slate-800 font-bold text-sky-400' : ''}"><span>${label}</span><span class="text-[10px] text-slate-500">${note || (String(qualChoice) === String(v) ? '&#10003;' : '')}</span></button>`;
-      let html = row('auto', 'Auto', multi || !av.length, multi ? 'beste vir jou' : '') + row('saver', 'Databespaarder', multi, multi ? 'tot 480p' : '');
-      html += QUALS.map((q) => { const ok = multi && av.includes(q); return row(q, qLabel(q), ok, ok ? '' : 'nie beskikbaar'); }).join('');
+      const kies = kwaliteitKeuse();
+      const row = (v, label, ok, note) => `<button ${ok ? `onclick="setQual('${v}')"` : 'disabled'} class="w-full flex justify-between items-center text-left px-3 py-1.5 rounded-lg ${ok ? 'hover:bg-slate-800 text-slate-200' : 'text-slate-600 cursor-not-allowed'} ${String(kies) === String(v) ? 'bg-slate-800 font-bold text-sky-400' : ''}"><span>${label}</span><span class="text-[10px] text-slate-500">${note || (String(kies) === String(v) ? '&#10003;' : '')}</span></button>`;
+      let html = row('auto', 'Auto', multi || !av.length, multi ? 'beste vir jou' : '') + row('saver', 'Databespaarder', multi, multi ? 'tot 480p \u2248 0.5 GB/uur' : '');
+      html += QUALS.map((q) => { const ok = multi && av.includes(q); return row(q, qLabel(q), ok, ok ? gbTxt(q) : 'nie beskikbaar'); }).join('');
+      if (multi && autoSpaar()) html += `<p class="px-3 pt-2 pb-1 text-[10px] text-sky-300 leading-snug">Jy is op mobiele data, so Databespaarder is vir jou aangeskakel. Kies &lsquo;n ander kwaliteit om dit te verander.</p>`;
       if (!multi && av.length) html += `<p class="px-3 pt-2 pb-1 text-[10px] text-slate-500 leading-snug">Hierdie film speel net in sy oorspronklike kwaliteit (${qLabel(av[0])}). Groot films kan verskeie kwaliteite hê.</p>`;
       document.getElementById('qualMenu').innerHTML = html;
     }
@@ -721,29 +737,46 @@ head_extra:
     }
     function setTypeFilter(type, label) { typeF = type; typeName = label; if (document.activeElement) document.activeElement.blur(); updateFilterUi(); filterFilms(); scrollToCatalogue(); }
     function setGenreFilter(genre, label) { genreF = genre; genreName = genre === 'all' ? 'Alle genres' : label; if (document.activeElement) document.activeElement.blur(); updateFilterUi(); filterFilms(); scrollToCatalogue(); }
-    function clearFilters() { typeF = 'all'; genreF = 'all'; typeName = 'Alle Inhoud'; genreName = 'Alle genres'; updateFilterUi(); filterFilms(); }
+    function clearFilters() { typeF = 'all'; genreF = 'all'; typeName = 'Alle Inhoud'; genreName = 'Alle genres'; const b = document.getElementById('searchInput'); if (b) b.value = ''; updateFilterUi(); filterFilms(); }
     function scrollToCatalogue() { const g = document.getElementById('catalogGrid'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     function updateFilterUi() {
       document.getElementById('typeLabel').textContent = typeF === 'all' ? 'Tipe' : typeName;
       document.getElementById('genreLabel').textContent = genreF === 'all' ? 'Genre' : genreName;
-      document.getElementById('filterStatus').textContent = `${typeName} • ${genreName}`;
-      document.getElementById('filterClear').classList.toggle('hidden', typeF === 'all' && genreF === 'all');
     }
 
+    let soekAktief = false;
     function filterFilms() {
-      const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+      const box = document.getElementById('searchInput');
+      const raw = box ? box.value.trim() : '';
+      const words = norm(raw).split(/\s+/).filter(Boolean);
+      const searching = words.length > 0 || typeF !== 'all' || genreF !== 'all';
       let shown = 0;
       document.querySelectorAll('.film-item').forEach(item => {
-        const title = item.getAttribute('data-title');
+        const hay = item.getAttribute('data-title');
         const type = item.getAttribute('data-type');
         const itemGenre = item.getAttribute('data-genre');
-        const show = title.includes(q) && (typeF === 'all' || type === typeF) && (genreF === 'all' || itemGenre === genreF);
+        const show = words.every((w) => hay.includes(w)) && (typeF === 'all' || type === typeF) && (genreF === 'all' || itemGenre === genreF);
         item.style.display = show ? 'block' : 'none'; if (show) shown++;
       });
+      // Tydens soek: wys net die resultate (verberg held, rakke, ens.)
+      ['heroSection', 'continueSection', 'watchlistSection', 'shelves'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = searching ? 'none' : ''; });
+      const h = document.getElementById('katalogusTitel');
+      if (h) h.textContent = searching ? (words.length ? `Resultate vir \u201c${raw}\u201d (${shown})` : `Resultate (${shown})`) : 'Verken die Katalogus';
+      if (searching && !soekAktief) scrollToCatalogue();
+      soekAktief = searching;
+      document.getElementById('filterStatus').textContent = `${typeName} \u2022 ${genreName}` + (words.length ? ` \u2022 \u201c${raw}\u201d` : '');
+      document.getElementById('filterClear').classList.toggle('hidden', !searching);
       let none = document.getElementById('geenResultate');
-      if (!none) { none = document.createElement('p'); none.id = 'geenResultate'; none.className = 'text-sm text-slate-400 col-span-full'; none.textContent = 'Niks gevind nie. Probeer \'n ander filter.'; document.getElementById('catalogGrid').after(none); }
+      if (!none) { none = document.createElement('p'); none.id = 'geenResultate'; none.className = 'text-sm text-slate-400 col-span-full'; document.getElementById('catalogGrid').after(none); }
+      none.textContent = words.length ? `Niks gevind vir \u201c${raw}\u201d nie. Probeer 'n ander woord, of soek op genre of jaar.` : 'Niks gevind nie. Probeer \'n ander filter.';
       none.style.display = shown || !TITELS.length ? 'none' : 'block';
     }
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (e.key === '/' && tag !== 'input' && tag !== 'textarea' && tag !== 'select' && document.getElementById('playerModal').classList.contains('hidden')) {
+        const b = document.getElementById('searchInput'); if (b) { e.preventDefault(); b.focus(); }
+      }
+    });
 
     // My Lys hoort by die profiel (op die bediener)
     async function toggleWatchlist(slug) {

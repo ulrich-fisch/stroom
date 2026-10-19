@@ -150,32 +150,57 @@ head_extra:
       el.textContent = msg;
     }
 
+    // Een poging met 'n tydsgrens, sodat 'n swak mobiele verbinding nie eindeloos hang nie.
+    async function poging(url, opsies, ms) {
+      const ac = new AbortController();
+      const t = setTimeout(function () { ac.abort(); }, ms);
+      try { return await fetch(url, Object.assign({}, opsies, { signal: ac.signal })); }
+      finally { clearTimeout(t); }
+    }
+
     async function handleAuthSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
       const label = btn.innerText;
       btn.disabled = true;
       btn.innerText = 'Een oomblik...';
+      const hint = setTimeout(function () { btn.innerText = 'Swak verbinding, probeer nog...'; }, 7000);
+      const url = currentMode === 'register' ? '/api/register' : '/api/login';
+      const opsies = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('emailInput').value,
+          name: document.getElementById('nameInput').value,
+          password: document.getElementById('passwordInput').value,
+          remember: document.getElementById('rememberMe').checked
+        })
+      };
       try {
-        const res = await fetch(currentMode === 'register' ? '/api/register' : '/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: document.getElementById('emailInput').value,
-            name: document.getElementById('nameInput').value,
-            password: document.getElementById('passwordInput').value,
-            remember: document.getElementById('rememberMe').checked
-          })
-        });
+        let res = null, laaste = null;
+        // Inteken mag veilig herprobeer word. 'n Nuwe rekening net as die versoek nooit by die bediener uitgekom het nie.
+        for (let n = 0; n < 2 && !res; n++) {
+          try { res = await poging(url, opsies, 15000); }
+          catch (err) {
+            laaste = err;
+            if (currentMode === 'register' && err.name === 'AbortError') break;
+            if (n === 0) await new Promise(function (r) { setTimeout(r, 1200); });
+          }
+        }
+        if (!res) {
+          showError(currentMode === 'register' && laaste && laaste.name === 'AbortError'
+            ? 'Swak verbinding. Jou rekening is dalk reeds geskep. Probeer eers om in te teken.'
+            : 'Swak verbinding. Probeer asseblief weer, of skakel oor na Wi-Fi.');
+          return;
+        }
         const data = await res.json().catch(function () { return {}; });
         if (!res.ok) { showError(data.fout || 'Iets het skeefgeloop. Probeer weer.'); return; }
         localStorage.setItem('stroom_logged_in', 'true');
         localStorage.setItem('stroom_active_profile', data.name || 'Profiel');
         // Nuwe rekening -> kies plan (gratis of betaald). Bestaande -> profiel.
         window.location.href = currentMode === 'register' ? 'kies-plan.html' : 'profiel.html';
-      } catch (err) {
-        showError('Kon nie koppel nie. Kyk jou internet en probeer weer.');
       } finally {
+        clearTimeout(hint);
         btn.disabled = false;
         btn.innerText = label;
       }
