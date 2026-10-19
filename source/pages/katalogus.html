@@ -68,17 +68,18 @@ head_extra:
   </div>
 
   <!-- Spotlight Banner (gevul uit die katalogus) -->
-  <section id="heroSection" class="relative min-h-[70vh] flex items-end pb-16 px-6 sm:px-12 bg-cover bg-center border-b border-slate-800/80"
-           style="background-image: linear-gradient(to top, #070c18 10%, rgba(7,12,24,0.3) 50%, rgba(7,12,24,0.85) 100%);">
-    <div class="max-w-3xl space-y-4 pt-20">
-      <div class="flex items-center space-x-3 text-xs font-bold tracking-widest uppercase">
-        <span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-full text-[10px]">Keuse van die Week</span>
-        <span id="heroMatch" class="text-emerald-400 font-mono"></span>
-        <span id="heroAge" class="border border-slate-700 px-2 py-0.5 rounded text-slate-400"></span>
+  <section id="heroSection" class="relative border-b border-slate-800/80 bg-[#070c18] sm:min-h-[68vh] sm:flex sm:items-end overflow-hidden">
+    <div id="heroImg" class="aspect-video sm:aspect-auto sm:absolute sm:inset-0 bg-cover bg-center"></div>
+    <div class="hidden sm:block absolute inset-0" style="background: linear-gradient(to top, #070c18 5%, rgba(7,12,24,0.35) 55%, rgba(7,12,24,0.5) 100%), linear-gradient(to right, rgba(7,12,24,0.92) 0%, rgba(7,12,24,0.55) 45%, transparent 75%);"></div>
+    <div class="relative max-w-2xl px-5 sm:px-12 py-6 sm:pt-32 sm:pb-14 space-y-3 sm:space-y-4">
+      <span class="inline-block bg-sky-500/15 text-sky-300 border border-sky-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Keuse van die Week</span>
+      <h1 id="heroTitle" class="text-3xl sm:text-6xl font-black text-white tracking-tight leading-[1.05] uppercase">Stroom</h1>
+      <div class="flex items-center gap-3 text-xs font-semibold">
+        <span id="heroMatch" class="text-amber-300"></span>
+        <span id="heroAge" class="border border-slate-600 px-2 py-0.5 rounded text-slate-300"></span>
       </div>
-      <h1 id="heroTitle" class="text-4xl sm:text-6xl font-black text-white tracking-tight leading-none uppercase">Stroom</h1>
-      <p id="heroSynopsis" class="text-slate-300 text-sm sm:text-base font-normal max-w-xl leading-relaxed">Besig om te laai...</p>
-      <div id="heroButtons" class="pt-2 flex flex-wrap items-center gap-3"></div>
+      <p id="heroSynopsis" class="text-slate-300 text-sm sm:text-base font-normal max-w-xl leading-relaxed line-clamp-3">Besig om te laai...</p>
+      <div id="heroButtons" class="pt-1 flex flex-wrap items-center gap-2 sm:gap-3"></div>
     </div>
   </section>
 
@@ -341,7 +342,7 @@ head_extra:
         try { localStorage.removeItem('stroom_watchlist'); } catch (e) {}
       } catch (e) {}
       try { const vr = await fetch('/api/vordering?profiel=' + activeProfileId); if (vr.ok) VORDER = (await vr.json()).items; } catch (e) {}
-      renderWatchlist(); renderContinue();
+      renderWatchlist(); renderContinue(); renderHero();
     }
 
     // Admin se uitgeligte titel wen; anders draai die keuse elke week deur die katalogus
@@ -373,15 +374,16 @@ head_extra:
       const h = weeklyPick();
       const box = document.getElementById('heroButtons'); box.replaceChildren();
       if (!h) { document.getElementById('heroTitle').textContent = 'Stroom'; document.getElementById('heroSynopsis').textContent = 'Nuwe inhoud kom binnekort.'; return; }
-      document.getElementById('heroSection').style.backgroundImage = `linear-gradient(to top, #070c18 10%, rgba(7,12,24,0.3) 50%, rgba(7,12,24,0.85) 100%), url('${esc(h.banner)}')`;
+      document.getElementById('heroImg').style.backgroundImage = `url('${esc(h.banner)}')`;
       document.getElementById('heroMatch').innerHTML = starTxt(h);
       document.getElementById('heroAge').textContent = h.ouderdom || '';
       document.getElementById('heroTitle').textContent = h.titel;
       document.getElementById('heroSynopsis').textContent = h.sinopsis || '';
+      const vo = VORDER.find((v) => v.slug === h.slug);
       box.innerHTML = `
-        <button onclick="openInfoModal('${esc(h.slug)}')" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-7 py-3 rounded-full text-xs uppercase tracking-widest transition">&#9432; Meer Inligting</button>
-        <button onclick="speel('${esc(h.slug)}')" class="bg-white hover:bg-slate-200 text-slate-950 font-bold px-6 py-3 rounded-full text-xs uppercase tracking-widest transition">&#9654; Speel Film</button>
-        <button data-lys="${esc(h.slug)}" onclick="toggleWatchlist('${esc(h.slug)}')" class="border border-slate-700 hover:border-white text-white px-5 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition">${LYS.has(h.slug) ? '&#10003; In My Lys' : '+ My Lys'}</button>`;
+        <button onclick="speel('${esc(h.slug)}', ${vo && vo.ep >= 0 ? vo.ep : 'null'})" class="flex-1 sm:flex-none bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-7 py-3 rounded-full text-xs uppercase tracking-widest transition">&#9654; ${vo ? 'Gaan voort' : 'Speel'}</button>
+        <button onclick="openInfoModal('${esc(h.slug)}')" class="border border-slate-600 hover:border-white text-white px-5 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition">Meer Inligting</button>
+        <button data-lys="${esc(h.slug)}" onclick="toggleWatchlist('${esc(h.slug)}')" class="border border-slate-600 hover:border-white text-white w-11 h-11 rounded-full text-base transition flex items-center justify-center" aria-label="My Lys" title="My Lys">${LYS.has(h.slug) ? '&#10003;' : '+'}</button>`;
     }
 
     function renderGrid() {
@@ -675,7 +677,7 @@ head_extra:
     player.addEventListener('pause', () => saveProgress(true));
     player.addEventListener('ended', () => { if (!adMode) { saveProgress(true); onFilmEnded(); } });
     window.addEventListener('pagehide', () => saveProgress(true));
-    function closePlayer() { saveProgress(true); renderContinue(); hideNextUi(); document.getElementById('qualMenu').classList.add('hidden'); cur = null; adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
+    function closePlayer() { saveProgress(true); renderContinue(); renderHero(); hideNextUi(); document.getElementById('qualMenu').classList.add('hidden'); cur = null; adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
 
     player.ontimeupdate = () => {
       if (adMode) {
