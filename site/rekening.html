@@ -2,7 +2,14 @@
 <html lang="af">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#070c18">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Stroom">
   <title>Stroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,6 +52,7 @@
             <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
               <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
               <a href="rekening.html" class="block p-2 rounded-lg bg-slate-800/60 font-semibold text-white transition">Rekening / Planne</a>
+              <button id="installBtn" onclick="installApp()" class="hidden w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">&#8681; Installeer Stroom-toep</button>
               <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
               <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
               <div class="pt-2 border-t border-slate-800">
@@ -378,5 +386,6 @@
       }, 3000);
     }
 </script>
+<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>
 </body>
 </html>

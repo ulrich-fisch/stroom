@@ -121,3 +121,22 @@ document.addEventListener('click', function (e) {
     if (!m || !m.contains(e.target) || e.target.closest('button,a')) g.classList.remove('open');
   });
 });
+
+
+// Installeer as toep: Android/Chrome/Edge gebruik die blaaier se installeer-venster; iPhone het 'n handmatige stap
+var installEvt = null;
+var isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault(); installEvt = e;
+  var b = document.getElementById('installBtn'); if (b) b.classList.remove('hidden');
+});
+window.addEventListener('appinstalled', function () { var b = document.getElementById('installBtn'); if (b) b.classList.add('hidden'); installEvt = null; });
+if (isIos && !isStandalone) { var ib = document.getElementById('installBtn'); if (ib) ib.classList.remove('hidden'); }
+function installApp() {
+  if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(function () { installEvt = null; var b = document.getElementById('installBtn'); if (b) b.classList.add('hidden'); }); return; }
+  var t = document.createElement('div');
+  t.className = 'fixed bottom-6 left-4 right-4 z-[100] bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-2xl p-4 shadow-2xl';
+  t.textContent = isIos ? "Tik die Deel-knoppie in Safari en kies 'Voeg by Tuisskerm'." : "Gebruik jou blaaier se kieslys en kies 'Installeer' of 'Voeg by Tuisskerm'.";
+  document.body.appendChild(t); setTimeout(function () { t.remove(); }, 6000);
+}
