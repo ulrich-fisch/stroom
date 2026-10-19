@@ -407,6 +407,36 @@ for (const so of ['titels', 'adverteerders', 'dae']) { r = await call('/api/admi
 t('csv: members refused, bad type refused', (await call('/api/admin/verslag-csv?soort=titels', {}, lid)).status === 404 && (await call('/api/admin/verslag-csv?soort=x', {}, ow)).status === 400);
 t('verslae page: gated like admin', (await call('/verslae.html', {}, lid)).status === 404 && (await call('/verslae.html', {}, ow)).status === 200);
 
+// 6l. Subtitles (onderskrifte)
+{
+  const { toVtt } = await import('../src/onderskrifte.js');
+  const srt = '\uFEFF1\r\n00:00:01,000 --> 00:00:03,500\r\nDie Erfenis van die Karoo\r\n\r\n2\r\n00:00:04,000 --> 00:00:06,000\r\n<i>Stilte</i> \u00EA\u00EB\r\n';
+  const v = toVtt(srt);
+  t('subs: SRT converts to WebVTT with dot timestamps', v.cues === 2 && v.vtt.startsWith('WEBVTT\n\n') && v.vtt.includes('00:00:01.000 --> 00:00:03.500') && !v.vtt.includes(','));
+  t('subs: short mm:ss timestamps and VTT header handled', toVtt('WEBVTT\n\n01:02.5 --> 01:04.000\nHallo').vtt.includes('00:01:02.500 --> 00:01:04.000'));
+  t('subs: garbage / empty rejected', !!toVtt('hello world').fout && !!toVtt('   ').fout && !!toVtt('x'.repeat(500 * 1024)).fout);
+  const up = (b, c) => post('/api/admin/onderskrif', b, c);
+  r = await up({ slug: 'karoo', ep: -1, taal: 'af', teks: srt }, ow); t('subs: admin upload ok', r.status === 200 && (await r.json()).cues === 2);
+  t('subs: member cannot upload', (await up({ slug: 'karoo', ep: -1, taal: 'af', teks: srt }, lid)).status === 404);
+  t('subs: bad language / unknown title / bad episode / bad file refused',
+    (await up({ slug: 'karoo', taal: 'xx', teks: srt }, ow)).status === 400 && (await up({ slug: 'bestaan-nie', taal: 'af', teks: srt }, ow)).status === 404
+    && (await up({ slug: 'karoo', ep: 3, taal: 'af', teks: srt }, ow)).status === 400 && (await up({ slug: 'karoo', taal: 'af', teks: 'nope' }, ow)).status === 400);
+  r = await call('/api/onderskrif?slug=karoo&ep=-1&taal=af', {}, lid); const vt = await r.text();
+  t('subs: member gets text/vtt in UTF-8', r.status === 200 && /text\/vtt; charset=utf-8/.test(r.headers.get('Content-Type')) && vt.startsWith('WEBVTT') && vt.includes('\u00EA\u00EB'));
+  t('subs: anonymous refused, unknown language/title 404', (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af')).status === 401
+    && (await call('/api/onderskrif?slug=karoo&ep=-1&taal=en', {}, lid)).status === 404 && (await call('/api/onderskrif?slug=..%2Fx&ep=-1&taal=af', {}, lid)).status === 404);
+  sp = await (await post('/api/speel', { slug: 'karoo' }, lid)).json();
+  t('subs: play payload lists available languages', JSON.stringify(sp.onderskrifte) === JSON.stringify([{ taal: 'af', label: 'Afrikaans' }]));
+  r = await up({ slug: 'pretoria', ep: 1, taal: 'en', teks: 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello' }, ow);
+  sp = await (await post('/api/speel', { slug: 'pretoria', ep: 1 }, lid)).json();
+  const sp0 = await (await post('/api/speel', { slug: 'pretoria', ep: 0 }, lid)).json();
+  t('subs: per-episode tracks stay separate', r.status === 200 && sp.onderskrifte.length === 1 && sp.onderskrifte[0].taal === 'en' && sp0.onderskrifte.length === 0);
+  r = await call('/api/admin/onderskrifte?slug=karoo', {}, ow); const ls = await r.json();
+  t('subs: admin list', ls.onderskrifte.length === 1 && ls.onderskrifte[0].cues === 2 && (await call('/api/admin/onderskrifte?slug=karoo', {}, lid)).status === 404);
+  await post('/api/admin/onderskrif-skrap', { slug: 'karoo', ep: -1, taal: 'af' }, ow);
+  t('subs: delete removes it', (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af', {}, lid)).status === 404);
+}
+
 // 7. Quick cold start: a fresh server instance on an already-set-up database must not redo the migration
 const skema = sql.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").get();
 t('startup: schema version recorded', !!skema && !!skema.waarde);

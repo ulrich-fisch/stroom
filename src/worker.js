@@ -5,6 +5,7 @@
 import { handleContent, createContentTables, seedContent, adminOk, serveMedia } from './inhoud.js';
 import { handleMember, createMemberTables, isMemberPath } from './lede.js';
 import { handleReports, createReportTables, isReportPath } from './verslae.js';
+import { handleSubtitles, createSubtitleTables, isSubtitlePath } from './onderskrifte.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
@@ -45,7 +46,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos in plaas van meer as 10 stadige een (dit het inteken traag gemaak).
-const SCHEMA = '2026-10-19a';
+const SCHEMA = '2026-10-19b';
 
 let ready;
 function init(db) {
@@ -85,6 +86,7 @@ async function migrate(db) {
   await createContentTables(db);
   await createMemberTables(db);
   await createReportTables(db);
+  await createSubtitleTables(db);
   await seedContent(db);
 }
 
@@ -157,11 +159,13 @@ async function api(request, env, url) {
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
   }
   {
-    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path)) ? await getUser(request, env.DB) : null;
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path) || isSubtitlePath(path)) ? await getUser(request, env.DB) : null;
     const m = await handleMember({ request, env, path, post, u: cu });
     if (m) return m;
     const r = await handleReports({ request, env, path, post, u: cu });
     if (r) return r;
+    const sb = await handleSubtitles({ request, env, path, post, u: cu });
+    if (sb) return sb;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }

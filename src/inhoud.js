@@ -3,6 +3,7 @@
 
 import { eiProfiel, kinderVeilig } from './lede.js';
 import { toestelSoort, landKode } from './verslae.js';
+import { onderskrifLys } from './onderskrifte.js';
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
@@ -202,7 +203,8 @@ export async function handleContent({ request, env, path, post, u }) {
       const wantEp = body.ep == null ? -1 : Number(body.ep);
       if (v && !v.voltooi && v.ep === wantEp && v.posisie > 5) begin = Math.max(0, v.posisie - 3);   // 'n paar sekondes terug
     }
-    return json({ url, hls, begin, slug: t.slug, ep: body.ep == null ? null : Number(body.ep), titel, krediet, plan: u.plan, advertensies });
+    const onderskrifte = await onderskrifLys(db, t.slug, body.ep == null ? -1 : Number(body.ep));
+    return json({ url, hls, begin, slug: t.slug, ep: body.ep == null ? null : Number(body.ep), titel, krediet, plan: u.plan, advertensies, onderskrifte });
   }
 
   // ----- Admin (slegs eienaar; almal anders kry "nie gevind") -----
@@ -247,6 +249,8 @@ export async function handleContent({ request, env, path, post, u }) {
   }
 
   if (path === '/api/admin/titel-skrap' && post) {
+    const dt = await db.prepare('SELECT slug FROM titels WHERE id = ?').bind(Number(body.id)).first();
+    if (dt) await db.prepare('DELETE FROM onderskrifte WHERE slug = ?').bind(dt.slug).run();
     await db.prepare('DELETE FROM titels WHERE id = ?').bind(Number(body.id)).run();
     return json({ ok: true });
   }
