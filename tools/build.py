@@ -12,14 +12,14 @@ ACCT_ACTIVE = 'block p-2 rounded-lg bg-slate-800/60 font-semibold text-white tra
 ACCT_IDLE = 'block p-2 rounded-lg hover:bg-slate-800/80 transition'
 SEARCH = ('<input type="text" id="searchInput" onkeyup="filterFilms()" placeholder="Soek films..." '
           'class="px-4 py-1.5 bg-slate-900 border border-slate-800 rounded-full text-xs text-white placeholder-slate-500 '
-          'focus:outline-none focus:border-sky-500 transition w-32 sm:w-48"/>')
+          'focus:outline-none focus:border-sky-500 transition flex-1 min-w-0 sm:flex-none sm:w-48"/>')
 MENU = 'dd absolute left-0 pt-2 w-60 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto transition duration-200 z-50'
 BOX = 'bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-2 backdrop-blur-xl text-xs text-slate-300'
-BTN = ('flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full hover:border-slate-700 '
-       'transition focus:outline-none text-xs font-semibold text-slate-300')
+BTN = ('flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 sm:px-3.5 py-1.5 rounded-full hover:border-slate-700 '
+       'transition focus:outline-none text-xs font-semibold text-slate-300 whitespace-nowrap')
 ITEM = 'block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition'
 def _type_item(v, label): return f'<button type="button" onclick="setTypeFilter(\'{v}\', \'{label}\')" class="{ITEM}">{label}</button>'
-FILTERS = ('<div class="flex items-center space-x-2">'
+FILTERS = ('<div class="flex items-center gap-2 shrink-0">'
            f'<div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="{BTN}"><span id="typeLabel">Tipe</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
            f'<div class="{MENU}"><div class="{BOX}">' + ''.join([_type_item('all', 'Alle Inhoud'), _type_item('film', 'Films'), _type_item('reeks', 'Reekse'), _type_item('dokumenter', 'Dokument&ecirc;re')]) + '</div></div></div>'
            f'<div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="{BTN}"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'

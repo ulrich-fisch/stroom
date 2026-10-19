@@ -5,11 +5,12 @@ function escHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, func
 
 var selfProfile = '';
 var profiles = [], maxProfiles = 5;
-var activeProfileId = 0, activeKids = false, activeProfile = '';
+var activeProfileId = 0, activeKids = false, activeProfile = '', activeAvatar = 0;
 try {
   activeProfileId = parseInt(localStorage.getItem('stroom_profiel_id') || '0', 10) || 0;
   activeKids = localStorage.getItem('stroom_profiel_kinders') === '1';
   activeProfile = localStorage.getItem('stroom_active_profile') || '';
+  activeAvatar = parseInt(localStorage.getItem('stroom_profiel_avatar') || '0', 10) || 0;
 } catch (e) {}
 
 function selfName() { return selfProfile || 'Profiel'; }
@@ -17,17 +18,20 @@ function selfName() { return selfProfile || 'Profiel'; }
 function applyNames() {
   var el = document.getElementById('headerProfileName');
   if (el) el.textContent = activeProfile || selfName();
+  var av = document.getElementById('headerAvatar');
+  if (av) { av.textContent = (activeProfile || selfName()).charAt(0).toUpperCase(); av.style.background = avatarBg(activeAvatar); }
   document.querySelectorAll('[data-self]').forEach(function (n) { n.textContent = selfName(); });
   document.querySelectorAll('[data-self-initial]').forEach(function (n) { n.textContent = selfName().charAt(0).toUpperCase(); });
 }
 applyNames();
 
 function setActiveProfile(p) {
-  activeProfileId = p.id; activeKids = !!p.kinders; activeProfile = p.naam;
+  activeProfileId = p.id; activeKids = !!p.kinders; activeProfile = p.naam; activeAvatar = p.avatar || 0;
   try {
     localStorage.setItem('stroom_profiel_id', String(p.id));
     localStorage.setItem('stroom_profiel_kinders', p.kinders ? '1' : '0');
     localStorage.setItem('stroom_active_profile', p.naam);
+    localStorage.setItem('stroom_profiel_avatar', String(p.avatar || 0));
   } catch (e) {}
 }
 
@@ -80,7 +84,7 @@ function logoutSession() {
       localStorage.removeItem('stroom_logged_in');
       localStorage.removeItem('stroom_active_profile');
       localStorage.removeItem('stroom_profiel_id');
-      localStorage.removeItem('stroom_profiel_kinders');
+      localStorage.removeItem('stroom_profiel_kinders'); localStorage.removeItem('stroom_profiel_avatar');
     } catch (e) {}
     window.location.href = 'index.html';
   });
