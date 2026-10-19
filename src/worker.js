@@ -4,12 +4,13 @@
 
 import { handleContent, createContentTables, seedContent, adminOk, serveMedia } from './inhoud.js';
 import { handleMember, createMemberTables, isMemberPath } from './lede.js';
+import { handleReports, createReportTables, isReportPath } from './verslae.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
 const NEEDS_SESSION = new Set(['kies-plan', 'rekening', 'skep']);
 const NEEDS_PLAN = new Set(['profiel', 'katalogus', 'joernaal', 'oor-ons']);
-const NEEDS_ADMIN = new Set(['admin']);
+const NEEDS_ADMIN = new Set(['admin', 'verslae']);
 const SESSION_DAYS = 30;
 const enc = new TextEncoder();
 
@@ -67,6 +68,7 @@ function init(db) {
     }
     await createContentTables(db);
     await createMemberTables(db);
+    await createReportTables(db);
     await seedContent(db);
   })();
   return ready;
@@ -139,9 +141,11 @@ async function api(request, env, url) {
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
   }
   {
-    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path)) ? await getUser(request, env.DB) : null;
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path)) ? await getUser(request, env.DB) : null;
     const m = await handleMember({ request, env, path, post, u: cu });
     if (m) return m;
+    const r = await handleReports({ request, env, path, post, u: cu });
+    if (r) return r;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }

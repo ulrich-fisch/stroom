@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#070c18">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Stroom">
+  <title>Stroom Verslae</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/stroom.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+
+<header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap justify-between items-center gap-y-3">
+      <div class="flex items-center space-x-8">
+        <a href="katalogus.html" class="flex items-center space-x-3">
+          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        </a>
+        <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
+          <a href="katalogus.html" class="hover:text-white transition">Katalogus</a>
+          <a href="joernaal.html" class="hover:text-white transition">Joernaal</a>
+          <a href="oor-ons.html" class="hover:text-white transition">Oor Stroom</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+        
+        
+        <a href="skep.html" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full transition uppercase tracking-wider hidden sm:block">Cinema Club</a>
+
+        <div class="relative group ml-auto sm:ml-0 shrink-0">
+          <button onclick="toggleDd(this, event)" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-1 sm:px-3.5 sm:py-1.5 rounded-full hover:border-slate-700 transition focus:outline-none">
+            <span id="headerAvatar" class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style="background:linear-gradient(135deg,#38bdf8,#0369a1)">P</span>
+            <span id="headerProfileName" class="hidden sm:inline text-xs font-semibold text-slate-300">Profiel</span>
+            <span class="hidden sm:inline text-[10px] text-slate-500">▼</span>
+          </button>
+
+          <div class="dd absolute right-0 mt-2 w-64 max-sm:fixed max-sm:top-full max-sm:left-3 max-sm:right-3 max-sm:w-auto bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-3 transition duration-200 z-50 backdrop-blur-xl">
+            <div class="p-2 border-b border-slate-800 space-y-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wissel Profiel</span>
+              <div id="headerProfiles" class="space-y-1"></div>
+            </div>
+
+            <div class="p-2 pt-3 space-y-1 text-xs text-slate-300">
+              <a href="profiel.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Bestuur Profiele</a>
+              <a href="rekening.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Rekening / Planne</a>
+              <button id="installBtn" onclick="installApp()" class="hidden w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">&#8681; Installeer Stroom-toep</button>
+              <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
+              <div class="pt-2 border-t border-slate-800">
+                <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <style>
+    @media print {
+      header, footer, .no-print { display: none !important; }
+      body, main, section, div, td, th, p, span, h1, h2, h3 { background: #fff !important; color: #111 !important; border-color: #ccc !important; }
+      svg rect { fill: #0369a1 !important; }
+      .only-print { display: block !important; }
+    }
+    .only-print { display: none; }
+    .kpi { background: rgba(15,23,42,.8); border: 1px solid #1e293b; border-radius: 16px; padding: 16px; }
+    .kpi > b { display: block; font-size: 26px; font-weight: 900; color: #fff; line-height: 1.1; }
+    .kpi > span { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-top: 6px; font-weight: 700; }
+    .kpi > em { display: block; font-style: normal; font-size: 11px; color: #64748b; margin-top: 4px; }
+    table.tb { width: 100%; font-size: 12px; border-collapse: collapse; }
+    table.tb th { text-align: left; color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 8px 10px; border-bottom: 1px solid #1e293b; white-space: nowrap; }
+    table.tb td { padding: 8px 10px; border-bottom: 1px solid #111b2e; color: #e2e8f0; }
+    table.tb td.n, table.tb th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full space-y-8">
+    <div class="space-y-2">
+      <a href="admin.html" class="no-print text-xs text-sky-400 hover:text-white">&larr; Terug na Admin</a>
+      <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">Verslae &amp; Analise</h1>
+      <p class="text-sm text-slate-400 max-w-3xl">Wat beleggers, adverteerders en borge wil sien. Alle syfers is saamgestel (geen persoonlike besonderhede nie). <span id="genTime"></span></p>
+    </div>
+
+    <div class="no-print flex flex-wrap items-center gap-3 justify-between">
+      <div id="tabs" class="flex flex-wrap gap-2">
+        <button data-tab="oorsig" class="tb-btn">Oorsig</button>
+        <button data-tab="gehoor" class="tb-btn">Gehoor</button>
+        <button data-tab="inhoud" class="tb-btn">Inhoud</button>
+        <button data-tab="adv" class="tb-btn">Adverteerders</button>
+        <button data-tab="tariewe" class="tb-btn">Tariewe</button>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-500 uppercase tracking-wider">Tydperk</span>
+        <div id="periods" class="flex gap-1"></div>
+        <button onclick="window.print()" class="ml-2 border border-slate-700 hover:border-white text-slate-300 px-3 py-1.5 rounded-full">Druk / PDF</button>
+      </div>
+    </div>
+    <p id="err" class="text-sm text-rose-400"></p>
+
+    <!-- OORSIG -->
+    <section id="tab-oorsig" class="space-y-6">
+      <div id="kpiOorsig" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="kpi"><span class="!mt-0 !mb-2">Nuwe lede per dag</span><div id="chSignups"></div></div>
+        <div class="kpi"><span class="!mt-0 !mb-2">Kyke per dag</span><div id="chPlays"></div></div>
+        <div class="kpi"><span class="!mt-0 !mb-2">Kykure per dag</span><div id="chHours"></div></div>
+      </div>
+      <div id="investorNote" class="text-xs text-slate-400 max-w-3xl leading-relaxed"></div>
+    </section>
+
+    <!-- GEHOOR -->
+    <section id="tab-gehoor" class="hidden space-y-6">
+      <div id="kpiGehoor" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+      <div class="kpi"><span class="!mt-0 !mb-2">Aktiewe kykers per dag</span><div id="chActive"></div></div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="kpi"><span class="!mt-0 !mb-3">Toestelle</span><div id="lsToestel"></div></div>
+        <div class="kpi"><span class="!mt-0 !mb-3">Lande (kyke)</span><div id="lsLande"></div></div>
+        <div class="kpi"><span class="!mt-0 !mb-3">Kyke per plan</span><div id="lsPlan"></div></div>
+        <div class="kpi"><span class="!mt-0 !mb-3">Gewildste genres</span><div id="lsGenre"></div></div>
+      </div>
+    </section>
+
+    <!-- INHOUD -->
+    <section id="tab-inhoud" class="hidden space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Prestasie per titel</h2>
+        <button onclick="csv('titels')" class="no-print text-xs border border-slate-700 hover:border-white text-slate-300 px-4 py-1.5 rounded-full">Laai CSV af</button>
+      </div>
+      <div class="overflow-x-auto"><table class="tb" id="tbTitels"></table></div>
+    </section>
+
+    <!-- ADVERTEERDERS -->
+    <section id="tab-adv" class="hidden space-y-6">
+      <div id="kpiAdv" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Per advertensie</h2>
+        <button onclick="csv('adverteerders')" class="no-print text-xs border border-slate-700 hover:border-white text-slate-300 px-4 py-1.5 rounded-full">Laai CSV af</button>
+      </div>
+      <div class="overflow-x-auto"><table class="tb" id="tbAds"></table></div>
+      <div id="adDetail" class="hidden space-y-4 border-t border-slate-800 pt-6"></div>
+    </section>
+
+    <!-- TARIEWE -->
+    <section id="tab-tariewe" class="hidden space-y-8">
+      <div class="space-y-3">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Jou tariefkaart</h2>
+        <p class="text-xs text-slate-400 max-w-3xl leading-relaxed">Hierdie bedrae dryf die &ldquo;beraamde waarde&rdquo; in die verslae. Verander dit wanneer jy &rsquo;n adverteerder kwoteer; die syfers hieronder dateer terug na elke verslag.</p>
+        <form onsubmit="stoorTariewe(event)" class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
+          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Voorrol per 1 000 vertonings (R)<input id="r_cpm_voorrol" type="number" min="0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Per klik (R)<input id="r_cpc" type="number" min="0" step="0.5" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Premium per maand (R)<input id="r_premium_maand" type="number" min="0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Premium per jaar (R)<input id="r_premium_jaar" type="number" min="0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <div class="col-span-2 md:col-span-4 flex items-center gap-3"><button class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-full">Stoor tariewe</button><span id="rateMsg" class="text-xs text-emerald-400"></span></div>
+        </form>
+      </div>
+
+      <div class="space-y-3">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Voorgestelde beginkaart vir adverteerders</h2>
+        <div class="overflow-x-auto"><table class="tb">
+          <tr><th>Pakket</th><th>Voorgestelde tarief</th><th>Wanneer</th></tr>
+          <tr><td>Voorrol-video (oorslaanbaar ná 5 s), hele platform</td><td>R100 per 1 000 vertonings (inleidend), R120 standaard</td><td>Eerste 3 adverteerders teen R100. Mik na R180&ndash;R250 sodra jy 50 000+ vertonings per maand en 70%+ voltooiing wys.</td></tr>
+          <tr><td>Geteikend (genre of titel, bv. dokumentêre)</td><td>+25% bo standaard (&asymp; R150)</td><td>Adverteerder kies waar sy advertensie loop.</td></tr>
+          <tr><td>Per klik (vir prestasie-adverteerders)</td><td>R4 per klik</td><td>Net op versoek. Meta in SA kos &asymp; R2.80; video-kykers is meer aandagtig, dus R4 is billik.</td></tr>
+          <tr><td>&ldquo;Aangebied deur&rdquo; borgskap van &rsquo;n titel of rak</td><td>R2 500 per maand minimum, daarna R150&ndash;R250 per 1 000 kyke van daardie titel</td><td>Sodra &rsquo;n titel 10 000+ kyke per maand het.</td></tr>
+          <tr><td>Minimum veldtog</td><td>R2 500</td><td>&asymp; 20 000 vertonings. SA-agentskappe noem R5 000 as beginbedrag vir YouTube.</td></tr>
+        </table></div>
+      </div>
+
+      <div class="space-y-3">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Waarop dit gebaseer is (rand teen R16.26 per $)</h2>
+        <ul class="text-xs text-slate-300 space-y-1.5 max-w-3xl list-disc pl-5 leading-relaxed">
+          <li>YouTube-advertensies in SA: gemiddeld &asymp; <b>R106 per 1 000</b>; 15 s nie-oorslaanbare in-stream &asymp; <b>R241</b> (wêreldwyd); 6 s &ldquo;bumper&rdquo; R79&ndash;R106. Dit is skattings uit wêreldwye syfers, nie Google se gepubliseerde tariewe nie. <a class="text-sky-400" href="https://www.growthpulsemedia.co.za/youtube-advertising-cost-south-africa/" target="_blank" rel="noopener">Bron</a></li>
+          <li>Voorrol- en uitstroom-video wêreldwyd $10&ndash;$25 per 1 000 (&asymp; R160&ndash;R400); SA oop-mark tipies aan die laer kant. Gekoppelde TV $20&ndash;$45+. <a class="text-sky-400" href="https://www.growthpulsemedia.co.za/programmatic-advertising-south-africa/" target="_blank" rel="noopener">Bron</a></li>
+          <li>Meta (Facebook) SA mediaan: CPM &asymp; $3.33 (&asymp; R54) en CPC &asymp; 0.17 (&asymp; R2.80, geldeenheid word nie genoem nie; dalk USD). <a class="text-sky-400" href="https://www.superads.ai/facebook-ads-costs/cpm-cost-per-mille/south-africa" target="_blank" rel="noopener">Bron</a></li>
+          <li>SA-stroommark 2026: 4.5 miljoen SVOD-intekenare, YouTube-advertensie-inkomste &asymp; $191 miljoen. Showmax het in April 2026 toegemaak, dus daar is ruimte vir &rsquo;n Afrikaanse aanbieder. <a class="text-sky-400" href="https://www.3vision.tv/news-insights/sub-saharan-africa-streaming-market-forecast-2026-2031-youtube-avod-revenue-outpaces-netflix-svod-across-the-region" target="_blank" rel="noopener">Bron</a></li>
+          <li>Wat adverteerders meet: voltooiingskoers (bo 95% vir TV-stroom), kykbaarheid, gemiddelde kyktyd en prestasie per segment (ouderdom, ligging, toestel). <a class="text-sky-400" href="https://verve.com/blog/avod-metrics-that-matter/" target="_blank" rel="noopener">Bron</a></li>
+        </ul>
+        <div class="kpi max-w-3xl">
+          <span class="!mt-0">Eerlike somme</span>
+          <p class="text-xs text-slate-300 leading-relaxed mt-2">Een advertensie voor elke titel teen R120 per 1 000 beteken R0.12 per kyk. &rsquo;n Gratis lid wat 4 titels per maand kyk bring dus ongeveer <b>R0.48 per maand</b> in, teenoor <b>R59</b> vir &rsquo;n Premium-lid (&asymp; 120&times; meer). 100 000 gratis kyke per maand = R12 000. Advertensies alleen dra Stroom dus eers met groot getalle; Premium, borgskappe en Cinema Club is die kern van die inkomste. Hierdie is gepubliseerde maatstawwe en skattings, nie kwotasies nie: kry 3 kwotasies van SA-agentskappe voor jy tariewe aan beleggers belowe.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<footer class="text-center py-10 text-xs text-slate-500 border-t border-slate-800/80 bg-slate-950/50">
+    <div class="max-w-7xl mx-auto px-6 space-y-4">
+      <p class="text-slate-400 font-semibold tracking-wider uppercase">STROOM — Die Tuisruimte van Afrikaanse Vermaak</p>
+      <p class="space-x-4">
+        <a href="katalogus.html" class="hover:text-slate-300">Katalogus</a>
+        <a href="joernaal.html" class="hover:text-slate-300">Joernaal</a>
+        <a href="oor-ons.html" class="hover:text-slate-300">Oor Stroom</a>
+        <a href="skep.html" class="hover:text-slate-300">Cinema Club</a>
+        <a href="privaatheid.html" class="hover:text-slate-300">Privaatheid</a>
+      </p>
+      <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
+    </div>
+  </footer>
+
+<script src="/app.js"></script>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmt = (v, d = 0) => (v == null ? '—' : Number(v).toLocaleString('af-ZA', { maximumFractionDigits: d }));
+    const rand = (v) => (v == null ? '—' : 'R' + Number(v).toLocaleString('af-ZA', { maximumFractionDigits: 0 }));
+    const pc = (v) => (v == null ? '—' : fmt(v, 1) + '%');
+    let DAE = 30, V = null, TAB = 'oorsig';
+    const TBC = 'tb-btn text-xs px-5 py-2 rounded-full border ';
+    function tabs() {
+      document.querySelectorAll('.tb-btn').forEach((b) => { b.className = TBC + (b.dataset.tab === TAB ? 'border-slate-600 text-white bg-slate-800' : 'border-slate-800 text-slate-400 hover:text-white'); });
+      ['oorsig', 'gehoor', 'inhoud', 'adv', 'tariewe'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== TAB));
+    }
+    document.querySelectorAll('.tb-btn').forEach((b) => b.addEventListener('click', () => { TAB = b.dataset.tab; tabs(); }));
+    $('periods').innerHTML = [[7, '7 dae'], [30, '30 dae'], [90, '90 dae'], [365, '1 jaar']].map(([d, l]) => `<button data-d="${d}" class="pd px-3 py-1.5 rounded-full border"></button>`).join('');
+    const PL = { 7: '7 dae', 30: '30 dae', 90: '90 dae', 365: '1 jaar' };
+    function periods() { document.querySelectorAll('.pd').forEach((b) => { const d = +b.dataset.d; b.textContent = PL[d]; b.className = 'pd px-3 py-1.5 rounded-full border ' + (d === DAE ? 'border-sky-500 text-sky-400' : 'border-slate-800 text-slate-400 hover:text-white'); b.onclick = () => { DAE = d; laai(); }; }); }
+
+    const kpi = (v, label, note) => `<div class="kpi"><b>${v}</b><span>${esc(label)}</span>${note ? `<em>${note}</em>` : ''}</div>`;
+    // Eenvoudige staafgrafiek (SVG): een kleur, hoogste waarde en datums aangedui, muis-wys wys die getal
+    function bars(el, labels, vals, unit = '') {
+      const W = 300, H = 90, max = Math.max(1, ...vals), bw = W / vals.length;
+      const rects = vals.map((v, i) => { const h = Math.round((v / max) * (H - 14)); return `<rect x="${(i * bw + 0.5).toFixed(1)}" y="${H - h}" width="${Math.max(1, bw - 1.5).toFixed(1)}" height="${h}" rx="1.5" fill="#38bdf8" opacity="${v ? 1 : 0.18}"><title>${esc(labels[i])}: ${fmt(v, 1)}${unit}</title></rect>`; }).join('');
+      $(el).innerHTML = `<div class="text-[10px] text-slate-400 mb-1">hoogste ${fmt(max, 1)}${unit}</div><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="w-full h-24" role="img">${rects}</svg>
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>${esc(labels[0].slice(5))}</span><span>${esc(labels[labels.length - 1].slice(5))}</span></div>`;
+    }
+    function list(el, rows, fmtLabel) {
+      const max = Math.max(1, ...rows.map((r) => r.n)); const tot = rows.reduce((t, r) => t + r.n, 0) || 1;
+      $(el).innerHTML = rows.length ? rows.map((r) => `<div class="mb-2"><div class="flex justify-between text-xs text-slate-300"><span>${esc(fmtLabel ? fmtLabel(r.k) : r.k)}</span><span class="whitespace-nowrap pl-2">${fmt(r.n)} <span class="text-slate-500">(${Math.round(r.n / tot * 100)}%)</span></span></div><div class="h-1.5 bg-slate-800 rounded mt-1"><div class="h-1.5 bg-sky-400 rounded" style="width:${Math.round(r.n / max * 100)}%"></div></div></div>`).join('') : '<p class="text-xs text-slate-500">Nog geen data nie.</p>';
+    }
+
+    function render() {
+      const v = V, L = v.lede, K = v.kykers, A = v.advertensies, I = v.inhoud;
+      $('genTime').textContent = 'Gegenereer ' + new Date(v.gegenereer).toLocaleString('af-ZA') + '. Tydperk: laaste ' + PL[v.dae] + '.';
+      const adRev = A.totaal.koste, subRev = Math.round(L.mrr * v.dae / 30);
+      $('kpiOorsig').innerHTML = [
+        kpi(fmt(L.totaal), 'Geregistreerde lede', `+${fmt(L.nuut)} in ${PL[v.dae]}`),
+        kpi(fmt(L.premium), 'Premium-lede', `${fmt(L.gratis)} gratis`),
+        kpi(pc(L.omskakeling_pct), 'Gratis na Premium', 'aandeel betalende lede'),
+        kpi(rand(L.mrr), 'Maandelikse herhalende inkomste', `jaarliks ${rand(L.arr)}`),
+        kpi(fmt(K.mau), 'Aktiewe kykers (30 dae)', `${fmt(K.wau)} per week, ${fmt(K.dau)} per dag`),
+        kpi(pc(K.kleef_pct), 'Kleef (daaglik / maandeliks)', 'bo 20% is sterk'),
+        kpi(K.terugkeer_7d_pct == null ? '—' : pc(K.terugkeer_7d_pct), 'Terug ná 7 dae', `${fmt(K.terugkeer_kohort)} lede in die groep`),
+        kpi(fmt(K.ure, 1), 'Kykure', `${K.gem_minute_per_kyk == null ? '—' : fmt(K.gem_minute_per_kyk, 1)} min per kyk`),
+        kpi(fmt(K.kyke), 'Kyke (starts)', `${fmt(K.unieke)} unieke kykers`),
+        kpi(pc(K.geaktiveer_pct), 'Geaktiveer', 'lede wat al iets gekyk het'),
+        kpi(I.gem_gradering == null ? '—' : '★ ' + fmt(I.gem_gradering, 1), 'Gem. gradering', `${fmt(I.graderings)} graderings, ${fmt(I.biblioteek)} titels`),
+        kpi(rand(adRev + subRev), 'Beraamde inkomste', `intekening ${rand(subRev)} + advertensies ${rand(adRev)}`),
+      ].join('');
+      bars('chSignups', v.dae_lys, L.signups); bars('chPlays', v.dae_lys, K.kyke_per_dag); bars('chHours', v.dae_lys, K.ure_per_dag, ' u');
+      $('investorNote').innerHTML = 'Beleggers kyk gewoonlik na: <b>groei</b> (nuwe lede), <b>omskakeling</b> na betaal, <b>herhalende inkomste</b>, <b>betrokkenheid</b> (kykure, kleef) en <b>terugkeer</b>. Advertensie-inkomste is &rsquo;n beraming teen jou tariefkaart (oortjie Tariewe); intekeninginkomste is beraam uit aktiewe Premium-lede teen die bedrae op die tariefkaart. Kleef en terugkeer verbeter eers betekenisvol sodra daar ’n paar honderd aktiewe lede is.';
+
+      $('kpiGehoor').innerHTML = [kpi(fmt(K.dau), 'Daaglikse kykers'), kpi(fmt(K.wau), 'Weeklikse kykers'), kpi(fmt(K.mau), 'Maandelikse kykers'), kpi(pc(K.kleef_pct), 'Kleef')].join('');
+      bars('chActive', v.dae_lys, K.aktief_per_dag);
+      const tl = { foon: 'Foon', tablet: 'Tablet', rekenaar: 'Rekenaar', onbekend: 'Onbekend' }, pl = { avod: 'Gratis (advertensies)', svod: 'Premium', onbekend: 'Onbekend' };
+      list('lsToestel', K.toestelle, (k) => tl[k] || k); list('lsLande', K.lande, (k) => k === '??' ? 'Onbekend' : k); list('lsPlan', K.planne, (k) => pl[k] || k); list('lsGenre', K.genres.slice(0, 6));
+
+      $('tbTitels').innerHTML = '<tr><th>Titel</th><th>Tipe</th><th class="n">Kyke</th><th class="n">Unieke kykers</th><th class="n">Kykure</th><th class="n">Voltooiing</th><th class="n">Gradering</th><th class="n">Adv. vertonings</th></tr>' +
+        I.titels.map((t) => `<tr><td>${esc(t.titel)}</td><td>${esc(t.tipe)}</td><td class="n">${fmt(t.kyke)}</td><td class="n">${fmt(t.kykers)}</td><td class="n">${fmt(t.ure, 1)}</td><td class="n">${pc(t.voltooi_pct)}</td><td class="n">${t.gem == null ? '—' : '★ ' + fmt(t.gem, 1) + ' (' + t.aantal + ')'}</td><td class="n">${fmt(t.advertensie_vertonings)}</td></tr>`).join('');
+
+      const T = A.totaal;
+      $('kpiAdv').innerHTML = [kpi(fmt(T.vertonings), 'Advertensie-vertonings'), kpi(pc(T.voltooi_pct), 'Voltooiingskoers', 'tot einde gekyk'), kpi(pc(T.ktv_pct), 'Klik-koers', `${fmt(T.klikke)} klikke`), kpi(rand(T.koste), 'Beraamde waarde', `teen R${fmt(v.tariewe.cpm_voorrol)} per 1 000 + R${fmt(v.tariewe.cpc, 2)} per klik`)].join('');
+      $('tbAds').innerHTML = '<tr><th>Advertensie</th><th class="n">Vertonings</th><th class="n">Unieke kykers</th><th class="n">Frekwensie</th><th class="n">Voltooi</th><th class="n">Oorgeslaan</th><th class="n">Klikke</th><th class="n">Klik-koers</th><th class="n">Waarde</th><th class="no-print"></th></tr>' +
+        (A.lys.length ? A.lys.map((a) => `<tr><td>${esc(a.naam)}${a.aktief ? '' : ' <span class="text-slate-500">(af)</span>'}</td><td class="n">${fmt(a.vertonings)}</td><td class="n">${fmt(a.unieke_kykers)}</td><td class="n">${a.frekwensie == null ? '—' : fmt(a.frekwensie, 1)}</td><td class="n">${pc(a.voltooi_pct)}</td><td class="n">${pc(a.oorslaan_pct)}</td><td class="n">${fmt(a.klikke)}</td><td class="n">${pc(a.ktv_pct)}</td><td class="n">${rand(a.beraamde_koste)}</td><td class="no-print"><button onclick="adVerslag(${a.id})" class="text-sky-400 hover:text-white">Verslag</button></td></tr>`).join('') : '<tr><td colspan="10" class="text-slate-500">Nog geen advertensies nie.</td></tr>');
+    }
+
+    async function api(path, body) {
+      const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.fout || 'Iets het skeefgeloop.');
+      return d;
+    }
+    async function laai() {
+      periods();
+      try { V = await api('/api/admin/verslag?dae=' + DAE); $('err').textContent = ''; render(); fillRates(); } catch (e) { $('err').textContent = e.message; }
+    }
+    function csv(soort) { window.location.href = `/api/admin/verslag-csv?soort=${soort}&dae=${DAE}`; }
+
+    async function adVerslag(id) {
+      const d = (await api(`/api/admin/verslag?dae=${DAE}&ad=${id}`)).advertensie_detail; if (!d) return;
+      const box = $('adDetail'); box.classList.remove('hidden');
+      box.innerHTML = `<div class="flex flex-wrap justify-between items-start gap-3"><div><p class="text-[10px] uppercase tracking-widest text-sky-400 font-bold">Adverteerder-verslag</p><h3 class="text-2xl font-black text-white">${esc(d.naam)}</h3><p class="text-xs text-slate-400">Laaste ${PL[DAE]} &bull; Stroom (Fischbowl Media) &bull; ${new Date().toLocaleDateString('af-ZA')}</p></div><button onclick="window.print()" class="no-print text-xs border border-slate-700 hover:border-white text-slate-300 px-4 py-1.5 rounded-full">Druk / stoor as PDF</button></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">${kpi(fmt(d.vertonings), 'Vertonings')}${kpi(fmt(d.unieke_kykers), 'Unieke kykers', 'frekwensie ' + (d.frekwensie == null ? '—' : fmt(d.frekwensie, 1)))}${kpi(pc(d.voltooi_pct), 'Voltooiingskoers', fmt(d.voltooi) + ' tot einde')}${kpi(pc(d.ktv_pct), 'Klik-koers', fmt(d.klikke) + ' klikke')}</div>
+        <div class="kpi"><span class="!mt-0 !mb-2">Vertonings per dag</span><div id="chAd"></div></div>
+        <div class="grid md:grid-cols-3 gap-4"><div class="kpi"><span class="!mt-0 !mb-3">Voor watter titels</span><div id="adT"></div></div><div class="kpi"><span class="!mt-0 !mb-3">Lande</span><div id="adL"></div></div><div class="kpi"><span class="!mt-0 !mb-3">Toestelle</span><div id="adD"></div></div></div>
+        <p class="text-[11px] text-slate-500">&ldquo;Vertoning&rdquo; tel wanneer die advertensie begin speel het. &ldquo;Voltooi&rdquo; beteken tot die einde gekyk. Kykers kan ná 5 sekondes oorslaan. Syfers is saamgestel; geen persoonlike besonderhede word gedeel nie.</p>`;
+      bars('chAd', V.dae_lys, d.per_dag); list('adT', d.titels); list('adL', d.lande, (k) => k === '??' ? 'Onbekend' : k); list('adD', d.toestelle, (k) => ({ foon: 'Foon', tablet: 'Tablet', rekenaar: 'Rekenaar' }[k] || k));
+      box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function fillRates() { const t = V.tariewe; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar'].forEach((k) => { const el = $('r_' + k); if (document.activeElement !== el) el.value = t[k]; }); }
+    async function stoorTariewe(e) {
+      e.preventDefault(); const b = {}; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar'].forEach((k) => { b[k] = $('r_' + k).value; });
+      try { await api('/api/admin/tariewe', b); $('rateMsg').textContent = 'Gestoor.'; setTimeout(() => { $('rateMsg').textContent = ''; }, 3000); laai(); } catch (er) { $('rateMsg').className = 'text-xs text-rose-400'; $('rateMsg').textContent = er.message; }
+    }
+    tabs(); laai();
+</script>
+<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>
+</body>
+</html>

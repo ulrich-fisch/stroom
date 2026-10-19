@@ -2,6 +2,7 @@
 // Net die eienaar (ADMIN_EMAIL) mag admin-roetes gebruik. Advertensies word slegs aan gratis lede gewys.
 
 import { eiProfiel, kinderVeilig } from './lede.js';
+import { toestelSoort, landKode } from './verslae.js';
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
@@ -190,10 +191,11 @@ export async function handleContent({ request, env, path, post, u }) {
       if (ads.results.length) {
         const ad = ads.results[Math.floor(Math.random() * ads.results.length)];
         await db.prepare('UPDATE advertensies SET vertonings = vertonings + 1 WHERE id = ?').bind(ad.id).run();
-        advertensies = [{ naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null }];
+        advertensies = [{ id: ad.id, naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null }];
       }
     }
-    await db.prepare('INSERT INTO kykgebeure (slug, profiel_id, ep, ts) VALUES (?, ?, ?, ?)').bind(t.slug, prof ? prof.id : null, body.ep == null ? -1 : Number(body.ep), Date.now()).run();
+    await db.prepare('INSERT INTO kykgebeure (slug, profiel_id, ep, ts, user_id, plan, land, toestel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(t.slug, prof ? prof.id : null, body.ep == null ? -1 : Number(body.ep), Date.now(), u.id, u.plan, landKode(request), toestelSoort(request)).run();
     let begin = 0;
     if (prof && !body.herbegin) {
       const v = await db.prepare('SELECT ep, posisie, voltooi FROM vordering WHERE profiel_id = ? AND slug = ?').bind(prof.id, t.slug).first();
