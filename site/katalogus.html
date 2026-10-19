@@ -99,6 +99,13 @@
     #stinger.on .logo { animation: introLogo .7s cubic-bezier(.2,.7,.2,1) 0s both, introSweep .8s ease-in-out .6s forwards; }
     #stinger.on .stream { animation: introWave .8s ease-in-out .5s forwards; }
 
+    /* Onderskrifte: self geteken, sodat dit bo die kontroles bly en dieselfde lyk op alle toestelle */
+    #ccBox { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 20; display: flex; justify-content: center; padding: 0 5%; pointer-events: none; transition: bottom .2s; }
+    #playerOverlay.show ~ #ccBox { bottom: 88px; }
+    #ccBox span { background: rgba(0,0,0,.72); color: #fff; padding: .08em .5em; border-radius: 6px; text-align: center; line-height: 1.35; white-space: pre-line; font-weight: 600; text-shadow: 0 1px 2px #000; max-width: 100%; }
+    #ccBox.s span { font-size: 12px; } #ccBox.m span { font-size: 16px; } #ccBox.l span { font-size: 22px; }
+    @media (min-width: 640px) { #ccBox.s span { font-size: 15px; } #ccBox.m span { font-size: 21px; } #ccBox.l span { font-size: 30px; } }
+
     @media (prefers-reduced-motion: reduce) {
       #intro { animation: introOut .4s ease 1s forwards; }
       #intro .logo, #stinger.on .logo { animation: none; opacity: 1; background-position: 0 0; }
@@ -295,11 +302,16 @@
                   <button id="qualBtn" onclick="toggleQualMenu(event)" class="whitespace-nowrap text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">Kwaliteit &#9662;</button>
                   <div id="qualMenu" class="hidden absolute bottom-full right-0 mb-2 w-52 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
                 </div>
+                <div class="relative">
+                  <button id="ccBtn" onclick="toggleCcMenu(event)" class="hidden whitespace-nowrap text-[10px] border border-slate-600 text-slate-300 hover:text-white px-2 py-0.5 rounded font-mono font-bold" aria-label="Onderskrifte" title="Onderskrifte (C)">CC</button>
+                  <div id="ccMenu" class="hidden absolute bottom-full right-0 mb-2 w-56 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
+                </div>
                 <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white text-sm">⛶</button>
               </div>
             </div>
           </div>
         </div>
+        <div id="ccBox" class="m" aria-live="off"></div>
         <div id="stinger" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#02030b] cursor-pointer" onclick="endStinger()">
           <button onclick="event.stopPropagation(); closePlayer()" class="absolute top-3 right-4 text-slate-400 hover:text-white text-3xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
           <div class="scn">
@@ -561,7 +573,7 @@
       document.getElementById('modalTitle').innerText = d.titel;
       document.getElementById('modalCredit').innerText = d.krediet || '';
       document.getElementById('playerModal').classList.remove('hidden');
-      filmUrl = d.url; filmHls = !!d.hls;
+      filmUrl = d.url; filmHls = !!d.hls; clearTracks(); pendingSubs = d.onderskrifte || [];
       streak = auto ? streak + 1 : 1; stayed = false; hideNextUi(); playedAcc = 0; lastCT = 0;
       cur = { slug: d.slug || slug, ep: d.ep == null ? -1 : d.ep }; resumeAt = d.begin || 0; lastSave = 0;
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
@@ -573,6 +585,7 @@
       endAdUi(); adMode = false;
       detachHls();
       if (filmHls) startHls(filmUrl); else { player.src = filmUrl; player.load(); }
+      setTracks(pendingSubs);
       playBtn.innerText = '❚❚';
       const st = document.getElementById('stinger');
       st.classList.remove('hidden', 'on'); void st.offsetWidth; st.classList.add('on');   // herstart die animasie
@@ -702,6 +715,47 @@
     player.addEventListener('loadedmetadata', () => { updateQualBtn(); renderQualMenu(); });
     player.addEventListener('resize', updateQualBtn);
 
+    // ----- Onderskrifte -----
+    let SUBS = [], ccLang = null, ccSize = 'm', pendingSubs = [];
+    try { ccLang = localStorage.getItem('stroom_onderskrif'); ccSize = localStorage.getItem('stroom_onderskrif_grootte') || 'm'; } catch (e) {}
+    const ccAan = () => !!ccLang && ccLang !== 'uit' && SUBS.some((x) => x.taal === ccLang);
+    function clearTracks() { player.querySelectorAll('track').forEach((x) => x.remove()); SUBS = []; renderCc(); updateCcBtn(); }
+    function setTracks(list) {
+      clearTracks(); SUBS = list || [];
+      SUBS.forEach((x) => { const tr = document.createElement('track'); tr.kind = 'subtitles'; tr.label = x.label; tr.srclang = x.taal;
+        tr.src = '/api/onderskrif?slug=' + encodeURIComponent(cur.slug) + '&ep=' + cur.ep + '&taal=' + encodeURIComponent(x.taal); player.appendChild(tr); });
+      applySub(); updateCcBtn();
+    }
+    function applySub() {
+      for (const tt of player.textTracks) { tt.oncuechange = null; tt.mode = 'disabled'; }
+      if (ccAan()) for (const tt of player.textTracks) if (tt.language === ccLang) { tt.mode = 'hidden'; tt.oncuechange = renderCc; }
+      renderCc();
+    }
+    const fmtCue = (x) => esc(x).replace(/&lt;(\/?)(i|b|u)&gt;/g, '<$1$2>').replace(/&lt;\/?[^&]*?&gt;/g, '');
+    function renderCc() {
+      const box = document.getElementById('ccBox'); let txt = '';
+      for (const tt of player.textTracks) if (tt.mode === 'hidden' && tt.activeCues) txt = Array.from(tt.activeCues).map((c) => c.text).join('\n');
+      box.className = ccSize; box.innerHTML = txt && !adMode ? '<span>' + fmtCue(txt) + '</span>' : '';
+    }
+    function updateCcBtn() {
+      const b = document.getElementById('ccBtn'); b.classList.toggle('hidden', !SUBS.length);
+      b.classList.toggle('bg-sky-500', ccAan()); b.classList.toggle('text-slate-950', ccAan()); b.classList.toggle('border-sky-500', ccAan());
+      b.classList.toggle('text-slate-300', !ccAan());
+    }
+    function renderCcMenu() {
+      const cc = ccAan() ? ccLang : 'uit';
+      const row = (v, label) => `<button onclick="setCc('${v}')" class="w-full flex justify-between items-center text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 ${cc === v ? 'bg-slate-800 font-bold text-sky-400' : ''}"><span>${esc(label)}</span><span class="text-[10px]">${cc === v ? '&#10003;' : ''}</span></button>`;
+      const sz = (v, label) => `<button onclick="setCcSize('${v}')" class="flex-1 px-2 py-1 rounded-lg ${ccSize === v ? 'bg-slate-800 font-bold text-sky-400' : 'text-slate-300 hover:bg-slate-800'}">${label}</button>`;
+      document.getElementById('ccMenu').innerHTML = row('uit', 'Af') + SUBS.map((x) => row(x.taal, x.label)).join('')
+        + `<p class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-slate-500">Grootte</p><div class="flex gap-1 px-1 pb-1">${sz('s', 'Klein')}${sz('m', 'Normaal')}${sz('l', 'Groot')}</div>`;
+    }
+    function toggleCcMenu(e) { e.stopPropagation(); renderCcMenu(); document.getElementById('ccMenu').classList.toggle('hidden'); }
+    function setCc(v) { ccLang = v; try { localStorage.setItem('stroom_onderskrif', v); } catch (e) {} applySub(); updateCcBtn(); document.getElementById('ccMenu').classList.add('hidden'); }
+    function setCcSize(v) { ccSize = v; try { localStorage.setItem('stroom_onderskrif_grootte', v); } catch (e) {} renderCc(); renderCcMenu(); }
+    function toggleCc() { if (!SUBS.length) return; if (ccAan()) setCc('uit'); else setCc(SUBS.some((x) => x.taal === ccLang) ? ccLang : SUBS[0].taal); }
+    document.addEventListener('click', (e) => { const m = document.getElementById('ccMenu'); if (m && !m.classList.contains('hidden') && !m.contains(e.target)) m.classList.add('hidden'); });
+    player.addEventListener('seeked', renderCc);
+
     // ----- Volgende episode / "Kyk jy nog?" -----
     let streak = 0, stayed = false, stillTimer = null;
     function nextEp() {
@@ -738,6 +792,7 @@
       else if (k === 'ArrowDown') { e.preventDefault(); setVolume(Math.max(0, Math.round(player.volume * 100) - 10)); }
       else if (k === 'm') toggleMute();
       else if (k === 'f') toggleFullscreen();
+      else if (k === 'c') toggleCc();
       else if (k === 'Escape' && !document.fullscreenElement) closePlayer();
     });
     function toggleFullscreen() {
@@ -751,7 +806,7 @@
     function showControls() {
       const ov = document.getElementById('playerOverlay'); ov.classList.add('show');
       clearTimeout(ctlTimer);
-      ctlTimer = setTimeout(() => { if (!player.paused && document.getElementById('qualMenu').classList.contains('hidden')) ov.classList.remove('show'); }, 3000);
+      ctlTimer = setTimeout(() => { if (!player.paused && document.getElementById('qualMenu').classList.contains('hidden') && document.getElementById('ccMenu').classList.contains('hidden')) ov.classList.remove('show'); }, 3000);
     }
     function videoTap() {
       const ov = document.getElementById('playerOverlay');
@@ -777,7 +832,7 @@
     player.addEventListener('pause', () => saveProgress(true));
     player.addEventListener('ended', () => { if (!adMode) { saveProgress(true); onFilmEnded(); } });
     window.addEventListener('pagehide', () => saveProgress(true));
-    function closePlayer() { saveProgress(true); renderContinue(); renderHero(); hideNextUi(); document.getElementById('qualMenu').classList.add('hidden'); cur = null; adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
+    function closePlayer() { saveProgress(true); renderContinue(); renderHero(); hideNextUi(); document.getElementById('qualMenu').classList.add('hidden'); document.getElementById('ccMenu').classList.add('hidden'); clearTracks(); cur = null; adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
 
     player.ontimeupdate = () => {
       if (adMode) {
