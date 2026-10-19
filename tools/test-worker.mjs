@@ -437,6 +437,47 @@ t('verslae page: gated like admin', (await call('/verslae.html', {}, lid)).statu
   t('subs: delete removes it', (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af', {}, lid)).status === 404);
 }
 
+// 6m. Binnekort (coming soon), reminders, scheduled release, share page
+{
+  const base = { titel: 'Binnekort <b>Fliek</b>', tipe: 'Kortfilm', genre_sleutel: 'drama', banner: 'https://img.test/p.jpg', sinopsis: 'Wag vir hierdie een.', status: 'binnekort',
+    vrystelling: '2099-01-01', trailer: 'https://vid.test/t.mp4', rolverdeling: 'Anna Botha | Lead\nPiet Nel | Pa\n\n' };
+  r = await post('/api/admin/titel', base, ow); const bk = await r.json(); t('binnekort: admin can create', r.status === 200 && !!bk.slug);
+  t('binnekort: needs a poster, valid date, https trailer',
+    (await post('/api/admin/titel', { ...base, titel: 'X1', banner: '' }, ow)).status === 400 && (await post('/api/admin/titel', { ...base, titel: 'X2', vrystelling: '01/01/2099' }, ow)).status === 400
+    && (await post('/api/admin/titel', { ...base, titel: 'X3', trailer: 'http://insecure.test/t.mp4' }, ow)).status === 400);
+  let kat = await (await call('/api/katalogus', {}, lid)).json(); const bkRaw = JSON.stringify(kat.binnekort);
+  const it = kat.binnekort.find((x) => x.slug === bk.slug);
+  t('binnekort: shows on the member catalogue, not in the playable list', !!it && !kat.titels.some((x) => x.slug === bk.slug));
+  t('binnekort: cast parsed, trailer given, no video address leaked', it.rolverdeling.length === 2 && it.rolverdeling[0].naam === 'Anna Botha' && it.rolverdeling[0].rol === 'Lead' && it.trailer === 'https://vid.test/t.mp4' && !/video_url|"url"/.test(bkRaw));
+  t('binnekort: cannot be played', (await post('/api/speel', { slug: bk.slug }, lid)).status === 404);
+  t('herinner: anonymous refused, non-binnekort refused', (await post('/api/herinner', { slug: bk.slug, aan: true })).status === 401 && (await post('/api/herinner', { slug: 'karoo', aan: true }, lid)).status === 404);
+  t('herinner: member can set a reminder', (await post('/api/herinner', { slug: bk.slug, aan: true }, lid)).status === 200);
+  kat = await (await call('/api/katalogus', {}, lid)).json(); t('herinner: remembered', kat.binnekort.find((x) => x.slug === bk.slug).herinner === true);
+  let al = await (await call('/api/admin/titels', {}, ow)).json(); t('herinner: admin sees the count', al.titels.find((x) => x.slug === bk.slug).herinnerings === 1);
+  await post('/api/herinner', { slug: bk.slug, aan: false }, lid); al = await (await call('/api/admin/titels', {}, ow)).json(); t('herinner: can be removed', al.titels.find((x) => x.slug === bk.slug).herinnerings === 0);
+  await post('/api/herinner', { slug: bk.slug, aan: true }, lid);
+  // Share page (public)
+  r = await call('/t/' + bk.slug); const sh = await r.text();
+  t('share: public page has preview tags', r.status === 200 && /text\/html/.test(r.headers.get('Content-Type')) && sh.includes('og:title') && sh.includes('og:image" content="https://img.test/p.jpg') && /Binnekort/.test(sh));
+  t('share: title is escaped (no injected tag)', !sh.includes('<b>Fliek') && sh.includes('&lt;b&gt;Fliek'));
+  t('share: unknown, draft titles redirect home', (await call('/t/bestaan-nie')).status === 302);
+  await post('/api/admin/titel', { ...base, titel: 'Konsep Een', status: 'konsep' }, ow); const kslug = (await (await call('/api/admin/titels', {}, ow)).json()).titels.find((x) => x.titel === 'Konsep Een').slug;
+  t('share: drafts are never exposed', (await call('/t/' + kslug)).status === 302);
+  t('share: published title works', (await call('/t/karoo')).status === 200);
+  t('media: posters are public, videos still need sign-in', (await call('/media/' + 'a'.repeat(24) + '.jpg')).status === 404 && (await call('/media/' + 'a'.repeat(24) + '.mp4')).status === 401);
+  // Scheduled release: past date + a video => goes live by itself; reminder shows once
+  const id = (await (await call('/api/admin/titels', {}, ow)).json()).titels.find((x) => x.slug === bk.slug).id;
+  await post('/api/admin/titel', { ...base, id, vrystelling: '2000-01-01' }, ow);
+  kat = await (await call('/api/katalogus', {}, lid)).json();
+  t('scheduled: past date but no video stays coming soon', kat.binnekort.some((x) => x.slug === bk.slug) && !kat.titels.some((x) => x.slug === bk.slug));
+  await post('/api/admin/titel', { ...base, id, vrystelling: '2000-01-01', video_url: 'https://vid.test/film.mp4' }, ow);
+  kat = await (await call('/api/katalogus', {}, lid)).json();
+  t('scheduled: goes live by itself on its date', kat.titels.some((x) => x.slug === bk.slug) && !kat.binnekort.some((x) => x.slug === bk.slug));
+  t('herinner: member is told it is now available', kat.herinner_nuut.some((x) => x.slug === bk.slug));
+  await post('/api/herinner-gesien', {}, lid); kat = await (await call('/api/katalogus', {}, lid)).json(); t('herinner: told only once', kat.herinner_nuut.length === 0);
+  t('future-dated title is not promoted', (await call('/api/katalogus', {}, lid).then((x) => x.json())).binnekort.every((x) => x.vrystelling !== '2000-01-01'));
+}
+
 // 7. Quick cold start: a fresh server instance on an already-set-up database must not redo the migration
 const skema = sql.prepare("SELECT waarde FROM instellings WHERE sleutel = 'skema'").get();
 t('startup: schema version recorded', !!skema && !!skema.waarde);

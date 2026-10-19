@@ -6,6 +6,7 @@ import { handleContent, contentStatements, seedContent, adminOk, serveMedia } fr
 import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
+import { handleBinnekort, herinnerStatements, TITEL_COLUMNS, isBinnekortPath, sharePage } from './binnekort.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
 const PUBLIC_PAGES = new Set(['index', 'teken-in', 'privaatheid', 'waglys', 'offline']);
@@ -46,7 +47,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-19c';
+const SCHEMA = '2026-10-19d';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -100,9 +101,9 @@ async function migrate(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
       title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
-    ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db),
+    ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db),
   ]);
-  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS]);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS]);
   await seedContent(db);
 }
 
@@ -177,13 +178,15 @@ async function api(request, env, url, ctx) {
       wagfrase_vingerafdruk: fp(env.PAYFAST_PASSPHRASE), sleutel_vingerafdruk: fp(env.PAYFAST_MERCHANT_KEY) });
   }
   {
-    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path) || isSubtitlePath(path)) ? await getUser(request, env.DB) : null;
+    const cu = (path === '/api/katalogus' || path === '/api/speel' || path.startsWith('/api/admin/') || isMemberPath(path) || isReportPath(path) || isSubtitlePath(path) || isBinnekortPath(path)) ? await getUser(request, env.DB) : null;
     const m = await handleMember({ request, env, path, post, u: cu });
     if (m) return m;
     const r = await handleReports({ request, env, path, post, u: cu });
     if (r) return r;
     const sb = await handleSubtitles({ request, env, path, post, u: cu });
     if (sb) return sb;
+    const bk = await handleBinnekort({ request, env, path, post, u: cu });
+    if (bk) return bk;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }
@@ -347,6 +350,13 @@ async function handle(request, env, ctx) {
       if (!env.DB) return new Response('Dienste is tydelik nie beskikbaar nie.', { status: 503 });
       await init(env.DB, ctx);
       return serveMedia(request, env, await getUser(request, env.DB), url.pathname.slice(7));
+    }
+
+    // Openbare deel-bladsy met voorskou (vir WhatsApp ens.)
+    if (url.pathname.startsWith('/t/') && request.method === 'GET') {
+      if (!env.DB) return new Response('Dienste is tydelik nie beskikbaar nie.', { status: 503 });
+      try { await init(env.DB, ctx); } catch { return new Response(null, { status: 302, headers: { Location: '/' } }); }
+      return sharePage(request, env);
     }
 
     // Bladsy-naam: /katalogus.html en /katalogus -> "katalogus"; / -> "index"

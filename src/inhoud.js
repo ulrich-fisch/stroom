@@ -4,6 +4,7 @@
 import { eiProfiel, kinderVeilig } from './lede.js';
 import { toestelSoort, landKode } from './verslae.js';
 import { onderskrifLys } from './onderskrifte.js';
+import { bevorderGeskeduleerd, binnekortLys, herinnerNuut, parseRolverdeling, datumOk } from './binnekort.js';
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
@@ -15,7 +16,7 @@ export const GENRES = {
   natuur: 'Natuur & Wild', oorlog: 'Oorlog & Militêr', platteland: 'Platteland & Boerdery', reis: 'Reis & Kos', sport: 'Sport',
   wetenskap: 'Wetenskap & Tegnologie', wetenskapfiksie: 'Wetenskapfiksie',
 };
-const STATUSSE = ['gepubliseer', 'konsep'];
+const STATUSSE = ['gepubliseer', 'konsep', 'binnekort'];
 const INSKRYWING_STATUSSE = ['hangende', 'goedgekeur', 'afgekeur'];
 
 export const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
@@ -94,7 +95,7 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().
 // Wat 'n lid sien: nooit die video-adres nie (dit kom eers by /api/speel)
 const publiek = (r) => ({ slug: r.slug, titel: r.titel, tipe: r.tipe, jaar: r.jaar, ouderdom: r.ouderdom, speeltyd: r.speeltyd,
   regisseur: r.regisseur, genre_sleutel: r.genre_sleutel, genre_etiket: r.genre_etiket, banner: r.banner, sinopsis: r.sinopsis,
-  gem: r.gem == null ? null : Math.round(r.gem * 10) / 10, aantal: r.aantal || 0, myne: r.myne || 0, uitgelig: !!r.uitgelig, nuut: r.created_at || 0, kyke: r.kyke || 0, episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
+  gem: r.gem == null ? null : Math.round(r.gem * 10) / 10, aantal: r.aantal || 0, myne: r.myne || 0, uitgelig: !!r.uitgelig, nuut: r.created_at || 0, kyke: r.kyke || 0, vrystelling: r.vrystelling || '', trailer: r.trailer || '', rolverdeling: parseRolverdeling(r.rolverdeling), episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
 
 // Hoofhanteerder. Gee null terug as die pad nie hier hoort nie.
 export async function handleContent({ request, env, path, post, u }) {
@@ -150,13 +151,15 @@ export async function handleContent({ request, env, path, post, u }) {
     const pidRaw = new URL(request.url).searchParams.get('profiel');
     const prof = pidRaw ? await eiProfiel(db, u, pidRaw) : null;
     if (pidRaw && !prof) return json({ fout: 'Kies eers \'n profiel.' }, 400);
+    await bevorderGeskeduleerd(db);
     const rows = await db.prepare("SELECT * FROM titels WHERE status = 'gepubliseer' ORDER BY uitgelig DESC, id ASC").all();
     const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
     const mine = new Map(prof ? (await db.prepare('SELECT slug, sterre FROM gradering WHERE profiel_id = ?').bind(prof.id).all()).results.map((x) => [x.slug, x.sterre]) : []);
     const plays = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM kykgebeure WHERE ts > ? GROUP BY slug').bind(Date.now() - 30 * 86400000).all()).results.map((x) => [x.slug, x.n]));
     let list = rows.results;
     if (prof && prof.kinders) list = list.filter((r) => kinderVeilig(r.ouderdom));
-    return json({ plan: u.plan, kinders: !!(prof && prof.kinders), genres: GENRES,
+    const binnekort = await binnekortLys(db, u, prof), herinner_nuut = await herinnerNuut(db, u);
+    return json({ plan: u.plan, kinders: !!(prof && prof.kinders), genres: GENRES, binnekort, herinner_nuut,
       titels: list.map((r) => publiek({ ...r, gem: (agg.get(r.slug) || {}).gem, aantal: (agg.get(r.slug) || {}).aantal, myne: mine.get(r.slug), kyke: plays.get(r.slug) || 0 })) });
   }
 
@@ -214,7 +217,8 @@ export async function handleContent({ request, env, path, post, u }) {
   if (path === '/api/admin/titels' && !post) {
     const rows = await db.prepare('SELECT * FROM titels ORDER BY id DESC').all();
     const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
-    return json({ titels: rows.results.map((r) => ({ ...r, uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes),
+    const hn = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM herinner GROUP BY slug').all()).results.map((x) => [x.slug, x.n]));
+    return json({ titels: rows.results.map((r) => ({ ...r, uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes), herinnerings: hn.get(r.slug) || 0,
       gem: agg.get(r.slug) ? Math.round(agg.get(r.slug).gem * 10) / 10 : null, aantal: agg.get(r.slug) ? agg.get(r.slug).aantal : 0 })), tipes: TIPES, genres: GENRES });
   }
 
@@ -229,22 +233,26 @@ export async function handleContent({ request, env, path, post, u }) {
     if (video && !isVideo(video)) return json({ fout: 'Die video moet \'n https://-skakel, \'n opgelaaide lêer of \'n Stream-video wees.' }, 400);
     const eps = parseEpisodes(body.episodes_teks);
     if (eps === null) return json({ fout: 'Episodes: een per lyn as  Ep 1 | Titel | 28 min | Beskrywing | https://...' }, 400);
+    const vrystelling = clip(body.vrystelling, 10), trailer = clip(body.trailer, 400), rolverdeling = String(body.rolverdeling || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 30).map((l) => clip(l, 130)).join('\n');
+    if (!datumOk(vrystelling)) return json({ fout: 'Vrystellingsdatum moet soos 2026-12-01 wees.' }, 400);
+    if (trailer && !isMedia(trailer)) return json({ fout: 'Die voorskou moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
+    if (status === 'binnekort' && !banner) return json({ fout: 'Binnekort-titels het \'n beeld nodig.' }, 400);
     if (status === 'gepubliseer' && !banner) return json({ fout: 'Gepubliseerde titels het \'n beeld nodig.' }, 400);
     if (status === 'gepubliseer' && !video && !eps.length) return json({ fout: 'Gepubliseerde titels het \'n video-skakel (of episodes) nodig.' }, 400);
     const pas = Math.max(0, Math.min(100, parseInt(body.pas, 10) || 90));
     const vals = [titel, tipe, clip(body.jaar, 4), clip(body.ouderdom, 6), clip(body.speeltyd, 20), clip(body.regisseur, 80), genre, GENRES[genre],
-      banner, video, clip(body.sinopsis, 2000), JSON.stringify(eps), pas, body.uitgelig ? 1 : 0, status];
+      banner, video, clip(body.sinopsis, 2000), JSON.stringify(eps), pas, body.uitgelig ? 1 : 0, status, vrystelling, trailer, rolverdeling];
     if (body.uitgelig) await db.prepare('UPDATE titels SET uitgelig = 0').run();
     if (body.id) {
       await db.prepare(`UPDATE titels SET titel=?, tipe=?, jaar=?, ouderdom=?, speeltyd=?, regisseur=?, genre_sleutel=?, genre_etiket=?, banner=?, video_url=?,
-        sinopsis=?, episodes=?, pas=?, uitgelig=?, status=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
+        sinopsis=?, episodes=?, pas=?, uitgelig=?, status=?, vrystelling=?, trailer=?, rolverdeling=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
       return json({ ok: true });
     }
     let slug = slugify(titel);
     const exists = await db.prepare('SELECT 1 AS x FROM titels WHERE slug = ?').bind(slug).first();
     if (exists) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     await db.prepare(`INSERT INTO titels (titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url,
-      sinopsis, episodes, pas, uitgelig, status, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
+      sinopsis, episodes, pas, uitgelig, status, vrystelling, trailer, rolverdeling, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
     return json({ ok: true, slug });
   }
 
@@ -298,14 +306,16 @@ export async function handleContent({ request, env, path, post, u }) {
 
 // Bedien opgelaaide media (slegs vir ingetekende lede met 'n plan), met Range-ondersteuning vir video
 export async function serveMedia(request, env, u, key) {
-  if (!u) return new Response('Nie ingeteken nie.', { status: 401 });
-  if (u.plan === 'none') return new Response('Kies eers jou plan.', { status: 403 });
+  // Plakkate (beelde) is openbaar, sodat WhatsApp/Facebook 'n voorskou kan wys. Video's bly agter die slot.
+  const openbaar = /\.(jpg|jpeg|png|webp)$/.test(key);
+  if (!openbaar && !u) return new Response('Nie ingeteken nie.', { status: 401 });
+  if (!openbaar && u.plan === 'none') return new Response('Kies eers jou plan.', { status: 403 });
   if (!env.VIDEOS || !MEDIA_KEY.test(key)) return new Response('Nie gevind nie.', { status: 404 });
   const ranged = request.headers.has('Range');
   const obj = await env.VIDEOS.get(key, ranged ? { range: request.headers } : undefined);
   if (!obj) return new Response('Nie gevind nie.', { status: 404 });
   const headers = { 'Content-Type': (obj.httpMetadata && obj.httpMetadata.contentType) || 'application/octet-stream',
-    'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600' };
+    'Accept-Ranges': 'bytes', 'Cache-Control': (openbaar ? 'public' : 'private') + ', max-age=3600' };
   let status = 200;
   if (ranged && obj.range) {
     let { offset, length, suffix } = obj.range;

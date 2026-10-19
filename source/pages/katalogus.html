@@ -93,6 +93,12 @@ head_extra:
   <!-- Filter & Controls Section -->
   <main class="max-w-7xl mx-auto px-6 py-10 w-full space-y-10">
 
+    <!-- Herinnering: 'n titel waarvoor jy 'n herinnering gestel het, is nou beskikbaar -->
+    <div id="herinnerStrip" class="hidden flex flex-wrap items-center justify-between gap-3 bg-sky-500/10 border border-sky-500/40 rounded-2xl px-5 py-3">
+      <p class="text-sm text-sky-100">&#128276; <strong>Goeie nuus!</strong> <span id="herinnerTekst"></span></p>
+      <div class="flex gap-2"><button id="herinnerKyk" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-full uppercase tracking-wider">Kyk nou</button><button onclick="herinnerSluit()" class="text-xs border border-slate-600 text-slate-300 hover:text-white px-3 py-1.5 rounded-full" aria-label="Maak toe">&times;</button></div>
+    </div>
+
     <!-- Aktiewe filters (kies bo in die kopstuk) -->
     <div class="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
       <p id="filterStatus" class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Alle inhoud &bull; Alle genres</p>
@@ -127,6 +133,10 @@ head_extra:
   <div id="infoModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 hidden flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full my-auto overflow-hidden shadow-2xl relative">
       <div id="infoBanner" class="relative sm:aspect-[21/9] bg-cover bg-center sm:flex sm:items-end max-sm:bg-[length:100%_auto] max-sm:bg-top max-sm:bg-no-repeat bg-slate-900">
+        <div id="infoTrailer" class="hidden absolute inset-x-0 top-0 max-sm:aspect-video sm:inset-0 z-30 bg-black">
+          <video id="infoTrailerVid" class="w-full h-full object-contain" controls playsinline></video>
+          <button onclick="sluitTrailer()" class="absolute top-3 right-3 bg-slate-950/80 hover:bg-white hover:text-slate-950 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" aria-label="Maak voorskou toe">Maak toe &times;</button>
+        </div>
         <button onclick="closeInfoModal()" class="absolute top-4 right-4 z-20 bg-slate-950/80 hover:bg-white hover:text-slate-950 text-white p-2 rounded-full text-xl transition">&times;</button>
         <div class="aspect-video sm:hidden"></div>
         <div class="relative z-10 space-y-3 p-6 sm:p-8 max-sm:bg-slate-900">
@@ -140,6 +150,7 @@ head_extra:
             <button id="infoListBtn" onclick="" class="border border-slate-700 hover:border-white text-white px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">
               + My Lys
             </button>
+            <button id="infoTrailerBtn" onclick="" class="hidden border border-slate-700 hover:border-white text-white px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">&#9654; Voorskou</button>
             <button id="infoRestartBtn" onclick="" class="hidden border border-slate-700 hover:border-white text-slate-300 px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">&#8634; Van voor af</button>
             <button id="infoShare" onclick="shareTitle(document.getElementById('infoListBtn').dataset.lys)" class="border border-slate-700 hover:border-white text-slate-300 px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition">Deel</button>
           </div>
@@ -156,12 +167,14 @@ head_extra:
               <span id="infoAge" class="border border-slate-700 px-1.5 py-0.2 rounded text-slate-400">13+</span>
               <span id="infoRuntime" class="text-slate-400">-- min</span>
             </div>
+            <p id="infoSoon" class="hidden text-sky-300 text-xs font-bold uppercase tracking-wider"></p>
             <p id="infoSynopsis" class="text-slate-300 text-sm leading-relaxed font-normal">---</p>
-            <div class="pt-2 flex items-center gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Jou gradering</span><span id="infoRate" class="flex"></span></div>
+            <div id="infoRateRow" class="pt-2 flex items-center gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Jou gradering</span><span id="infoRate" class="flex"></span></div>
           </div>
           <div class="space-y-2 text-xs text-slate-400 border-l border-slate-800/80 pl-4">
             <p><strong class="text-slate-200">Regie:</strong> <span id="infoDirector">---</span></p>
             <p><strong class="text-slate-200">Genre:</strong> <span id="infoGenre">---</span></p>
+            <p id="infoCastRow" class="hidden"><strong class="text-slate-200">Met:</strong> <span id="infoCast"></span></p>
             <p><strong class="text-slate-200">Taal:</strong> Afrikaans</p>
           </div>
         </div>
@@ -319,8 +332,8 @@ head_extra:
     })();
     const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const jsonHdr = { 'Content-Type': 'application/json' };
-    let TITELS = [], GENRES = {};
-    const byKey = (slug) => TITELS.find((t) => t.slug === slug);
+    let TITELS = [], GENRES = {}, BINNEKORT = [], HERINNER_NUUT = [];
+    const byKey = (slug) => TITELS.find((t) => t.slug === slug) || BINNEKORT.find((t) => t.slug === slug);
     const typeKind = (t) => (t.tipe === 'Reeks' ? 'reeks' : t.tipe === 'Dokumentêr' ? 'dokumenter' : 'film');
     const badgeColor = (t) => (t.tipe === 'Reeks' ? 'text-red-400' : t.tipe === 'Kortfilm' ? 'text-sky-400' : t.genre_sleutel === 'kuns' ? 'text-purple-400' : 'text-sky-400');
 
@@ -336,12 +349,16 @@ head_extra:
       try { r = await fetch('/api/katalogus?profiel=' + activeProfileId); } catch (e) { r = null; }
       if (r && r.status === 400) { activeProfileId = 0; try { localStorage.removeItem('stroom_profiel_id'); } catch (e) {} window.location.href = 'profiel.html'; return; }
       if (!r || !r.ok) { document.getElementById('heroSynopsis').textContent = 'Kon nie die katalogus laai nie. Probeer asseblief weer.'; return; }
-      const d = await r.json(); TITELS = d.titels; GENRES = d.genres || {};
-      renderGenreMenu(); renderHero(); renderGrid(); renderShelves();
+      const d = await r.json(); TITELS = d.titels; GENRES = d.genres || {}; BINNEKORT = d.binnekort || []; HERINNER_NUUT = d.herinner_nuut || [];
+      renderGenreMenu(); renderHero(); renderGrid(); renderShelves(); renderHerinnerStrip();
       await laaiLid();
-      const want = new URLSearchParams(location.search).get('titel');
+      const terug = takeTerug();
+      const want = new URLSearchParams(location.search).get('titel') || terug;
       if (want && byKey(want)) openInfoModal(want);
     }
+
+    // 'n Gedeelde skakel (/t/...) onthou die titel terwyl 'n nuwe gebruiker inteken en 'n profiel kies
+    function takeTerug() { try { const v = localStorage.getItem('stroom_terug'); if (v) { localStorage.removeItem('stroom_terug'); return v; } } catch (e) {} return null; }
 
     // My Lys en kyk-vordering kom van die bediener (per profiel); ou blaaier-lys word een keer oorgedra
     async function laaiLid() {
@@ -367,19 +384,43 @@ head_extra:
         <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}" loading="lazy"><span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
         <div class="p-3"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3><p class="text-[11px] text-amber-300">${starTxt(t)}</p></div></div>`;
     }
+    const MAANDE = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des'];
+    const datumTxt = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${Number(m[3])} ${MAANDE[Number(m[2]) - 1]} ${m[1]}` : ''; };
+    const herinnerTxt = (t) => (t.herinner ? '&#128276; Herinnering gestel' : '&#128276; Herinner my');
+    function soonCard(t) {
+      return `<div class="min-w-[220px] sm:min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-sky-500/30 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}" loading="lazy"><span class="absolute top-2 left-2 bg-sky-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Binnekort${t.vrystelling ? ' &bull; ' + esc(datumTxt(t.vrystelling)) : ''}</span></div>
+        <div class="p-3 space-y-2"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3>
+        <button data-herinner="${esc(t.slug)}" onclick="event.stopPropagation(); toggleHerinner('${esc(t.slug)}')" class="text-[11px] font-semibold ${t.herinner ? 'text-sky-300 border-sky-500/50' : 'text-slate-300 border-slate-700 hover:border-white'} border rounded-full px-3 py-1 transition">${herinnerTxt(t)}</button></div></div>`;
+    }
+    async function toggleHerinner(slug) {
+      const t = BINNEKORT.find((x) => x.slug === slug); if (!t) return;
+      t.herinner = !t.herinner; renderShelves();
+      const lb = document.getElementById('infoListBtn'); if (lb && lb.dataset.lys === slug) lb.innerHTML = herinnerTxt(t);
+      try { await jsonPost('/api/herinner', { slug, aan: t.herinner }); } catch (e) {}
+    }
+    function renderHerinnerStrip() {
+      const el = document.getElementById('herinnerStrip'); if (!HERINNER_NUUT.length) { el.classList.add('hidden'); return; }
+      document.getElementById('herinnerTekst').textContent = HERINNER_NUUT.map((x) => x.titel).join(', ') + (HERINNER_NUUT.length === 1 ? ' is nou beskikbaar.' : ' is nou beskikbaar.');
+      document.getElementById('herinnerKyk').onclick = () => { const s = HERINNER_NUUT[0].slug; herinnerSluit(); if (byKey(s)) openInfoModal(s); };
+      el.classList.remove('hidden');
+    }
+    function herinnerSluit() { HERINNER_NUUT = []; renderHerinnerStrip(); jsonPost('/api/herinner-gesien', {}).catch(() => {}); }
     function renderShelves() {
       const defs = [
         ['Nuut Bygevoeg', [...TITELS].sort((a, b) => b.nuut - a.nuut).slice(0, 10)],
+        ['Binnekort', BINNEKORT, soonCard],
         ['Gewild Hierdie Maand', TITELS.filter((t) => t.kyke > 0).sort((a, b) => b.kyke - a.kyke).slice(0, 10)],
         ['Hoog Gegradeer', TITELS.filter((t) => t.gem && t.aantal >= 2 && t.gem >= 4).sort((a, b) => b.gem - a.gem).slice(0, 10)],
         ['Kortfilms', TITELS.filter((t) => t.tipe === 'Kortfilm')],
         ['Reekse', TITELS.filter((t) => t.tipe === 'Reeks')],
         ['Dokumentêre', TITELS.filter((t) => t.tipe === 'Dokumentêr')],
       ];
-      document.getElementById('shelves').innerHTML = defs.filter(([, l]) => l.length).map(([n, l]) => `<div class="space-y-3"><h2 class="text-lg font-bold text-white tracking-tight uppercase">${n}</h2><div class="flex space-x-5 overflow-x-auto no-scrollbar py-1">${l.map(shelfCard).join('')}</div></div>`).join('');
+      document.getElementById('shelves').innerHTML = defs.filter(([, l]) => l.length).map(([n, l, card]) => `<div class="space-y-3"><h2 class="text-lg font-bold text-white tracking-tight uppercase">${n}</h2><div class="flex space-x-5 overflow-x-auto no-scrollbar py-1">${l.map(card || shelfCard).join('')}</div></div>`).join('');
     }
     function shareTitle(slug) {
-      const u = location.origin + location.pathname + '?titel=' + encodeURIComponent(slug);
+      const t = byKey(slug); const u = location.origin + '/t/' + encodeURIComponent(slug);
+      if (navigator.share) { navigator.share({ title: t ? t.titel : 'Stroom', text: t ? 'Kyk ' + t.titel + ' op Stroom' : 'Kyk op Stroom', url: u }).catch(() => {}); return; }
       if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => { const b = document.getElementById('infoShare'); b.textContent = 'Skakel gekopieer'; setTimeout(() => { b.textContent = 'Deel'; }, 2000); }).catch(() => {});
     }
     function renderHero() {
@@ -405,7 +446,7 @@ head_extra:
       if (!TITELS.length) { grid.innerHTML = '<p class="text-sm text-slate-400 col-span-full">Nuwe inhoud kom binnekort.</p>'; return; }
       grid.innerHTML = TITELS.map((t) => `
         <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
-             data-title="${esc(norm([t.titel, t.regisseur, t.genre_etiket, t.tipe, t.jaar, t.sinopsis].join(' ')))}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
+             data-title="${esc(norm([t.titel, t.regisseur, t.genre_etiket, t.tipe, t.jaar, t.sinopsis, (t.rolverdeling || []).map((x) => x.naam).join(' ')].join(' ')))}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
              onclick="openInfoModal('${esc(t.slug)}')">
           <div class="aspect-[16/10] relative">
             <img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}">
@@ -434,13 +475,24 @@ head_extra:
       document.getElementById('infoSynopsis').innerText = data.sinopsis || '';
       document.getElementById('infoDirector').innerText = data.regisseur || '—';
       document.getElementById('infoGenre').innerText = data.genre_etiket || '';
-      const vo = VORDER.find((v) => v.slug === slug);
+      const bk = !!data.binnekort;
+      if (bk) document.getElementById('infoMatch').innerHTML = '';
+      const vo = bk ? null : VORDER.find((v) => v.slug === slug);
+      document.getElementById('infoPlayBtn').classList.toggle('hidden', bk);
+      document.getElementById('infoRateRow').classList.toggle('hidden', bk);
+      const soon = document.getElementById('infoSoon'); soon.classList.toggle('hidden', !bk); soon.textContent = bk ? 'Binnekort' + (data.vrystelling ? ' \u2022 beskikbaar vanaf ' + datumTxt(data.vrystelling) : '') : '';
+      const cast = data.rolverdeling || [];
+      document.getElementById('infoCastRow').classList.toggle('hidden', !cast.length);
+      document.getElementById('infoCast').textContent = cast.map((x) => x.naam + (x.rol ? ' (' + x.rol + ')' : '')).join(', ');
+      const tb = document.getElementById('infoTrailerBtn'); tb.classList.toggle('hidden', !data.trailer); tb.onclick = () => openTrailer(data.trailer);
+      sluitTrailer();
       document.getElementById('infoPlayBtn').innerHTML = vo ? '<span>&#9654; Gaan voort</span>' : '<span>&#9654; Speel</span>';
       document.getElementById('infoPlayBtn').onclick = () => { closeInfoModal(); speel(slug, vo && vo.ep >= 0 ? vo.ep : null); };
       const rb = document.getElementById('infoRestartBtn'); rb.classList.toggle('hidden', !vo);
       rb.onclick = () => { closeInfoModal(); speel(slug, vo && vo.ep >= 0 ? vo.ep : null, true); };
-      const lb = document.getElementById('infoListBtn'); lb.dataset.lys = slug; lb.textContent = LYS.has(slug) ? '\u2713 In My Lys' : '+ My Lys';
-      lb.onclick = () => toggleWatchlist(slug);
+      const lb = document.getElementById('infoListBtn'); lb.dataset.lys = slug;
+      if (bk) { lb.innerHTML = herinnerTxt(data); lb.onclick = () => toggleHerinner(slug); }
+      else { lb.textContent = LYS.has(slug) ? '\u2713 In My Lys' : '+ My Lys'; lb.onclick = () => toggleWatchlist(slug); }
 
       const epSection = document.getElementById('infoEpisodesSection'), epList = document.getElementById('episodesList');
       if (data.episodes && data.episodes.length) {
@@ -480,7 +532,14 @@ head_extra:
         drawRate(t); document.getElementById('infoMatch').innerHTML = starTxt(t); renderGrid(); renderHero(); renderShelves();
       } catch (e) {}
     }
-    function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+    function openTrailer(url) {
+      const v = document.getElementById('infoTrailerVid'); v.src = url; document.getElementById('infoTrailer').classList.remove('hidden'); v.play().catch(() => {});
+    }
+    function sluitTrailer() {
+      const box = document.getElementById('infoTrailer'); if (!box) return; const v = document.getElementById('infoTrailerVid');
+      v.pause(); v.removeAttribute('src'); v.load(); box.classList.add('hidden');
+    }
+    function closeInfoModal() { sluitTrailer(); document.getElementById('infoModal').classList.add('hidden'); try { history.replaceState(null, '', location.pathname); } catch (e) {} }
 
     // ---------- Speler (met advertensie vir gratis lede) ----------
     const player = document.getElementById('videoPlayer');

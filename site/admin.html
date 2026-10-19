@@ -108,6 +108,12 @@
             <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, 't_video')" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span>
             <p class="text-[11px] text-slate-500 mt-1">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</p>
           </div>
+          <label class="block"><span class="lbl">Vrystellingsdatum (vir &ldquo;Binnekort&rdquo;)</span><input type="date" id="t_vrystelling" class="inp">
+            <span class="block mt-1 text-[11px] text-slate-500">Op hierdie datum gaan &rsquo;n Binnekort-titel vanself live, as dit &rsquo;n video het.</span></label>
+          <label class="block md:col-span-2"><span class="lbl">Voorskou (trailer): laai op, of plak &rsquo;n https://-skakel</span><input id="t_trailer" maxlength="400" class="inp" placeholder="/media/... of https://...">
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_trailer')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
+          <label class="block md:col-span-3"><span class="lbl">Rolverdeling &amp; span (een per lyn: Naam | Rol)</span>
+            <textarea id="t_rolverdeling" rows="3" maxlength="3000" class="inp font-mono text-xs" placeholder="Anna Botha | Hoofrol&#10;Piet Nel | Pa&#10;Jaco Botes | Musiek"></textarea></label>
           <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
           <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
             <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | /media/... of https://video.mp4"></textarea>
@@ -119,7 +125,7 @@
         <div class="flex flex-wrap items-center gap-6">
           <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="t_uitgelig"> Film van die Dag (hoofbanier)</label>
           <label class="flex items-center gap-2 text-sm text-slate-300">Status
-            <select id="t_status" class="inp !w-auto"><option value="konsep">Konsep (nie sigbaar nie)</option><option value="gepubliseer">Gepubliseer</option></select></label>
+            <select id="t_status" class="inp !w-auto"><option value="konsep">Konsep (nie sigbaar nie)</option><option value="binnekort">Binnekort (wys met &ldquo;Herinner my&rdquo;)</option><option value="gepubliseer">Gepubliseer</option></select></label>
         </div>
         <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
           <span class="lbl">Onderskrifte (.srt of .vtt)</span>
@@ -322,9 +328,9 @@
         const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
         const left = el('div', 'space-y-1');
         left.append(el('div', 'font-bold text-white', t.titel + (t.uitgelig ? '  ★' : '')),
-          el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''} • ` + (t.aantal ? `★ ${t.gem} (${t.aantal})` : 'nog nie gegradeer nie')));
+          el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''} • ` + (t.aantal ? `★ ${t.gem} (${t.aantal})` : 'nog nie gegradeer nie') + (t.herinnerings ? ` • 🔔 ${t.herinnerings} herinnering${t.herinnerings === 1 ? '' : 's'}` : '')));
         const right = el('div', 'flex items-center gap-3');
-        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : 'text-amber-400 border-amber-500/40'), t.status));
+        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : t.status === 'binnekort' ? 'text-sky-400 border-sky-500/40' : 'text-amber-400 border-amber-500/40'), t.status === 'binnekort' && t.vrystelling ? 'binnekort ' + t.vrystelling : t.status));
         const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigTitel(t);
         const s = el('button', 'text-xs text-rose-400 hover:text-white', 'Skrap'); s.onclick = () => skrapTitel(t);
         right.append(w, s); row.append(left, right); return row;
@@ -336,7 +342,7 @@
       $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
       $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
-      $('t_status').value = t.status || 'konsep';
+      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || '';
       $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
       OS_SLUG = t.slug || null; OS_EPS = String(t.episodes_teks || '').split('\n').filter((x) => x.trim()).map((x) => x.split('|')[0].trim());
       $('osNuut').classList.toggle('hidden', !!OS_SLUG); $('osVorm').classList.toggle('hidden', !OS_SLUG); $('osLys').replaceChildren(); $('os_status').textContent = '';
@@ -385,7 +391,7 @@
         await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
           genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value,
           banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
-          uitgelig: $('t_uitgelig').checked, status: $('t_status').value });
+          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value });
         boodskap('Gestoor.'); sluitTitel(); laaiTitels();
       } catch (er) { boodskap(er.message, true); }
     });
