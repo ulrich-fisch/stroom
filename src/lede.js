@@ -1,5 +1,6 @@
 // Lid-funksies: profiele (met kinderprofiel), My Lys, kyk-vordering ("Gaan voort") en gradering.
 // Alles hang aan 'n profiel; die bediener kyk altyd dat die profiel aan die ingetekende rekening behoort.
+import { boekKyktyd } from './verslae.js';
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 export const MAX_PROFIELE = 5;
@@ -114,6 +115,7 @@ export async function handleMember({ request, env, path, post, u }) {
     const ep = body.ep == null ? -1 : parseInt(body.ep, 10);
     if (!slug || !Number.isFinite(posisie) || !Number.isFinite(duur) || posisie < 0 || duur <= 0 || duur > 86400 || !Number.isInteger(ep) || ep < -1 || ep > 500) return json({ fout: 'Ongeldig.' }, 400);
     const klaar = posisie >= duur * 0.95 ? 1 : 0;
+    if (body.delta) await boekKyktyd(db, u, slug, body.delta);
     await db.prepare(`INSERT INTO vordering (profiel_id, slug, ep, posisie, duur, voltooi, bygewerk) VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(profiel_id, slug) DO UPDATE SET ep = excluded.ep, posisie = excluded.posisie, duur = excluded.duur, voltooi = excluded.voltooi, bygewerk = excluded.bygewerk`)
       .bind(p.id, slug, ep, Math.min(posisie, duur), duur, klaar, Date.now()).run();

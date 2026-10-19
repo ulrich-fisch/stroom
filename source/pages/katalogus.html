@@ -487,7 +487,7 @@ head_extra:
       document.getElementById('modalCredit').innerText = d.krediet || '';
       document.getElementById('playerModal').classList.remove('hidden');
       filmUrl = d.url; filmHls = !!d.hls;
-      streak = auto ? streak + 1 : 1; stayed = false; hideNextUi();
+      streak = auto ? streak + 1 : 1; stayed = false; hideNextUi(); playedAcc = 0; lastCT = 0;
       cur = { slug: d.slug || slug, ep: d.ep == null ? -1 : d.ep }; resumeAt = d.begin || 0; lastSave = 0;
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
     }
@@ -532,7 +532,16 @@ head_extra:
       } catch (e) { alert('Jou blaaier kon nie die video laai nie. Probeer asseblief weer.'); }
     }
 
+    // Meting (neutrale naam sodat advertensie-blokkeerders dit nie stop nie): begin, klaar, oor, klik
+    let curAd = null;
+    function track(tipe, sek) {
+      if (!curAd || !curAd.id) return;
+      fetch('/api/meet', { method: 'POST', headers: jsonHdr, keepalive: true, body: JSON.stringify({ tipe, ad: curAd.id, slug: cur ? cur.slug : null, sek: Math.round(sek || 0) }) }).catch(() => {});
+    }
+    player.addEventListener('playing', () => { if (adMode && curAd && !curAd.started) { curAd.started = true; track('begin'); } });
+    document.getElementById('voorLink').addEventListener('click', () => track('klik'));
     function playAd(ad) {
+      curAd = { id: ad.id, started: false };
       adMode = true;
       document.getElementById('voorBalk').classList.remove('hidden');
       document.getElementById('playerOverlay').classList.add('hidden');
@@ -541,7 +550,7 @@ head_extra:
       if (ad.klik) { link.href = ad.klik; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
       const skip = document.getElementById('voorSkip'); skip.disabled = true; skip.classList.add('opacity-60'); skip.innerText = `Oorslaan oor ${AD_SKIP_AFTER}s`;
       detachHls();
-      player.onended = () => { if (adMode) playFilm(); };
+      player.onended = () => { if (adMode) { track('klaar', player.duration); playFilm(); } };
       player.onerror = () => { if (adMode) playFilm(); };          // as die advertensie nie laai nie, speel die film
       player.src = ad.url; player.load(); player.play().catch(() => { if (adMode) playFilm(); });
     }
@@ -551,7 +560,7 @@ head_extra:
       document.getElementById('playerOverlay').classList.remove('hidden');
       player.onended = null; player.onerror = null;
     }
-    function skipAd() { if (adMode && player.currentTime >= AD_SKIP_AFTER) playFilm(); }
+    function skipAd() { if (adMode && player.currentTime >= AD_SKIP_AFTER) { track('oor', player.currentTime); playFilm(); } }
 
     function togglePlayPause() { if (adMode) return; if (player.paused) { player.play(); playBtn.innerText = '❚❚'; } else { player.pause(); playBtn.innerText = '▶'; } }
     function skipTime(s) { if (adMode) return; player.currentTime += s; }
@@ -663,10 +672,12 @@ head_extra:
     document.getElementById('playerModal').addEventListener('pointermove', showControls);
     document.getElementById('playerOverlay').addEventListener('pointerdown', showControls);
     player.addEventListener('pause', () => document.getElementById('playerOverlay').classList.add('show'));
+    let playedAcc = 0, lastCT = 0;   // sekondes werklik gekyk sedert die laaste stoor (vir kykure-verslae)
     function saveProgress(force) {
       if (!cur || adMode || resumeAt > 0 || !activeProfileId || !isFinite(player.duration) || player.duration <= 0) return;
-      const now = Date.now(); if (!force && now - lastSave < 15000) return; lastSave = now;
-      const body = { profiel: activeProfileId, slug: cur.slug, ep: cur.ep, posisie: Math.floor(player.currentTime), duur: Math.floor(player.duration) };
+      const now = Date.now(); if (!force && now - lastSave < 30000) return; lastSave = now;
+      const body = { profiel: activeProfileId, slug: cur.slug, ep: cur.ep, posisie: Math.floor(player.currentTime), duur: Math.floor(player.duration), delta: Math.round(playedAcc) };
+      playedAcc = 0;
       fetch('/api/vordering', { method: 'POST', headers: jsonHdr, body: JSON.stringify(body), keepalive: true }).catch(() => {});
       const i = VORDER.findIndex((v) => v.slug === cur.slug);
       const done = body.posisie >= body.duur * 0.95;
@@ -689,6 +700,7 @@ head_extra:
         return;
       }
       if (!isNaN(player.duration)) {
+        const dt = player.currentTime - lastCT; if (dt > 0 && dt < 2) playedAcc += dt; lastCT = player.currentTime;
         saveProgress(false); updateNextCard();
         progressBar.value = (player.currentTime / player.duration) * 100;
         currentTimeEl.innerText = formatTime(player.currentTime);

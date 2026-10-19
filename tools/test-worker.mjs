@@ -374,4 +374,37 @@ t('shelves: titles carry a created time, no video addresses', k3.every((x) => x.
 // 6j. Installeerbare toep: vaste lêers is openbaar, geen ingeteken inhoud
 for (const f of ['/manifest.webmanifest', '/sw.js', '/offline.html', '/icon-192.png']) t('pwa: ' + f + ' is public', (await call(f)).status === 200);
 
+// 6k. Verslae en meting
+const adList = (await (await call('/api/admin/advertensies', {}, ow)).json());
+const adId = (adList.advertensies || adList.ads || adList.lys || [])[0]?.id;
+sp = await (await post('/api/speel', { slug: 'karoo', profiel: P1.id }, lid)).json();
+t('speel: ad carries an id for measurement', Number.isInteger(sp.advertensies[0].id));
+const AD = sp.advertensies[0].id;
+t('meet: needs login', (await post('/api/meet', { tipe: 'begin', ad: AD }, '')).status === 401);
+t('meet: bad type / bad ad refused', (await post('/api/meet', { tipe: 'x', ad: AD }, lid)).status === 400 && (await post('/api/meet', { tipe: 'begin', ad: 99999 }, lid)).status === 404);
+await post('/api/meet', { tipe: 'begin', ad: AD, slug: 'karoo' }, lid); await post('/api/meet', { tipe: 'begin', ad: AD, slug: 'karoo' }, lid);
+await post('/api/meet', { tipe: 'klaar', ad: AD, slug: 'karoo', sek: 30 }, lid); await post('/api/meet', { tipe: 'klik', ad: AD, slug: 'karoo' }, lid);
+await post('/api/vordering', { profiel: P1.id, slug: 'karoo', ep: -1, posisie: 40, duur: 1000, delta: 30 }, lid);
+await post('/api/vordering', { profiel: P1.id, slug: 'karoo', ep: -1, posisie: 70, duur: 1000, delta: 500 }, lid);
+t('verslag: members cannot see reports', (await call('/api/admin/verslag', {}, lid)).status === 404 && (await call('/api/admin/verslag')).status === 404 && (await call('/api/admin/tariewe', {}, lid)).status === 404);
+r = await call('/api/admin/verslag?dae=30', {}, ow); const rp = await r.json();
+t('verslag: admin gets the report', r.status === 200 && rp.dae === 30 && rp.dae_lys.length === 30 && rp.lede.totaal >= 3);
+const ad1 = rp.advertensies.lys.find((a) => a.id === AD);
+t('verslag: duplicate begin ignored, completion + click counted', ad1.vertonings === 1 && ad1.voltooi === 1 && ad1.klikke === 1 && ad1.voltooi_pct === 100 && ad1.ktv_pct === 100);
+t('verslag: estimated value uses the rate card', ad1.beraamde_koste === Math.round((1 / 1000 * 120 + 1 * 4) * 100) / 100);
+t('verslag: watch time capped per save (30 + 120 s)', rp.kykers.ure === Math.round(150 / 360) / 10 || rp.kykers.ure === 0.0 || rp.kykers.ure === 0.1);
+t('verslag: plays, devices, countries, genres present', rp.kykers.kyke >= 3 && rp.kykers.toestelle.length > 0 && Array.isArray(rp.kykers.lande) && rp.kykers.genres.length > 0);
+t('verslag: per-title rows with ratings', rp.inhoud.titels.find((x) => x.slug === 'karoo').kyke >= 3);
+t('verslag: premium MRR uses rate card', rp.lede.mrr >= 0 && rp.lede.arr === rp.lede.mrr * 12);
+r = await call('/api/admin/verslag?dae=30&ad=' + AD, {}, ow); const rd = (await r.json()).advertensie_detail;
+t('verslag: single advertiser detail', rd && rd.vertonings === 1 && rd.titels[0].k.length > 0 && rd.toestelle.length === 1);
+r = await post('/api/admin/tariewe', { cpm_voorrol: 200, cpc: 5 }, ow);
+t('tariewe: admin can change rate card', r.status === 200 && (await r.json()).tariewe.cpm_voorrol === 200);
+t('tariewe: bad value refused', (await post('/api/admin/tariewe', { cpc: -1 }, ow)).status === 400 && (await post('/api/admin/tariewe', { cpc: 1 }, lid)).status === 404);
+const rp2 = await (await call('/api/admin/verslag?dae=30', {}, ow)).json();
+t('verslag: new rate applied', rp2.advertensies.lys.find((a) => a.id === AD).beraamde_koste === Math.round((1 / 1000 * 200 + 5) * 100) / 100);
+for (const so of ['titels', 'adverteerders', 'dae']) { r = await call('/api/admin/verslag-csv?soort=' + so, {}, ow); t('csv ' + so + ': admin gets a download', r.status === 200 && /text\/csv/.test(r.headers.get('Content-Type')) && (await r.text()).split('\n').length > 1); }
+t('csv: members refused, bad type refused', (await call('/api/admin/verslag-csv?soort=titels', {}, lid)).status === 404 && (await call('/api/admin/verslag-csv?soort=x', {}, ow)).status === 400);
+t('verslae page: gated like admin', (await call('/verslae.html', {}, lid)).status === 404 && (await call('/verslae.html', {}, ow)).status === 200);
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
