@@ -17,23 +17,19 @@ export function toestelSoort(request) {
 export const landKode = (request) => { const c = request.cf && request.cf.country; return /^[A-Z]{2}$/.test(c || '') ? c : null; };
 export const vandag = (ts = Date.now()) => new Date(ts + TZ * 1000).toISOString().slice(0, 10);
 
-export async function createReportTables(db) {
-  await db.batch([
-    db.prepare('CREATE TABLE IF NOT EXISTS instellings (sleutel TEXT PRIMARY KEY, waarde TEXT NOT NULL)'),
-    db.prepare(`CREATE TABLE IF NOT EXISTS meting (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, ad_id INTEGER NOT NULL, tipe TEXT NOT NULL, user_id INTEGER, slug TEXT,
-      sek INTEGER NOT NULL DEFAULT 0, land TEXT, toestel TEXT, ts INTEGER NOT NULL)`),
-    db.prepare('CREATE INDEX IF NOT EXISTS meting_ad_ts ON meting (ad_id, ts)'),
-    db.prepare(`CREATE TABLE IF NOT EXISTS kyktyd (
-      dag TEXT NOT NULL, user_id INTEGER NOT NULL, slug TEXT NOT NULL, sek INTEGER NOT NULL DEFAULT 0, plan TEXT,
-      PRIMARY KEY (dag, user_id, slug))`),
-  ]);
-  for (const q of ['ALTER TABLE kykgebeure ADD COLUMN user_id INTEGER', 'ALTER TABLE kykgebeure ADD COLUMN plan TEXT',
-    'ALTER TABLE kykgebeure ADD COLUMN land TEXT', 'ALTER TABLE kykgebeure ADD COLUMN toestel TEXT',
-    'CREATE INDEX IF NOT EXISTS kykgebeure_ts ON kykgebeure (ts)']) {
-    try { await db.prepare(q).run(); } catch (e) { /* kolom bestaan reeds */ }
-  }
-}
+export const reportStatements = (db) => [
+  db.prepare('CREATE TABLE IF NOT EXISTS instellings (sleutel TEXT PRIMARY KEY, waarde TEXT NOT NULL)'),
+  db.prepare(`CREATE TABLE IF NOT EXISTS meting (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ad_id INTEGER NOT NULL, tipe TEXT NOT NULL, user_id INTEGER, slug TEXT,
+    sek INTEGER NOT NULL DEFAULT 0, land TEXT, toestel TEXT, ts INTEGER NOT NULL)`),
+  db.prepare('CREATE INDEX IF NOT EXISTS meting_ad_ts ON meting (ad_id, ts)'),
+  db.prepare(`CREATE TABLE IF NOT EXISTS kyktyd (
+    dag TEXT NOT NULL, user_id INTEGER NOT NULL, slug TEXT NOT NULL, sek INTEGER NOT NULL DEFAULT 0, plan TEXT,
+    PRIMARY KEY (dag, user_id, slug))`),
+  db.prepare('CREATE INDEX IF NOT EXISTS kykgebeure_ts ON kykgebeure (ts)'),
+];
+// Kolomme wat later by kykgebeure bygevoeg is (die worker voeg dit by as dit ontbreek)
+export const REPORT_COLUMNS = [['kykgebeure', 'user_id', 'INTEGER'], ['kykgebeure', 'plan', 'TEXT'], ['kykgebeure', 'land', 'TEXT'], ['kykgebeure', 'toestel', 'TEXT']];
 
 export async function lesTariewe(db) {
   const rows = (await db.prepare('SELECT sleutel, waarde FROM instellings').all()).results;
