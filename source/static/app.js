@@ -69,6 +69,7 @@ fetch('/api/me').then(function (r) { return r.ok ? r.json() : null; }).then(func
   if (em) em.textContent = me.email;
   if (!activeProfile) { activeProfile = selfProfile; try { localStorage.setItem('stroom_active_profile', activeProfile); } catch (e) {} }
   applyNames();
+  if (me.skepper) { var sl = document.getElementById('skepperLink'); if (sl) { sl.classList.remove('hidden'); sl.classList.add('block'); } }
   if (me.admin) { var al = document.getElementById('adminLink'); if (al) { al.classList.remove('hidden'); al.classList.add('block'); } }
 }).catch(function () {});
 

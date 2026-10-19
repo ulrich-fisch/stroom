@@ -56,6 +56,7 @@ head_extra:
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_trailer')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Rolverdeling &amp; span (een per lyn: Naam | Rol)</span>
             <textarea id="t_rolverdeling" rows="3" maxlength="3000" class="inp font-mono text-xs" placeholder="Anna Botha | Hoofrol&#10;Piet Nel | Pa&#10;Jaco Botes | Musiek"></textarea></label>
+          <label class="block md:col-span-3"><span class="lbl">Skepper (e-pos van &rsquo;n Stroom-lid; opsioneel, vir Cinema Club-titels)</span><input id="t_skepper" type="email" maxlength="120" class="inp" placeholder="skepper@voorbeeld.co.za"></label>
           <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
           <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
             <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | /media/... of https://video.mp4"></textarea>
@@ -269,7 +270,7 @@ head_extra:
       $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
       $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
-      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || '';
+      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || '';
       $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
       OS_SLUG = t.slug || null; OS_EPS = String(t.episodes_teks || '').split('\n').filter((x) => x.trim()).map((x) => x.split('|')[0].trim());
       $('osNuut').classList.toggle('hidden', !!OS_SLUG); $('osVorm').classList.toggle('hidden', !OS_SLUG); $('osLys').replaceChildren(); $('os_status').textContent = '';
@@ -318,7 +319,7 @@ head_extra:
         await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
           genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value,
           banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
-          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value });
+          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value, skepper_epos: $('t_skepper').value });
         boodskap('Gestoor.'); sluitTitel(); laaiTitels();
       } catch (er) { boodskap(er.message, true); }
     });

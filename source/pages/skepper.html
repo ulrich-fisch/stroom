@@ -1,0 +1,75 @@
+<!--page
+title: Skepper-paneel | Stroom
+body: min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950
+header: app
+nav: none
+footer: app
+search: no
+head_extra: 
+-->
+  <main class="max-w-5xl mx-auto px-6 py-12 w-full space-y-8">
+    <div class="space-y-2">
+      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Cinema Club</span>
+      <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">Skepper-paneel</h1>
+      <p class="text-slate-400 text-sm leading-relaxed max-w-2xl">Sien hoe jou titels op Stroom vaar. Geen kykers se persoonlike besonderhede word gewys nie, net totale.</p>
+    </div>
+
+    <div id="skLeeg" class="hidden bg-slate-900/90 p-8 rounded-2xl border border-slate-800 text-center space-y-3">
+      <h2 class="text-xl font-black text-white uppercase">Nog geen titels gekoppel nie</h2>
+      <p class="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">Sodra jou film gepubliseer is en aan jou rekening gekoppel is, verskyn die syfers hier. Het jy nog nie ingedien nie?</p>
+      <a href="skep.html" class="inline-block text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full uppercase tracking-wider">Dien &rsquo;n film in</a>
+    </div>
+
+    <div id="skInhoud" class="hidden space-y-6">
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="skPer" class="flex flex-wrap gap-2"></div>
+        <input id="skM" type="month" class="bg-slate-950 border border-slate-800 rounded-full px-3 py-1.5 text-xs text-white">
+        <button id="skCsv" class="ml-auto text-xs border border-slate-700 hover:border-white text-slate-300 px-4 py-1.5 rounded-full">Laai CSV af</button>
+      </div>
+      <div id="skKpi" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+      <p id="skDeel" class="text-xs text-slate-400"></p>
+      <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 overflow-x-auto"><table class="w-full text-sm text-left">
+        <thead class="text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="py-2 pr-4">Titel</th><th class="pr-4">Kyke</th><th class="pr-4">Kykers</th><th class="pr-4">Kykure</th><th class="pr-4">Voltooi</th><th class="pr-4">Gradering</th><th class="pr-4">Herinnerings</th><th>Beraamde deel</th></tr></thead>
+        <tbody id="skRye"></tbody></table></div>
+      <p class="text-[11px] text-slate-500 leading-relaxed">&ldquo;Beraamde deel&rdquo; is &rsquo;n skatting uit die advertensies wat voor jou titel gespeel het. Dit is nie &rsquo;n faktuur of &rsquo;n gewaarborgde bedrag nie; werklike uitbetaling volg die ooreenkoms tussen jou en Fischbowl Media.</p>
+    </div>
+    <p id="skFout" class="text-sm text-rose-400"></p>
+  </main>
+
+<!--script-->
+    (function () {
+      var $ = function (i) { return document.getElementById(i); };
+      var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var fmt = function (v, d) { return v == null ? '—' : Number(v).toLocaleString('af-ZA', { maximumFractionDigits: d || 0 }); };
+      var R = function (n) { return 'R ' + Number(n).toLocaleString('af-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      var Q = 'dae=30';
+      function kpi(w, l) { return '<div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-4"><div class="text-2xl font-black text-white">' + w + '</div><div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1">' + l + '</div></div>'; }
+      function per() {
+        var h = '';
+        [[7, '7 dae'], [30, '30 dae'], [90, '90 dae'], [365, '1 jaar']].forEach(function (p) {
+          var on = Q === 'dae=' + p[0];
+          h += '<button data-q="dae=' + p[0] + '" class="px-3 py-1.5 rounded-full border text-xs ' + (on ? 'border-sky-500 text-sky-300 bg-sky-500/10' : 'border-slate-800 text-slate-400 hover:text-white') + '">' + p[1] + '</button>';
+        });
+        $('skPer').innerHTML = h;
+        $('skPer').querySelectorAll('button').forEach(function (b) { b.onclick = function () { Q = b.dataset.q; $('skM').value = ''; laai(); }; });
+      }
+      async function laai() {
+        per();
+        try {
+          var r = await fetch('/api/skepper/verslag?' + Q), d = await r.json();
+          if (!r.ok) throw new Error(d.fout || 'Kon nie laai nie.');
+          $('skFout').textContent = '';
+          if (!d.titels.length) { $('skLeeg').classList.remove('hidden'); $('skInhoud').classList.add('hidden'); return; }
+          $('skInhoud').classList.remove('hidden'); $('skLeeg').classList.add('hidden');
+          var t = d.totaal;
+          $('skKpi').innerHTML = kpi(fmt(t.kyke), 'Kyke') + kpi(fmt(t.ure, 1), 'Kykure') + kpi(fmt(t.advertensie_kyke), 'Advertensie-vertonings') + kpi(d.deel_pct ? R(t.deel) : '—', 'Beraamde deel');
+          $('skDeel').textContent = d.deel_pct ? 'Jou aandeel: ' + d.deel_pct + '% van die beraamde advertensiewaarde (' + R(t.waarde) + ').' : 'Jou aandeel is nog nie vasgestel nie.';
+          $('skRye').innerHTML = d.titels.map(function (x) {
+            return '<tr class="border-t border-slate-800 text-slate-200"><td class="py-2 pr-4 font-semibold">' + esc(x.titel) + (x.status !== 'gepubliseer' ? ' <span class="text-[10px] text-slate-500 uppercase">' + esc(x.status) + '</span>' : '') + '</td><td class="pr-4">' + fmt(x.kyke) + '</td><td class="pr-4">' + fmt(x.unieke) + '</td><td class="pr-4">' + fmt(x.ure, 1) + '</td><td class="pr-4">' + (x.voltooi_pct == null ? '—' : x.voltooi_pct + '%') + '</td><td class="pr-4">' + (x.gem == null ? '—' : '★ ' + x.gem + ' (' + x.aantal + ')') + '</td><td class="pr-4">' + fmt(x.herinnerings) + '</td><td>' + (d.deel_pct ? R(x.deel) : '—') + '</td></tr>';
+          }).join('');
+        } catch (e) { $('skFout').textContent = e.message; }
+      }
+      $('skM').onchange = function () { if ($('skM').value) { Q = 'maand=' + $('skM').value; laai(); } };
+      $('skCsv').onclick = function () { window.location.href = '/api/skepper/csv?' + Q; };
+      laai();
+    })();

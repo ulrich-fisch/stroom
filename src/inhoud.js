@@ -218,7 +218,8 @@ export async function handleContent({ request, env, path, post, u }) {
     const rows = await db.prepare('SELECT * FROM titels ORDER BY id DESC').all();
     const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
     const hn = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM herinner GROUP BY slug').all()).results.map((x) => [x.slug, x.n]));
-    return json({ titels: rows.results.map((r) => ({ ...r, uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes), herinnerings: hn.get(r.slug) || 0,
+    const sm = new Map((await db.prepare('SELECT id, email FROM users WHERE id IN (SELECT DISTINCT skepper_id FROM titels WHERE skepper_id IS NOT NULL)').all()).results.map((x) => [x.id, x.email]));
+    return json({ titels: rows.results.map((r) => ({ ...r, skepper_epos: sm.get(r.skepper_id) || '', uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes), herinnerings: hn.get(r.slug) || 0,
       gem: agg.get(r.slug) ? Math.round(agg.get(r.slug).gem * 10) / 10 : null, aantal: agg.get(r.slug) ? agg.get(r.slug).aantal : 0 })), tipes: TIPES, genres: GENRES });
   }
 
@@ -240,12 +241,20 @@ export async function handleContent({ request, env, path, post, u }) {
     if (status === 'gepubliseer' && !banner) return json({ fout: 'Gepubliseerde titels het \'n beeld nodig.' }, 400);
     if (status === 'gepubliseer' && !video && !eps.length) return json({ fout: 'Gepubliseerde titels het \'n video-skakel (of episodes) nodig.' }, 400);
     const pas = Math.max(0, Math.min(100, parseInt(body.pas, 10) || 90));
+    const sk = clip(body.skepper_epos, 120).toLowerCase();
+    let skepperId = null;
+    if (sk) {
+      const su = await db.prepare('SELECT id FROM users WHERE email = ?').bind(sk).first();
+      if (!su) return json({ fout: 'Daar is geen lid met die e-pos "' + sk + '" nie. Die skepper moet eers \'n Stroom-rekening skep.' }, 400);
+      skepperId = su.id;
+    }
     const vals = [titel, tipe, clip(body.jaar, 4), clip(body.ouderdom, 6), clip(body.speeltyd, 20), clip(body.regisseur, 80), genre, GENRES[genre],
       banner, video, clip(body.sinopsis, 2000), JSON.stringify(eps), pas, body.uitgelig ? 1 : 0, status, vrystelling, trailer, rolverdeling];
     if (body.uitgelig) await db.prepare('UPDATE titels SET uitgelig = 0').run();
     if (body.id) {
       await db.prepare(`UPDATE titels SET titel=?, tipe=?, jaar=?, ouderdom=?, speeltyd=?, regisseur=?, genre_sleutel=?, genre_etiket=?, banner=?, video_url=?,
         sinopsis=?, episodes=?, pas=?, uitgelig=?, status=?, vrystelling=?, trailer=?, rolverdeling=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
+      await db.prepare('UPDATE titels SET skepper_id = ? WHERE id = ?').bind(skepperId, Number(body.id)).run();
       return json({ ok: true });
     }
     let slug = slugify(titel);
@@ -253,6 +262,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (exists) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     await db.prepare(`INSERT INTO titels (titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url,
       sinopsis, episodes, pas, uitgelig, status, vrystelling, trailer, rolverdeling, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
+    if (skepperId) await db.prepare('UPDATE titels SET skepper_id = ? WHERE slug = ?').bind(skepperId, slug).run();
     return json({ ok: true, slug });
   }
 

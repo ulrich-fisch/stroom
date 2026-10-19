@@ -54,6 +54,7 @@
               <a href="rekening.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Rekening / Planne</a>
               <button id="installBtn" onclick="installApp()" class="hidden w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">&#8681; Installeer Stroom-toep</button>
               <a href="oor-ons.html" class="block p-2 rounded-lg hover:bg-slate-800/80 transition">Hulpdiens &amp; Kontak</a>
+              <a id="skepperLink" href="skepper.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Skepper-paneel</a>
               <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg hover:bg-slate-800/80 transition text-sky-400 font-semibold">Admin</a>
               <div class="pt-2 border-t border-slate-800">
                 <button onclick="logoutSession()" class="w-full text-left p-2 rounded-lg hover:bg-rose-500/10 text-rose-400 transition">Teken Uit</button>
@@ -95,6 +96,7 @@
         <button data-tab="gehoor" class="tb-btn">Gehoor</button>
         <button data-tab="inhoud" class="tb-btn">Inhoud</button>
         <button data-tab="adv" class="tb-btn">Adverteerders</button>
+        <button data-tab="skeppers" class="tb-btn">Skeppers</button>
         <button data-tab="tariewe" class="tb-btn">Tariewe</button>
       </div>
       <div class="flex items-center gap-2 text-xs">
@@ -149,6 +151,21 @@
     </section>
 
     <!-- TARIEWE -->
+    <section id="tab-skeppers" class="hidden space-y-6">
+      <div class="space-y-3">
+        <h2 class="text-lg font-bold text-white uppercase tracking-tight">Skepper-staat</h2>
+        <p class="text-xs text-slate-400 max-w-3xl leading-relaxed">Beraamde advertensiewaarde en aandeel per Cinema Club-skepper vir &rsquo;n maand (Suid-Afrikaanse tyd). Gebruik dit om uitbetalings te maak. Dit is &rsquo;n beraming uit die tariefkaart, nie &rsquo;n bindende staat nie. Skakel &rsquo;n titel aan &rsquo;n skepper in Admin &rarr; Titel &rarr; &ldquo;Skepper (e-pos)&rdquo;.</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <input id="skMaand" type="month" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal">
+          <button onclick="skStaat()" class="border border-slate-700 hover:border-white text-slate-300 text-xs px-4 py-2 rounded-full">Wys</button>
+          <button onclick="skCsv()" class="border border-slate-700 hover:border-white text-slate-300 text-xs px-4 py-2 rounded-full">Laai CSV af</button>
+          <button onclick="window.location.href='/api/admin/rugsteun'" class="border border-slate-700 hover:border-white text-slate-300 text-xs px-4 py-2 rounded-full">Laai inhoud-rugsteun af</button>
+        </div>
+        <p id="skMsg" class="text-xs text-slate-400"></p>
+        <div id="skTab" class="overflow-x-auto"></div>
+      </div>
+    </section>
+
     <section id="tab-tariewe" class="hidden space-y-8">
       <div class="space-y-3">
         <h2 class="text-lg font-bold text-white uppercase tracking-tight">Jou tariefkaart</h2>
@@ -158,6 +175,8 @@
           <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Per klik (R)<input id="r_cpc" type="number" min="0" step="0.5" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
           <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Premium per maand (R)<input id="r_premium_maand" type="number" min="0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
           <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Premium per jaar (R)<input id="r_premium_jaar" type="number" min="0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-bold space-y-1">Skepper-aandeel (%)<input id="r_skepper_deel" type="number" min="0" max="100" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white normal-case tracking-normal font-normal"></label>
+          <p class="col-span-2 text-[11px] text-slate-500 self-end">Persentasie van die beraamde advertensiewaarde wat aan Cinema Club-skeppers toekom. 0 = nog nie vasgestel; skeppers sien dan &ldquo;nog nie vasgestel nie&rdquo;. Dit is &rsquo;n beraming, geen ooreenkoms nie.</p>
           <div class="col-span-2 md:col-span-4 flex items-center gap-3"><button class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-wider px-5 py-2 rounded-full">Stoor tariewe</button><span id="rateMsg" class="text-xs text-emerald-400"></span></div>
         </form>
       </div>
@@ -216,9 +235,9 @@
     const TBC = 'tb-btn text-xs px-5 py-2 rounded-full border ';
     function tabs() {
       document.querySelectorAll('.tb-btn').forEach((b) => { b.className = TBC + (b.dataset.tab === TAB ? 'border-slate-600 text-white bg-slate-800' : 'border-slate-800 text-slate-400 hover:text-white'); });
-      ['oorsig', 'gehoor', 'inhoud', 'adv', 'tariewe'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== TAB));
+      ['oorsig', 'gehoor', 'inhoud', 'adv', 'skeppers', 'tariewe'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== TAB));
     }
-    document.querySelectorAll('.tb-btn').forEach((b) => b.addEventListener('click', () => { TAB = b.dataset.tab; tabs(); }));
+    document.querySelectorAll('.tb-btn').forEach((b) => b.addEventListener('click', () => { TAB = b.dataset.tab; tabs(); if (TAB === 'skeppers') skStaat(); }));
     $('periods').innerHTML = [[7, '7 dae'], [30, '30 dae'], [90, '90 dae'], [365, '1 jaar']].map(([d, l]) => `<button data-d="${d}" class="pd px-3 py-1.5 rounded-full border"></button>`).join('');
     const PL = { 7: '7 dae', 30: '30 dae', 90: '90 dae', 365: '1 jaar' };
     function periods() { document.querySelectorAll('.pd').forEach((b) => { const d = +b.dataset.d; b.textContent = PL[d]; b.className = 'pd px-3 py-1.5 rounded-full border ' + (d === DAE ? 'border-sky-500 text-sky-400' : 'border-slate-800 text-slate-400 hover:text-white'); b.onclick = () => { DAE = d; laai(); }; }); }
@@ -295,10 +314,23 @@
       box.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function fillRates() { const t = V.tariewe; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar'].forEach((k) => { const el = $('r_' + k); if (document.activeElement !== el) el.value = t[k]; }); }
+    function fillRates() { const t = V.tariewe; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar', 'skepper_deel'].forEach((k) => { const el = $('r_' + k); if (document.activeElement !== el) el.value = t[k]; }); }
     async function stoorTariewe(e) {
-      e.preventDefault(); const b = {}; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar'].forEach((k) => { b[k] = $('r_' + k).value; });
+      e.preventDefault(); const b = {}; ['cpm_voorrol', 'cpc', 'premium_maand', 'premium_jaar', 'skepper_deel'].forEach((k) => { b[k] = $('r_' + k).value; });
       try { await api('/api/admin/tariewe', b); $('rateMsg').textContent = 'Gestoor.'; setTimeout(() => { $('rateMsg').textContent = ''; }, 3000); laai(); } catch (er) { $('rateMsg').className = 'text-xs text-rose-400'; $('rateMsg').textContent = er.message; }
+    }
+    function skMaand() { const el = $('skMaand'); if (!el.value) { const d = new Date(Date.now() + 7200000); el.value = d.toISOString().slice(0, 7); } return el.value; }
+    function skCsv() { window.location.href = '/api/admin/skepper-staat-csv?maand=' + skMaand(); }
+    async function skStaat() {
+      try {
+        const d = await (await fetch('/api/admin/skepper-staat?maand=' + skMaand())).json();
+        if (d.fout) throw new Error(d.fout);
+        $('skMsg').textContent = d.deel_pct ? 'Skepper-aandeel: ' + d.deel_pct + '%' : 'Skepper-aandeel is nog nie vasgestel nie (Tariewe-oortjie). Die bedrae om te betaal wys R0.';
+        const R = (n) => 'R ' + Number(n).toLocaleString('af-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        $('skTab').innerHTML = d.skeppers.length ? '<table class="w-full text-sm text-left"><thead class="text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="py-2 pr-4">Skepper</th><th class="pr-4">Titels</th><th class="pr-4">Kyke</th><th class="pr-4">Kykure</th><th class="pr-4">Adv. vertonings</th><th class="pr-4">Klikke</th><th class="pr-4">Advertensiewaarde</th><th>Om te betaal</th></tr></thead><tbody>' +
+          d.skeppers.map((r) => `<tr class="border-t border-slate-800 text-slate-200"><td class="py-2 pr-4">${esc(r.e_pos)}</td><td class="pr-4">${r.titels}</td><td class="pr-4">${fmt(r.kyke)}</td><td class="pr-4">${fmt(r.ure, 1)}</td><td class="pr-4">${fmt(r.advertensie_kyke)}</td><td class="pr-4">${fmt(r.klikke)}</td><td class="pr-4">${R(r.waarde)}</td><td class="font-bold text-white">${R(r.deel)}</td></tr>`).join('') +
+          `</tbody></table><p class="text-sm text-white font-bold mt-3">Totaal om te betaal: ${R(d.totaal.deel)}</p>` : '<p class="text-sm text-slate-500">Nog geen titels is aan skeppers gekoppel nie.</p>';
+      } catch (er) { $('skMsg').textContent = er.message; }
     }
     tabs(); laai();
 </script>
