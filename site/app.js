@@ -82,7 +82,7 @@ function switchProfile(id) {
 function logoutSession() {
   fetch('/api/logout', { method: 'POST' }).finally(function () {
     try {
-      localStorage.removeItem('stroom_logged_in');
+      localStorage.removeItem('stroom_logged_in'); sessionStorage.removeItem('stroom_intro');
       localStorage.removeItem('stroom_active_profile');
       localStorage.removeItem('stroom_profiel_id');
       localStorage.removeItem('stroom_profiel_kinders'); localStorage.removeItem('stroom_profiel_avatar');
@@ -158,4 +158,25 @@ function fishError(el, o) {
     (o.retry ? '<button type="button" class="fx-retry bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold text-sm px-6 py-3 rounded-xl transition">' + escHtml(o.knoppie || 'Probeer weer') + '</button><span class="text-xs text-slate-500">Hy kan nie lank sonder water nie.</span>' : '') +
     '</div>';
   var b = el.querySelector('.fx-retry'); if (b) b.onclick = o.retry;
+}
+
+// Foon-kieslys onder: Soek en My Lys werk op die katalogus-bladsy self, en elders stuur hulle jou soontoe.
+function stroomToast(msg) {
+  var t = document.createElement('div');
+  t.className = 'fixed left-4 right-4 z-[100] bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-2xl p-4 shadow-2xl text-center';
+  t.style.bottom = 'calc(84px + env(safe-area-inset-bottom))'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(function () { t.remove(); }, 3500);
+}
+function tabAksie(wat) {
+  if (wat === 'soek') {
+    var b = document.getElementById('searchInput'); window.scrollTo({ top: 0, behavior: 'smooth' }); if (b) setTimeout(function () { b.focus(); }, 250);
+  } else {
+    var s = document.getElementById('watchlistSection');
+    if (s && !s.classList.contains('hidden')) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else stroomToast("Jou lys is nog leeg. Tik die + op 'n titel om dit hier te bewaar.");
+  }
+}
+function tabKlik(e, wat) {
+  if (!document.getElementById('catalogGrid')) return;   // nie op die katalogus nie: volg die skakel
+  e.preventDefault(); tabAksie(wat);
 }
