@@ -649,7 +649,7 @@
     let adMode = false, filmUrl = null, filmHls = false, adSkipTimer = null, hlsObj = null;
     const AD_SKIP_AFTER = 5;
 
-    let cur = null, lastSave = 0, resumeAt = 0;
+    let cur = null, lastSave = 0, resumeAt = 0, breaks = [], breakI = 0, midResume = null;
     async function speel(slug, ep, vanVoor, auto) {
       let r, d = {};
       try { r = await fetch('/api/speel', { method: 'POST', headers: jsonHdr, body: JSON.stringify({ slug, ep: ep == null ? null : ep, profiel: activeProfileId, herbegin: !!vanVoor }) }); d = await r.json().catch(() => ({})); }
@@ -662,18 +662,25 @@
       streak = auto ? streak + 1 : 1; stayed = false; hideNextUi(); playedAcc = 0; lastCT = 0;
       cur = { slug: d.slug || slug, ep: d.ep == null ? -1 : d.ep }; resumeAt = d.begin || 0; lastSave = 0;
       { const tt = byKey(cur.slug); if (tt) drawThumbs(tt); }
+      // Reeks-inleiding en advertensie-breuke (die bediener bepaal die tye)
+      cur.intro = d.intro || null; breaks = (d.breuke || []).slice().sort((a, b) => a.t - b.t); midResume = null;
+      breakI = 0; while (breakI < breaks.length && breaks[breakI].t <= resumeAt) breakI++;     // breuke wat jy reeds verby is, speel nie weer nie
+      document.getElementById('skipIntroBtn').classList.add('hidden');
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
     }
 
     // Voor elke titel: die STROOM-stinger (Premium dadelik, Gratis ná die advertensie). Die film laai intussen onder.
     let stingerTimer = null, fishTimer = null, fishStop = null;
     function playFilm() {
+      const mid = midResume != null;
+      if (mid) { resumeAt = midResume; lastCT = midResume; midResume = null; }
       endAdUi(); adMode = false;
       detachHls();
       if (filmHls) startHls(filmUrl); else { player.src = filmUrl; player.load(); }
       setTracks(pendingSubs);
       playBtn.innerText = '❚❚';
       const st = document.getElementById('stinger');
+      if (mid) { st.classList.add('hidden'); st.classList.remove('on'); if (!filmHls) player.play().catch(() => {}); return; }   // ná 'n advertensie-breuk: geen stinger nie
       st.classList.remove('hidden', 'on'); void st.offsetWidth; st.classList.add('on');   // herstart die animasie
       clearTimeout(stingerTimer); stingerTimer = setTimeout(endStinger, 2900);
       clearTimeout(fishTimer); if (fishStop) fishStop(); fishTimer = setTimeout(() => { fishStop = fishJump(st); }, 950);
@@ -738,7 +745,8 @@
 
     function togglePlayPause() { if (adMode) return; if (player.paused) { player.play(); playBtn.innerText = '❚❚'; } else { player.pause(); playBtn.innerText = '▶'; } }
     function skipTime(s) { if (adMode) return; player.currentTime += s; }
-    function skipIntro() { if (adMode) return; player.currentTime += 20; }
+    function skipIntro() { if (adMode || !cur || !cur.intro) return; player.currentTime = cur.intro.tot; document.getElementById('skipIntroBtn').classList.add('hidden'); }
+    function midRoll(b) { if (adMode) return; saveProgress(true); midResume = player.currentTime; player.pause(); playAd(b.ad); }
     function seekVideo(val) { if (adMode) return; player.currentTime = (val / 100) * player.duration; }
     // ----- Klank -----
     function volIcon() { const v = player.muted ? 0 : player.volume; document.getElementById('muteBtn').innerText = v === 0 ? '🔇' : v < 0.5 ? '🔈' : '🔊'; document.getElementById('volBar').value = Math.round(v * 100); }
@@ -935,7 +943,11 @@
         progressBar.value = (player.currentTime / player.duration) * 100;
         currentTimeEl.innerText = formatTime(player.currentTime);
         durationTimeEl.innerText = formatTime(player.duration);
-        document.getElementById('skipIntroBtn').classList.toggle('hidden', player.currentTime > 30);
+        const it = cur && cur.intro; document.getElementById('skipIntroBtn').classList.toggle('hidden', !(it && player.currentTime >= it.van && player.currentTime < it.tot));
+        if (breakI < breaks.length && player.currentTime >= breaks[breakI].t) {
+          let b = breaks[breakI]; while (breakI + 1 < breaks.length && breaks[breakI + 1].t <= player.currentTime) breakI++;
+          b = breaks[breakI]; breakI++; midRoll(b);
+        }
       }
     };
 

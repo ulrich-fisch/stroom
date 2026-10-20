@@ -2,7 +2,7 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
-import { handleContent, contentStatements, seedContent, adminOk, serveMedia } from './inhoud.js';
+import { handleContent, contentStatements, seedContent, adminOk, serveMedia, SERIE_COLUMNS } from './inhoud.js';
 import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
@@ -48,7 +48,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20b';
+const SCHEMA = '2026-10-20c';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -104,7 +104,7 @@ async function migrate(db) {
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
     ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db),
   ]);
-  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS]);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS, ...SERIE_COLUMNS]);
   await seedContent(db);
 }
 

@@ -636,4 +636,39 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   t('thumbs: deleted with the account', (await post('/api/delete-account', { password: 'correct-horse' }, c)).status === 200 && sql.prepare('SELECT COUNT(*) c FROM reaksie WHERE profiel_id = ?').get(pid).c === 0);
 }
 
+// 11. Reeks: inleiding-venster en advertensie-breuke
+{
+  sql.exec('DELETE FROM attempts');
+  const lg = await post('/api/login', { email: 'admin9@stroom.co.za', password: 'correct-horse' }); const adm = ck(lg);
+  const rr = await post('/api/register', { email: 'reeks@stroom.co.za', name: 'Reeks', password: 'correct-horse' }); const c = ck(rr); await post('/api/plan', { plan: 'avod' }, c);
+  const pid = (await (await call('/api/profiele', {}, c)).json()).profiele[0].id;
+  if (!sql.prepare('SELECT 1 x FROM advertensies WHERE aktief = 1').get()) sql.exec("INSERT INTO advertensies (naam, video_url, aktief, created_at) VALUES ('A1', '/media/a.mp4', 1, 1)");
+  sql.exec("INSERT INTO advertensies (naam, video_url, aktief, created_at) VALUES ('A2', '/media/b.mp4', 1, 1)");
+  const reeks = { titel: 'Toets Reeks', tipe: 'Reeks', genre_sleutel: 'drama', banner: 'https://img.example/a.jpg', status: 'gepubliseer', sinopsis: 'x', intro: '0:45-1:30', adpunte: '10:00, 22:30, 10:00', voorrol: false,
+    episodes_teks: 'Ep 1 | Een | 20 min | b | https://vid.example/1.mp4\nEp 2 | Twee | 20 min | b | https://vid.example/2.mp4 | 0:10-0:50 | 5:00\nEp 3 | Drie | 20 min | b | https://vid.example/3.mp4 | geen | geen' };
+  for (const [naam, extra] of [['intro', { intro: '1:30-0:45' }], ['intro-vorm', { intro: 'abc' }], ['breuk', { adpunte: '10:99' }], ['breuk te vroeg', { adpunte: '0:05' }], ['episode', { episodes_teks: 'Ep 1 | Een | 20 | b | https://vid.example/1.mp4 | 9:00-1:00' }]])
+    t('series: bad ' + naam + ' refused', (await post('/api/admin/titel', { ...reeks, ...extra }, adm)).status === 400);
+  r = await post('/api/admin/titel', reeks, adm); const sl = (await r.json()).slug; t('series: saved', r.status === 200 && !!sl);
+  const row = sql.prepare('SELECT intro, adpunte, voorrol FROM titels WHERE slug = ?').get(sl);
+  t('series: values stored cleaned (sorted, de-duplicated, normalised)', row.intro === '0:45-1:30' && row.adpunte === '10:00, 22:30' && row.voorrol === 0);
+  const lst = (await (await call('/api/admin/titels', {}, adm)).json()).titels.find((x) => x.slug === sl);
+  t('series: edit form round-trips episode overrides', /\| 0:10-0:50 \| 5:00/.test(lst.episodes_teks) && /\| geen \| geen/.test(lst.episodes_teks) && !/Een \| 20 min \| b \| https:\/\/vid.example\/1.mp4 \|/.test(lst.episodes_teks));
+  const sp = async (ep, ck_ = c) => (await post('/api/speel', { slug: sl, ep, profiel: pid }, ck_)).json();
+  let d = await sp(0);
+  t('series ep1: title default intro and ad breaks, no pre-roll (turned off)', d.intro.van === 45 && d.intro.tot === 90 && d.breuke.length === 2 && d.breuke[0].t === 600 && d.breuke[1].t === 1350 && d.advertensies.length === 0);
+  t('series: ad breaks carry an ad each and neighbours differ', d.breuke.every((b) => b.ad && b.ad.url) && d.breuke[0].ad.id !== d.breuke[1].ad.id);
+  d = await sp(1); t('series ep2: own intro and own ad break override the defaults', d.intro.van === 10 && d.intro.tot === 50 && d.breuke.length === 1 && d.breuke[0].t === 300);
+  d = await sp(2); t('series ep3: "geen" turns intro and breaks off', d.intro === null && d.breuke.length === 0);
+  sql.exec(`UPDATE titels SET voorrol = 1 WHERE slug = '${sl}'`); d = await sp(0);
+  t('series: pre-roll comes back when switched on', d.advertensies.length === 1);
+  sql.exec(`UPDATE users SET plan = 'svod' WHERE email = 'reeks@stroom.co.za'`); d = await sp(0);
+  t('premium: no ads and no breaks, but still gets the intro skip', d.advertensies.length === 0 && d.breuke.length === 0 && d.intro.tot === 90);
+  // film: nooit 'n inleiding
+  const film9 = sql.prepare("SELECT slug FROM titels WHERE status = 'gepubliseer' AND episodes = '[]' LIMIT 1").get().slug;
+  sql.exec(`UPDATE titels SET intro = '0:10-0:20' WHERE slug = '${film9}'`);
+  d = await (await post('/api/speel', { slug: film9, profiel: pid }, c)).json();
+  t('film: never offers skip intro, even if a value is set', d.intro === null);
+  t('series settings are not leaked in the catalogue', !JSON.stringify(await (await call('/api/katalogus?profiel=' + pid, {}, c)).json()).includes('adpunte'));
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
