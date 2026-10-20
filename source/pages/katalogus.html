@@ -246,7 +246,7 @@ head_extra:
               <span id="durationTime" class="text-[11px] font-mono text-slate-400">0:00</span>
             </div>
 
-            <div class="flex justify-between items-center">
+            <div class="flex flex-wrap justify-between items-center gap-y-2">
               <div class="flex items-center space-x-3 sm:space-x-4 text-sm whitespace-nowrap">
                 <button onclick="togglePlayPause()" id="playPauseBtn" class="text-white hover:text-sky-400 font-bold text-lg">▶</button>
                 <button onclick="skipTime(-10)" class="text-slate-300 hover:text-white text-xs font-mono">↺ 10s</button>
@@ -255,14 +255,15 @@ head_extra:
                 <input type="range" id="volBar" min="0" max="100" value="100" oninput="setVolume(this.value)" aria-label="Volume" class="hidden sm:block w-20 accent-sky-400 h-1 bg-slate-800 rounded-lg cursor-pointer"/>
               </div>
 
-              <div class="flex items-center space-x-3">
+              <div class="flex items-center space-x-2 sm:space-x-3 ml-auto">
                 <span id="playThumbs" class="flex items-center gap-1"></span>
                 <div class="relative">
                   <button id="qualBtn" onclick="toggleQualMenu(event)" class="whitespace-nowrap text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">Kwaliteit &#9662;</button>
                   <div id="qualMenu" class="hidden absolute bottom-full right-0 mb-2 w-52 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
                 </div>
+                <button id="ccToggle" onclick="toggleCcAan()" class="hidden whitespace-nowrap text-[10px] border border-slate-600 text-slate-300 hover:text-white px-2 py-0.5 rounded font-mono font-bold" aria-label="Closed captions" aria-pressed="false" title="Closed captions aan/af (C)">CC</button>
                 <div class="relative">
-                  <button id="ccBtn" onclick="toggleCcMenu(event)" class="hidden whitespace-nowrap text-[10px] border border-slate-600 text-slate-300 hover:text-white px-2 py-0.5 rounded font-mono font-bold" aria-label="Onderskrifte" title="Onderskrifte (C)">CC</button>
+                  <button id="ccBtn" onclick="toggleCcMenu(event)" class="hidden whitespace-nowrap text-[10px] border border-slate-600 text-slate-300 hover:text-white px-2 py-0.5 rounded font-mono font-bold" aria-label="Onderskrifte" title="Onderskrifte">Ondersk.</button>
                   <div id="ccMenu" class="hidden absolute bottom-full right-0 mb-2 w-56 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
                 </div>
                 <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white text-sm">⛶</button>
@@ -741,9 +742,14 @@ head_extra:
     player.addEventListener('resize', updateQualBtn);
 
     // ----- Onderskrifte -----
-    let SUBS = [], ccLang = null, ccSize = 'm', pendingSubs = [];
-    try { ccLang = localStorage.getItem('stroom_onderskrif'); ccSize = localStorage.getItem('stroom_onderskrif_grootte') || 'm'; } catch (e) {}
-    const ccAan = () => !!ccLang && ccLang !== 'uit' && SUBS.some((x) => x.taal === ccLang);
+    let SUBS = [], ccLang = null, ccOn = false, ccSize = 'm', pendingSubs = [];
+    try { ccLang = localStorage.getItem('stroom_onderskrif'); ccSize = localStorage.getItem('stroom_onderskrif_grootte') || 'm'; ccOn = localStorage.getItem('stroom_cc') === '1'; } catch (e) {}
+    // Onderskrifte (vertaling van dialoog) en closed captions (dialoog plus klanke/sprekers) is aparte lyste; net een wys op 'n slag, en closed captions wen as dit aan is.
+    const subList = () => SUBS.filter((x) => x.soort !== 'cc'), ccList = () => SUBS.filter((x) => x.soort === 'cc');
+    const subKode = () => (ccLang && ccLang !== 'uit' && subList().some((x) => x.taal === ccLang) ? ccLang : null);
+    const ccKode = () => { const l = ccList(); if (!ccOn || !l.length) return null; const base = String(ccLang || '').replace(/-cc$/, ''); return (l.find((x) => x.taal === base + '-cc') || l[0]).taal; };
+    const aktief = () => ccKode() || subKode();
+    const ccAan = () => !!subKode();
     function clearTracks() { player.querySelectorAll('track').forEach((x) => x.remove()); SUBS = []; renderCc(); updateCcBtn(); }
     function setTracks(list) {
       clearTracks(); SUBS = list || [];
@@ -753,7 +759,7 @@ head_extra:
     }
     function applySub() {
       for (const tt of player.textTracks) { tt.oncuechange = null; tt.mode = 'disabled'; }
-      if (ccAan()) for (const tt of player.textTracks) if (tt.language === ccLang) { tt.mode = 'hidden'; tt.oncuechange = renderCc; }
+      const kode = aktief(); if (kode) for (const tt of player.textTracks) if (tt.language === kode) { tt.mode = 'hidden'; tt.oncuechange = renderCc; }
       renderCc();
     }
     const fmtCue = (x) => esc(x).replace(/&lt;(\/?)(i|b|u)&gt;/g, '<$1$2>').replace(/&lt;\/?[^&]*?&gt;/g, '');
@@ -763,21 +769,30 @@ head_extra:
       box.className = ccSize; box.innerHTML = txt && !adMode ? '<span>' + fmtCue(txt) + '</span>' : '';
     }
     function updateCcBtn() {
-      const b = document.getElementById('ccBtn'); b.classList.toggle('hidden', !SUBS.length);
-      b.classList.toggle('bg-sky-500', ccAan()); b.classList.toggle('text-slate-950', ccAan()); b.classList.toggle('border-sky-500', ccAan());
-      b.classList.toggle('text-slate-300', !ccAan());
+      const b = document.getElementById('ccBtn'), on = !!subKode() && !ccKode();
+      b.classList.toggle('hidden', !subList().length);
+      b.classList.toggle('bg-sky-500', on); b.classList.toggle('text-slate-950', on); b.classList.toggle('border-sky-500', on); b.classList.toggle('text-slate-300', !on);
+      const c = document.getElementById('ccToggle'), co = !!ccKode();
+      c.classList.toggle('hidden', !ccList().length); c.setAttribute('aria-pressed', co ? 'true' : 'false');
+      c.classList.toggle('bg-sky-500', co); c.classList.toggle('text-slate-950', co); c.classList.toggle('border-sky-500', co); c.classList.toggle('text-slate-300', !co);
     }
     function renderCcMenu() {
-      const cc = ccAan() ? ccLang : 'uit';
+      const cc = subKode() && !ccKode() ? ccLang : 'uit';
       const row = (v, label) => `<button onclick="setCc('${v}')" class="w-full flex justify-between items-center text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-200 ${cc === v ? 'bg-slate-800 font-bold text-sky-400' : ''}"><span>${esc(label)}</span><span class="text-[10px]">${cc === v ? '&#10003;' : ''}</span></button>`;
       const sz = (v, label) => `<button onclick="setCcSize('${v}')" class="flex-1 px-2 py-1 rounded-lg ${ccSize === v ? 'bg-slate-800 font-bold text-sky-400' : 'text-slate-300 hover:bg-slate-800'}">${label}</button>`;
-      document.getElementById('ccMenu').innerHTML = row('uit', 'Af') + SUBS.map((x) => row(x.taal, x.label)).join('')
+      document.getElementById('ccMenu').innerHTML = row('uit', 'Af') + subList().map((x) => row(x.taal, x.label)).join('')
         + `<p class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-slate-500">Grootte</p><div class="flex gap-1 px-1 pb-1">${sz('s', 'Klein')}${sz('m', 'Normaal')}${sz('l', 'Groot')}</div>`;
     }
     function toggleCcMenu(e) { e.stopPropagation(); renderCcMenu(); document.getElementById('ccMenu').classList.toggle('hidden'); }
-    function setCc(v) { ccLang = v; try { localStorage.setItem('stroom_onderskrif', v); } catch (e) {} applySub(); updateCcBtn(); document.getElementById('ccMenu').classList.add('hidden'); }
+    function setCc(v) { ccLang = v; try { localStorage.setItem('stroom_onderskrif', v); } catch (e) {} if (v !== 'uit') setCcOn(false, true); applySub(); updateCcBtn(); document.getElementById('ccMenu').classList.add('hidden'); }
     function setCcSize(v) { ccSize = v; try { localStorage.setItem('stroom_onderskrif_grootte', v); } catch (e) {} renderCc(); renderCcMenu(); }
-    function toggleCc() { if (!SUBS.length) return; if (ccAan()) setCc('uit'); else setCc(SUBS.some((x) => x.taal === ccLang) ? ccLang : SUBS[0].taal); }
+    function setCcOn(v, stil) { ccOn = v; try { localStorage.setItem('stroom_cc', v ? '1' : '0'); } catch (e) {} if (!stil) { applySub(); updateCcBtn(); } }
+    function toggleCcAan() { if (!ccList().length) return; setCcOn(!ccOn); }
+    function toggleCc() {
+      if (ccList().length) return toggleCcAan();
+      const l = subList(); if (!l.length) return;
+      if (subKode()) setCc('uit'); else setCc(l.some((x) => x.taal === ccLang) ? ccLang : l[0].taal);
+    }
     document.addEventListener('click', (e) => { const m = document.getElementById('ccMenu'); if (m && !m.classList.contains('hidden') && !m.contains(e.target)) m.classList.add('hidden'); });
     player.addEventListener('seeked', renderCc);
 

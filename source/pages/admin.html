@@ -70,15 +70,16 @@ head_extra:
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_trailer')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
         </div>
         <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
-          <span class="lbl">Onderskrifte (.srt of .vtt)</span>
-          <p id="osNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy onderskrifte byvoeg.</p>
+          <span class="lbl">Onderskrifte en closed captions (.srt of .vtt)</span>
+          <p id="osNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy onderskrifte of closed captions byvoeg.</p>
           <div id="osVorm" class="hidden space-y-2">
             <div class="flex flex-wrap items-center gap-2">
               <select id="os_ep" class="inp !w-auto" aria-label="Episode"></select>
+              <select id="os_soort" class="inp !w-auto" aria-label="Soort"><option value="onderskrif">Onderskrif</option><option value="cc">Closed captions</option></select>
               <select id="os_taal" class="inp !w-auto" aria-label="Taal"></select>
               <input type="file" id="os_leer" accept=".srt,.vtt,text/vtt,application/x-subrip,text/plain" onchange="laaiOnderskrif(this)" class="text-xs text-slate-400">
             </div>
-            <p class="text-[11px] text-slate-500">Kies eers die episode (of &ldquo;Hele film&rdquo;) en die taal, dan die l&ecirc;er. Dieselfde taal weer oplaai vervang die ou een.</p>
+            <p class="text-[11px] text-slate-500">Kies eers die episode (of &ldquo;Hele film&rdquo;), die soort en die taal, dan die l&ecirc;er. Onderskrifte vertaal net die dialoog; closed captions sluit ook klanke en sprekers in (bv. [deur klap]) en kan deur die kyker aan of af geskakel word. Dieselfde soort en taal weer oplaai vervang die ou een.</p>
             <p id="os_status" class="text-xs text-slate-400"></p>
           </div>
           <div id="osLys" class="space-y-1"></div>
@@ -505,10 +506,10 @@ head_extra:
         const d = await api('/api/admin/onderskrifte?slug=' + encodeURIComponent(slug)); if (slug !== OS_SLUG) return;
         if (!$('os_taal').options.length) $('os_taal').replaceChildren(...Object.entries(d.tale).map(([k, v]) => { const o = el('option', '', v); o.value = k; return o; }));
         const lys = $('osLys');
-        if (!d.onderskrifte.length) { lys.replaceChildren(el('p', 'text-xs text-slate-500', 'Nog geen onderskrifte nie.')); return; }
+        if (!d.onderskrifte.length) { lys.replaceChildren(el('p', 'text-xs text-slate-500', 'Nog geen onderskrifte of closed captions nie.')); return; }
         lys.replaceChildren(...d.onderskrifte.map((o) => {
           const rij = el('div', 'flex items-center justify-between gap-3 text-xs bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2');
-          rij.append(el('span', 'text-slate-200', (o.ep < 0 ? 'Hele film' : (OS_EPS[o.ep] || 'Ep ' + (o.ep + 1))) + ' \u2022 ' + o.label + ' \u2022 ' + o.cues + ' re\u00EBls'));
+          rij.append(el('span', 'text-slate-200', (o.ep < 0 ? 'Hele film' : (OS_EPS[o.ep] || 'Ep ' + (o.ep + 1))) + ' \u2022 ' + o.label + (o.soort === 'cc' ? '' : ' (onderskrif)') + ' \u2022 ' + o.cues + ' re\u00EBls'));
           const x = el('button', 'text-rose-400 hover:text-white', 'Skrap'); x.type = 'button';
           x.onclick = async () => { try { await api('/api/admin/onderskrif-skrap', { slug, ep: o.ep, taal: o.taal }); laaiOnderskrifte(); } catch (e) { boodskap(e.message, true); } };
           rij.append(x); return rij;
@@ -524,7 +525,7 @@ head_extra:
     async function laaiOnderskrif(inp) {
       const f = inp.files[0]; if (!f || !OS_SLUG) return; const st = $('os_status'); st.className = 'text-xs text-slate-400'; st.textContent = 'Besig...';
       try {
-        const d = await api('/api/admin/onderskrif', { slug: OS_SLUG, ep: Number($('os_ep').value), taal: $('os_taal').value, teks: await leesTeks(f) });
+        const d = await api('/api/admin/onderskrif', { slug: OS_SLUG, ep: Number($('os_ep').value), taal: $('os_taal').value, soort: $('os_soort').value, teks: await leesTeks(f) });
         st.className = 'text-xs text-emerald-400'; st.textContent = 'Gestoor (' + d.cues + ' re\u00EBls).';
       } catch (e) { st.className = 'text-xs text-rose-400'; st.textContent = e.message; }
       inp.value = ''; laaiOnderskrifte();
