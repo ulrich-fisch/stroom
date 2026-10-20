@@ -169,7 +169,7 @@ head_extra:
             </div>
             <p id="infoSoon" class="hidden text-sky-300 text-xs font-bold uppercase tracking-wider"></p>
             <p id="infoSynopsis" class="text-slate-300 text-sm leading-relaxed font-normal">---</p>
-            <div id="infoRateRow" class="pt-2 flex items-center gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Jou gradering</span><span id="infoRate" class="flex"></span></div>
+            <div id="infoRateRow" class="pt-2 flex items-center gap-3"><span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Jou gradering</span><span id="infoRate" class="flex"></span><span id="infoThumbs" class="flex items-center gap-2 ml-3"></span></div>
           </div>
           <div class="space-y-2 text-xs text-slate-400 border-l border-slate-800/80 pl-4">
             <p><strong class="text-slate-200">Regie:</strong> <span id="infoDirector">---</span></p>
@@ -254,6 +254,7 @@ head_extra:
               </div>
 
               <div class="flex items-center space-x-3">
+                <span id="playThumbs" class="flex items-center gap-1"></span>
                 <div class="relative">
                   <button id="qualBtn" onclick="toggleQualMenu(event)" class="whitespace-nowrap text-[10px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 px-2.5 py-0.5 rounded uppercase font-mono">Kwaliteit &#9662;</button>
                   <div id="qualMenu" class="hidden absolute bottom-full right-0 mb-2 w-52 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl p-1.5 text-xs z-50"></div>
@@ -468,7 +469,7 @@ head_extra:
       document.getElementById('infoTypeBadge').innerText = data.tipe;
       document.getElementById('infoTitle').innerText = data.titel;
       document.getElementById('infoMatch').innerHTML = starTxt(data);
-      drawRate(data);
+      drawRate(data); drawThumbs(data);
       document.getElementById('infoYear').innerText = data.jaar || '';
       document.getElementById('infoAge').innerText = data.ouderdom || '';
       document.getElementById('infoRuntime').innerText = data.speeltyd || '';
@@ -518,6 +519,30 @@ head_extra:
       document.getElementById('infoModal').classList.remove('hidden');
       try { history.replaceState(null, '', '?titel=' + encodeURIComponent(slug)); } catch (e) {}
     }
+    function thumbBtns(t, size) {
+      const r = t.reaksie || 0, sl = esc(t.slug);
+      const b = (w, svg, lbl) => `<button onclick="event.stopPropagation(); react('${sl}', ${r === w ? 0 : w})" aria-pressed="${r === w}" aria-label="${lbl}" title="${lbl}" class="${size} rounded-full border flex items-center justify-center transition ${r === w ? 'border-sky-400 text-sky-300 bg-sky-500/20' : 'border-slate-700 text-slate-300 hover:text-white hover:border-white'}">${svg}</button>`;
+      const up = '<svg viewBox="0 0 24 24" class="w-1/2 h-1/2" fill="' + (r === 1 ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11H3V10h4zm0 0l4-8c1.7 0 3 1.3 3 3v4h5.5a2 2 0 012 2.3l-1.3 7A2 2 0 0118.2 21H7"/></svg>';
+      const dn = '<svg viewBox="0 0 24 24" class="w-1/2 h-1/2" fill="' + (r === -1 ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(180deg)"><path d="M7 10v11H3V10h4zm0 0l4-8c1.7 0 3 1.3 3 3v4h5.5a2 2 0 012 2.3l-1.3 7A2 2 0 0118.2 21H7"/></svg>';
+      return b(1, up, 'Hou van') + b(-1, dn, 'Hou nie van nie');
+    }
+    function drawThumbs(t) {
+      const el = document.getElementById('infoThumbs');
+      if (el) el.innerHTML = thumbBtns(t, 'w-9 h-9') + (t.likes ? `<span class="text-[11px] text-slate-400">${t.likes} hou daarvan</span>` : '');
+      const pl = document.getElementById('playThumbs');
+      if (pl) pl.innerHTML = cur && cur.slug === t.slug ? thumbBtns(t, 'w-7 h-7') : '';
+    }
+    async function react(slug, w) {
+      const t = byKey(slug); if (!t) return;
+      const was = { reaksie: t.reaksie || 0, likes: t.likes || 0 };
+      t.likes = Math.max(0, (t.likes || 0) + (w === 1 ? 1 : 0) - (was.reaksie === 1 ? 1 : 0)); t.reaksie = w; drawThumbs(t);   // dadelik wys
+      try {
+        const r = await jsonPost('/api/reaksie', { profiel: activeProfileId, slug, waarde: w });
+        if (!r.ok) throw new Error('x');
+        const d = await r.json(); t.likes = d.likes; t.reaksie = d.reaksie;
+      } catch (e) { t.reaksie = was.reaksie; t.likes = was.likes; }
+      drawThumbs(t);
+    }
     function drawRate(t) {
       const mine = t.myne || 0;
       document.getElementById('infoRate').innerHTML = [1, 2, 3, 4, 5].map((n) =>
@@ -562,6 +587,7 @@ head_extra:
       filmUrl = d.url; filmHls = !!d.hls; clearTracks(); pendingSubs = d.onderskrifte || [];
       streak = auto ? streak + 1 : 1; stayed = false; hideNextUi(); playedAcc = 0; lastCT = 0;
       cur = { slug: d.slug || slug, ep: d.ep == null ? -1 : d.ep }; resumeAt = d.begin || 0; lastSave = 0;
+      { const tt = byKey(cur.slug); if (tt) drawThumbs(tt); }
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
     }
 

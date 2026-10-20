@@ -95,7 +95,7 @@ const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().
 // Wat 'n lid sien: nooit die video-adres nie (dit kom eers by /api/speel)
 const publiek = (r) => ({ slug: r.slug, titel: r.titel, tipe: r.tipe, jaar: r.jaar, ouderdom: r.ouderdom, speeltyd: r.speeltyd,
   regisseur: r.regisseur, genre_sleutel: r.genre_sleutel, genre_etiket: r.genre_etiket, banner: r.banner, sinopsis: r.sinopsis,
-  gem: r.gem == null ? null : Math.round(r.gem * 10) / 10, aantal: r.aantal || 0, myne: r.myne || 0, uitgelig: !!r.uitgelig, nuut: r.created_at || 0, kyke: r.kyke || 0, vrystelling: r.vrystelling || '', trailer: r.trailer || '', rolverdeling: parseRolverdeling(r.rolverdeling), episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
+  gem: r.gem == null ? null : Math.round(r.gem * 10) / 10, aantal: r.aantal || 0, myne: r.myne || 0, likes: r.likes || 0, reaksie: r.reaksie || 0, uitgelig: !!r.uitgelig, nuut: r.created_at || 0, kyke: r.kyke || 0, vrystelling: r.vrystelling || '', trailer: r.trailer || '', rolverdeling: parseRolverdeling(r.rolverdeling), episodes: JSON.parse(r.episodes || '[]').map((e) => ({ ep: e.ep, titel: e.titel, duur: e.duur, beskrywing: e.beskrywing })) });
 
 // Hoofhanteerder. Gee null terug as die pad nie hier hoort nie.
 export async function handleContent({ request, env, path, post, u }) {
@@ -155,12 +155,14 @@ export async function handleContent({ request, env, path, post, u }) {
     const rows = await db.prepare("SELECT * FROM titels WHERE status = 'gepubliseer' ORDER BY uitgelig DESC, id ASC").all();
     const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
     const mine = new Map(prof ? (await db.prepare('SELECT slug, sterre FROM gradering WHERE profiel_id = ?').bind(prof.id).all()).results.map((x) => [x.slug, x.sterre]) : []);
+    const lk = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM reaksie WHERE waarde = 1 GROUP BY slug').all()).results.map((x) => [x.slug, x.n]));
+    const myR = new Map(prof ? (await db.prepare('SELECT slug, waarde FROM reaksie WHERE profiel_id = ?').bind(prof.id).all()).results.map((x) => [x.slug, x.waarde]) : []);
     const plays = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM kykgebeure WHERE ts > ? GROUP BY slug').bind(Date.now() - 30 * 86400000).all()).results.map((x) => [x.slug, x.n]));
     let list = rows.results;
     if (prof && prof.kinders) list = list.filter((r) => kinderVeilig(r.ouderdom));
     const binnekort = await binnekortLys(db, u, prof), herinner_nuut = await herinnerNuut(db, u);
     return json({ plan: u.plan, kinders: !!(prof && prof.kinders), genres: GENRES, binnekort, herinner_nuut,
-      titels: list.map((r) => publiek({ ...r, gem: (agg.get(r.slug) || {}).gem, aantal: (agg.get(r.slug) || {}).aantal, myne: mine.get(r.slug), kyke: plays.get(r.slug) || 0 })) });
+      titels: list.map((r) => publiek({ ...r, gem: (agg.get(r.slug) || {}).gem, aantal: (agg.get(r.slug) || {}).aantal, myne: mine.get(r.slug), likes: lk.get(r.slug) || 0, reaksie: myR.get(r.slug) || 0, kyke: plays.get(r.slug) || 0 })) });
   }
 
   if (path === '/api/speel' && post) {

@@ -26,6 +26,8 @@ export const memberStatements = (db) => [
       duur REAL NOT NULL DEFAULT 0, voltooi INTEGER NOT NULL DEFAULT 0, bygewerk INTEGER NOT NULL, PRIMARY KEY (profiel_id, slug))`),
     db.prepare(`CREATE TABLE IF NOT EXISTS gradering (
       profiel_id INTEGER NOT NULL, slug TEXT NOT NULL, sterre INTEGER NOT NULL, bygewerk INTEGER NOT NULL, PRIMARY KEY (profiel_id, slug))`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS reaksie (
+      profiel_id INTEGER NOT NULL, slug TEXT NOT NULL, waarde INTEGER NOT NULL, bygewerk INTEGER NOT NULL, PRIMARY KEY (profiel_id, slug))`),
     db.prepare(`CREATE TABLE IF NOT EXISTS kykgebeure (
       id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT NOT NULL, profiel_id INTEGER, ep INTEGER NOT NULL DEFAULT -1, ts INTEGER NOT NULL)`),
     db.prepare('CREATE INDEX IF NOT EXISTS kykgebeure_slug_ts ON kykgebeure (slug, ts)'),
@@ -50,7 +52,7 @@ export async function eiProfiel(db, u, id) {
   return (await db.prepare('SELECT id, naam, avatar, kinders FROM profiele WHERE id = ? AND user_id = ?').bind(pid, u.id).first()) || null;
 }
 
-const PATHS = new Set(['/api/profiele', '/api/profiel-nuut', '/api/profiel-wysig', '/api/profiel-skrap', '/api/lys', '/api/vordering', '/api/gradering']);
+const PATHS = new Set(['/api/profiele', '/api/profiel-nuut', '/api/profiel-wysig', '/api/profiel-skrap', '/api/lys', '/api/vordering', '/api/gradering', '/api/reaksie']);
 
 export const isMemberPath = (p) => PATHS.has(p);
 
@@ -88,7 +90,7 @@ export async function handleMember({ request, env, path, post, u }) {
     if (list.length <= 1) return json({ fout: 'Jy moet ten minste een profiel hê.' }, 400);
     await db.batch([
       db.prepare('DELETE FROM lys WHERE profiel_id = ?').bind(p.id), db.prepare('DELETE FROM vordering WHERE profiel_id = ?').bind(p.id),
-      db.prepare('DELETE FROM gradering WHERE profiel_id = ?').bind(p.id), db.prepare('DELETE FROM profiele WHERE id = ?').bind(p.id)]);
+      db.prepare('DELETE FROM gradering WHERE profiel_id = ?').bind(p.id), db.prepare('DELETE FROM reaksie WHERE profiel_id = ?').bind(p.id), db.prepare('DELETE FROM profiele WHERE id = ?').bind(p.id)]);
     return json({ ok: true });
   }
 
@@ -131,6 +133,19 @@ export async function handleMember({ request, env, path, post, u }) {
       ON CONFLICT(profiel_id, slug) DO UPDATE SET sterre = excluded.sterre, bygewerk = excluded.bygewerk`).bind(p.id, slug, sterre, Date.now()).run();
     const g = await db.prepare('SELECT AVG(sterre) AS gem, COUNT(*) AS n FROM gradering WHERE slug = ?').bind(slug).first();
     return json({ ok: true, gem: g.n ? Math.round(g.gem * 10) / 10 : null, aantal: g.n, myne: sterre });
+  }
+
+  // Duimop / duimaf (los van die sterre-gradering). waarde: 1 = hou van, -1 = hou nie van nie, 0 = haal weg
+  if (path === '/api/reaksie' && post) {
+    const w = parseInt(body.waarde, 10);
+    if (!slug || ![-1, 0, 1].includes(w)) return json({ fout: 'Ongeldig.' }, 400);
+    const t = await db.prepare("SELECT 1 AS x FROM titels WHERE slug = ? AND status = 'gepubliseer'").bind(slug).first();
+    if (!t) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (w === 0) await db.prepare('DELETE FROM reaksie WHERE profiel_id = ? AND slug = ?').bind(p.id, slug).run();
+    else await db.prepare(`INSERT INTO reaksie (profiel_id, slug, waarde, bygewerk) VALUES (?, ?, ?, ?)
+      ON CONFLICT(profiel_id, slug) DO UPDATE SET waarde = excluded.waarde, bygewerk = excluded.bygewerk`).bind(p.id, slug, w, Date.now()).run();
+    const g = await db.prepare('SELECT COALESCE(SUM(waarde = 1), 0) AS op FROM reaksie WHERE slug = ?').bind(slug).first();
+    return json({ ok: true, likes: g.op, reaksie: w });
   }
   return null;
 }
