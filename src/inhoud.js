@@ -4,6 +4,7 @@
 import { eiProfiel, kinderVeilig } from './lede.js';
 import { toestelSoort, landKode } from './verslae.js';
 import { onderskrifLys } from './onderskrifte.js';
+import { lisensieVelde, LISENSIE_SET, lisensieInfo, skrapDokumente, BESLUITE } from './lisensie.js';
 import { bevorderGeskeduleerd, binnekortLys, herinnerNuut, parseRolverdeling, datumOk } from './binnekort.js';
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -287,7 +288,8 @@ export async function handleContent({ request, env, path, post, u }) {
     const agg = new Map((await db.prepare('SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering GROUP BY slug').all()).results.map((x) => [x.slug, x]));
     const hn = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM herinner GROUP BY slug').all()).results.map((x) => [x.slug, x.n]));
     const sm = new Map((await db.prepare('SELECT id, email FROM users WHERE id IN (SELECT DISTINCT skepper_id FROM titels WHERE skepper_id IS NOT NULL)').all()).results.map((x) => [x.id, x.email]));
-    return json({ titels: rows.results.map((r) => ({ ...r, skepper_epos: sm.get(r.skepper_id) || '', uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes), herinnerings: hn.get(r.slug) || 0,
+    const dk = new Map((await db.prepare('SELECT slug, COUNT(*) AS n FROM dokumente GROUP BY slug').all()).results.map((x) => [x.slug, x.n]));
+    return json({ besluite: BESLUITE, titels: rows.results.map((r) => ({ ...r, ...lisensieInfo(r.lisensie_einde), dokumente: dk.get(r.slug) || 0, skepper_epos: sm.get(r.skepper_id) || '', uitgelig: !!r.uitgelig, episodes_teks: episodesToText(r.episodes), herinnerings: hn.get(r.slug) || 0,
       gem: agg.get(r.slug) ? Math.round(agg.get(r.slug).gem * 10) / 10 : null, aantal: agg.get(r.slug) ? agg.get(r.slug).aantal : 0 })), tipes: TIPES, genres: GENRES });
   }
 
@@ -312,6 +314,7 @@ export async function handleContent({ request, env, path, post, u }) {
     const pIntro = parseIntro(body.intro), pBreuke = parseBreuke(body.adpunte);
     if (pIntro === false) return json({ fout: 'Inleiding moet soos 0:45-1:30 wees (van-tot), of "geen".' }, 400);
     if (pBreuke === false) return json({ fout: 'Advertensie-breuke moet tye soos 10:00, 22:30 wees (nie vroeër as 0:10 nie, maks 12), of "geen".' }, 400);
+    const lis = lisensieVelde(body); if (lis.fout) return json({ fout: lis.fout }, 400);
     const pKred = parseKrediete(body.krediete);
     if (pKred === false) return json({ fout: 'Krediete-begin moet \'n tyd soos 41:20 wees (of "geen").' }, 400);
     const sk = clip(body.skepper_epos, 120).toLowerCase();
@@ -327,7 +330,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (body.id) {
       await db.prepare(`UPDATE titels SET titel=?, tipe=?, jaar=?, ouderdom=?, speeltyd=?, regisseur=?, genre_sleutel=?, genre_etiket=?, banner=?, video_url=?,
         sinopsis=?, episodes=?, pas=?, uitgelig=?, status=?, vrystelling=?, trailer=?, rolverdeling=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
-      await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ? WHERE id = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), Number(body.id)).run();
+      await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ?, ' + LISENSIE_SET + ' WHERE id = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), ...lis.waardes, Number(body.id)).run();
       return json({ ok: true });
     }
     let slug = slugify(titel);
@@ -335,13 +338,13 @@ export async function handleContent({ request, env, path, post, u }) {
     if (exists) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     await db.prepare(`INSERT INTO titels (titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url,
       sinopsis, episodes, pas, uitgelig, status, vrystelling, trailer, rolverdeling, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
-    await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ? WHERE slug = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), slug).run();
+    await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ?, ' + LISENSIE_SET + ' WHERE slug = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), ...lis.waardes, slug).run();
     return json({ ok: true, slug });
   }
 
   if (path === '/api/admin/titel-skrap' && post) {
     const dt = await db.prepare('SELECT slug FROM titels WHERE id = ?').bind(Number(body.id)).first();
-    if (dt) await db.prepare('DELETE FROM onderskrifte WHERE slug = ?').bind(dt.slug).run();
+    if (dt) { await db.prepare('DELETE FROM onderskrifte WHERE slug = ?').bind(dt.slug).run(); await skrapDokumente(env, dt.slug); }
     await db.prepare('DELETE FROM titels WHERE id = ?').bind(Number(body.id)).run();
     return json({ ok: true });
   }
