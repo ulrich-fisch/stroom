@@ -9,6 +9,10 @@ export const TALE = {
   af: 'Afrikaans', en: 'English', zu: 'isiZulu', xh: 'isiXhosa', st: 'Sesotho', tn: 'Setswana',
   nl: 'Nederlands', de: 'Deutsch', fr: 'Français', pt: 'Português',
 };
+// 'n Onderskrif-kode is die taal (af, en...) of die taal met '-cc' vir "closed captions" (dialoog plus klanke en sprekers, vir kykers wat swak hoor)
+export const kodeOk = (k) => { const m = /^([a-z]{2})(-cc)?$/.exec(String(k || '')); return !!(m && TALE[m[1]]); };
+export const isCc = (k) => /-cc$/.test(String(k || ''));
+export const kodeLabel = (k) => { const m = /^([a-z]{2})(-cc)?$/.exec(String(k || '')); return m ? (TALE[m[1]] || m[1]) + (m[2] ? ' (closed captions)' : '') : String(k); };
 const TS = /(?:(\d{1,2}):)?(\d{1,2}):(\d{2})[.,](\d{1,3})/g;
 const fmt = (m) => `${String(m[1] || 0).padStart(2, '0')}:${m[2].padStart(2, '0')}:${m[3]}.${m[4].padEnd(3, '0')}`;
 const MAX_BYTES = 400 * 1024;
@@ -46,7 +50,7 @@ export function toVtt(raw) {
 // Beskikbare tale vir 'n titel/episode (vir /api/speel)
 export async function onderskrifLys(db, slug, ep) {
   const rows = (await db.prepare('SELECT taal FROM onderskrifte WHERE slug = ? AND ep = ? ORDER BY taal').bind(slug, ep).all()).results;
-  return rows.map((r) => ({ taal: r.taal, label: TALE[r.taal] || r.taal }));
+  return rows.map((r) => ({ taal: r.taal, label: kodeLabel(r.taal), soort: isCc(r.taal) ? 'cc' : 'onderskrif' }));
 }
 
 const PATHS = new Set(['/api/onderskrif', '/api/admin/onderskrifte', '/api/admin/onderskrif', '/api/admin/onderskrif-skrap']);
@@ -64,7 +68,7 @@ export async function handleSubtitles({ request, env, path, post, u }) {
   if (path === '/api/onderskrif' && !post) {
     if (!u || u.plan === 'none') return json({ fout: 'Nie ingeteken nie.' }, 401);
     const slug = String(q.get('slug') || ''), taal = String(q.get('taal') || ''), ep = epOk(q.get('ep'));
-    if (!slugOk(slug) || !TALE[taal] || !Number.isInteger(ep) || ep < -1) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (!slugOk(slug) || !kodeOk(taal) || !Number.isInteger(ep) || ep < -1) return json({ fout: 'Nie gevind nie.' }, 404);
     const r = await db.prepare('SELECT vtt FROM onderskrifte WHERE slug = ? AND ep = ? AND taal = ?').bind(slug, ep, taal).first();
     if (!r) return json({ fout: 'Nie gevind nie.' }, 404);
     return new Response(r.vtt, { headers: { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' } });
@@ -76,12 +80,14 @@ export async function handleSubtitles({ request, env, path, post, u }) {
     const slug = String(q.get('slug') || '');
     if (!slugOk(slug)) return json({ fout: 'Ongeldig.' }, 400);
     const rows = (await db.prepare('SELECT ep, taal, cues, LENGTH(vtt) AS grootte, created_at FROM onderskrifte WHERE slug = ? ORDER BY ep, taal').bind(slug).all()).results;
-    return json({ onderskrifte: rows.map((r) => ({ ...r, label: TALE[r.taal] || r.taal })), tale: TALE });
+    return json({ onderskrifte: rows.map((r) => ({ ...r, label: kodeLabel(r.taal), soort: isCc(r.taal) ? 'cc' : 'onderskrif' })), tale: TALE });
   }
   const body = post ? await request.json().catch(() => ({})) : {};
   if (path === '/api/admin/onderskrif' && post) {
-    const slug = String(body.slug || ''), taal = String(body.taal || ''), ep = epOk(body.ep);
-    if (!slugOk(slug) || !TALE[taal] || !Number.isInteger(ep) || ep < -1 || ep > 500) return json({ fout: 'Kies \'n titel, episode en taal.' }, 400);
+    const soort = String(body.soort || 'onderskrif');
+    if (!['onderskrif', 'cc'].includes(soort)) return json({ fout: 'Kies of dit onderskrifte of closed captions is.' }, 400);
+    const slug = String(body.slug || ''), ep = epOk(body.ep), taal = String(body.taal || '').replace(/-cc$/, '') + (soort === 'cc' ? '-cc' : '');
+    if (!slugOk(slug) || !kodeOk(taal) || !Number.isInteger(ep) || ep < -1 || ep > 500) return json({ fout: 'Kies \'n titel, episode en taal.' }, 400);
     const t = await db.prepare('SELECT episodes FROM titels WHERE slug = ?').bind(slug).first();
     if (!t) return json({ fout: 'Titel nie gevind nie. Stoor die titel eers.' }, 404);
     if (ep >= 0 && ep >= JSON.parse(t.episodes || '[]').length) return json({ fout: 'Daardie episode bestaan nie.' }, 400);
@@ -93,7 +99,7 @@ export async function handleSubtitles({ request, env, path, post, u }) {
   }
   if (path === '/api/admin/onderskrif-skrap' && post) {
     const slug = String(body.slug || ''), taal = String(body.taal || ''), ep = epOk(body.ep);
-    if (!slugOk(slug) || !TALE[taal] || !Number.isInteger(ep)) return json({ fout: 'Ongeldig.' }, 400);
+    if (!slugOk(slug) || !kodeOk(taal) || !Number.isInteger(ep)) return json({ fout: 'Ongeldig.' }, 400);
     await db.prepare('DELETE FROM onderskrifte WHERE slug = ? AND ep = ? AND taal = ?').bind(slug, ep, taal).run();
     return json({ ok: true });
   }

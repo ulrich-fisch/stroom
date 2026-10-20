@@ -426,13 +426,25 @@ t('verslae page: gated like admin', (await call('/verslae.html', {}, lid)).statu
   t('subs: anonymous refused, unknown language/title 404', (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af')).status === 401
     && (await call('/api/onderskrif?slug=karoo&ep=-1&taal=en', {}, lid)).status === 404 && (await call('/api/onderskrif?slug=..%2Fx&ep=-1&taal=af', {}, lid)).status === 404);
   sp = await (await post('/api/speel', { slug: 'karoo' }, lid)).json();
-  t('subs: play payload lists available languages', JSON.stringify(sp.onderskrifte) === JSON.stringify([{ taal: 'af', label: 'Afrikaans' }]));
+  t('subs: play payload lists available languages', JSON.stringify(sp.onderskrifte) === JSON.stringify([{ taal: 'af', label: 'Afrikaans', soort: 'onderskrif' }]));
   r = await up({ slug: 'pretoria', ep: 1, taal: 'en', teks: 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello' }, ow);
   sp = await (await post('/api/speel', { slug: 'pretoria', ep: 1 }, lid)).json();
   const sp0 = await (await post('/api/speel', { slug: 'pretoria', ep: 0 }, lid)).json();
   t('subs: per-episode tracks stay separate', r.status === 200 && sp.onderskrifte.length === 1 && sp.onderskrifte[0].taal === 'en' && sp0.onderskrifte.length === 0);
-  r = await call('/api/admin/onderskrifte?slug=karoo', {}, ow); const ls = await r.json();
+  r = await call('/api/admin/onderskrifte?slug=karoo', {}, ow); const ls = await r.json(); let ls2;
   t('subs: admin list', ls.onderskrifte.length === 1 && ls.onderskrifte[0].cues === 2 && (await call('/api/admin/onderskrifte?slug=karoo', {}, lid)).status === 404);
+  // closed captions live next to subtitles in the same language
+  r = await up({ slug: 'karoo', ep: -1, taal: 'af', soort: 'cc', teks: srt }, ow); t('cc: admin upload ok', r.status === 200);
+  r = await up({ slug: 'karoo', ep: -1, taal: 'af', teks: srt }, ow);
+  sp = await (await post('/api/speel', { slug: 'karoo' }, lid)).json();
+  t('cc: subtitle and captions both listed, kind marked', sp.onderskrifte.length === 2 && sp.onderskrifte.some((x) => x.taal === 'af-cc' && x.soort === 'cc' && /closed captions/.test(x.label)) && sp.onderskrifte.some((x) => x.taal === 'af' && x.soort === 'onderskrif'));
+  r = await call('/api/onderskrif?slug=karoo&ep=-1&taal=af-cc', {}, lid); t('cc: member can fetch caption file', r.status === 200 && (await r.text()).startsWith('WEBVTT'));
+  t('cc: bad kind / bad code refused', (await up({ slug: 'karoo', ep: -1, taal: 'af', soort: 'x', teks: srt }, ow)).status === 400 && (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af-xx', {}, lid)).status === 404);
+  r = await call('/api/admin/onderskrifte?slug=karoo', {}, ow); ls2 = await r.json();
+  t('cc: admin list shows kind', ls2.onderskrifte.some((x) => x.taal === 'af-cc' && x.soort === 'cc'));
+  await post('/api/admin/onderskrif-skrap', { slug: 'karoo', ep: -1, taal: 'af-cc' }, ow);
+  sp = await (await post('/api/speel', { slug: 'karoo' }, lid)).json();
+  t('cc: deleting captions keeps subtitles', sp.onderskrifte.length === 1 && sp.onderskrifte[0].taal === 'af');
   await post('/api/admin/onderskrif-skrap', { slug: 'karoo', ep: -1, taal: 'af' }, ow);
   t('subs: delete removes it', (await call('/api/onderskrif?slug=karoo&ep=-1&taal=af', {}, lid)).status === 404);
 }
