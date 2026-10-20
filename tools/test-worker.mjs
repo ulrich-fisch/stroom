@@ -721,4 +721,58 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   delete env.VIDEOS;
 }
 
+// 13. Meer as een admin, en advertensie-vlakke
+{
+  sql.exec('DELETE FROM attempts');
+  const own = ck(await post('/api/login', { email: 'admin9@stroom.co.za', password: 'correct-horse' }));
+  const reg2 = async (e) => { sql.exec('DELETE FROM attempts'); const c = ck(await post('/api/register', { email: e, name: 'X', password: 'correct-horse' })); await post('/api/plan', { plan: 'avod' }, c); return c; };
+  const tw = await reg2('tweede@stroom.co.za');
+  t('admins: a member cannot use admin tools yet', (await call('/api/admin/titels', {}, tw)).status === 404 && (await call('/admin', {}, tw)).status === 404 && (await call('/api/admin/admins', {}, tw)).status === 404);
+  t('admins: unknown e-mail refused', (await post('/api/admin/admin-byvoeg', { email: 'niemand@x.co' }, own)).status === 404);
+  t('admins: owner adds a second admin', (await post('/api/admin/admin-byvoeg', { email: ' Tweede@Stroom.co.za ' }, own)).status === 200);
+  const me2 = await (await call('/api/me', {}, tw)).json();
+  t('admins: second admin is admin but not owner', me2.admin === true && me2.eienaar === false && (await (await call('/api/me', {}, own)).json()).eienaar === true);
+  t('admins: second admin reaches admin pages and tools', (await call('/admin', {}, tw)).status === 200 && (await call('/api/admin/titels', {}, tw)).status === 200 && (await call('/api/admin/verslag', {}, tw)).status === 200 && (await call('/api/admin/skepper-staat', {}, tw)).status === 200 && (await call('/api/skep-admin', {}, tw)).status === 200);
+  const lijs = await (await call('/api/admin/admins', {}, tw)).json();
+  t('admins: list shows owner first and the new admin; second cannot manage', lijs.admins[0].eienaar === true && lijs.admins.some((a) => a.email === 'tweede@stroom.co.za') && lijs.kan_bestuur === false);
+  t('admins: second admin cannot add or remove admins', (await post('/api/admin/admin-byvoeg', { email: 'admin9@stroom.co.za' }, tw)).status === 403 && (await post('/api/admin/admin-verwyder', { id: 1 }, tw)).status === 403);
+  t('admins: owner cannot be added again', (await post('/api/admin/admin-byvoeg', { email: 'admin9@stroom.co.za' }, own)).status === 400);
+  const tid = lijs.admins.find((a) => a.email === 'tweede@stroom.co.za').id;
+  t('admins: owner removes the second admin, access ends at once', (await post('/api/admin/admin-verwyder', { id: tid }, own)).status === 200 && (await call('/api/admin/titels', {}, tw)).status === 404 && (await call('/admin', {}, tw)).status === 404);
+  t('admins: removing someone who is not an admin refused', (await post('/api/admin/admin-verwyder', { id: tid }, own)).status === 404);
+
+  // Vlakke
+  sql.exec('UPDATE advertensies SET aktief = 0');
+  const ad = async (naam, vlak) => (await post('/api/admin/ad', { naam, video_url: '/media/aaaaaaaaaaaaaaaaaaaaaaaa.mp4', vlak, aktief: true }, own)).status;
+  t('tiers: ads created with a tier', (await ad('T1', 1)) === 200 && (await ad('T2', 2)) === 200 && (await ad('T3', 3)) === 200 && (await ad('T1b', 1)) === 200);
+  const ads = (await (await call('/api/admin/ads', {}, own)).json()).advertensies;
+  t('tiers: admin ad list carries the tier', ads.find((a) => a.naam === 'T2').vlak === 2);
+  t('tiers: bad tier is clamped to 1', (await ad('Rommel', 99)) === 200 && (await (await call('/api/admin/ads', {}, own)).json()).advertensies.find((a) => a.naam === 'Rommel').vlak === 1);
+  sql.exec("UPDATE advertensies SET aktief = 0 WHERE naam = 'Rommel'");
+  let sk = await (await call('/api/admin/ad-skedule', {}, own)).json();
+  t('tiers: default schedule, active ads counted per tier', sk.skedule.voorrol === 1 && sk.skedule.breuke.join() === '2,3' && sk.skedule.naroll === 2 && sk.aktief_per_vlak[1] === 2 && sk.aktief_per_vlak[2] === 1);
+  t('tiers: members cannot read or change the schedule', (await call('/api/admin/ad-skedule', {}, tw)).status === 404 && (await post('/api/admin/ad-skedule', { voorrol: 1, breuke: [1], naroll: 1 }, tw)).status === 404);
+  for (const bad of [{ voorrol: 0, breuke: [1], naroll: 1 }, { voorrol: 1, breuke: [], naroll: 1 }, { voorrol: 1, breuke: [6], naroll: 1 }, { voorrol: 1, breuke: [1, 1, 1, 1, 1, 1, 1], naroll: 1 }, { voorrol: 1, breuke: [1] }])
+    t('tiers: bad schedule refused ' + JSON.stringify(bad), (await post('/api/admin/ad-skedule', bad, own)).status === 400);
+  const tm = ck(await post('/api/login', { email: 'tweede@stroom.co.za', password: 'correct-horse' }));
+  const pid = (await (await call('/api/profiele', {}, tm)).json()).profiele[0].id;
+  r = await post('/api/admin/titel', { titel: 'Vlak Reeks', tipe: 'Reeks', genre_sleutel: 'drama', banner: 'https://img.example/a.jpg', status: 'gepubliseer', adpunte: '5:00, 10:00, 15:00',
+    episodes_teks: 'Ep 1 | Een | 20 | b | https://vid.example/1.mp4' }, own); const slV = (await r.json()).slug;
+  const spV = async () => (await post('/api/speel', { slug: slV, ep: 0, profiel: pid }, tm)).json();
+  let d = await spV();
+  t('tiers: tier 1 opens, tier 2 first break, tier 3 second and (repeated) third break, tier 2 at the end', /^T1/.test(d.advertensies[0].naam) && d.breuke[0].ad.naam === 'T2' && d.breuke[1].ad.naam === 'T3' && d.breuke[2].ad.naam === 'T3' && d.naroll.naam === 'T2');
+  const seen = new Set(); for (let i = 0; i < 12; i++) seen.add((await spV()).advertensies[0].naam); t('tiers: both tier-1 ads get used (' + [...seen].join() + ')', seen.has('T1') && seen.has('T1b'));
+  t('tiers: schedule saved', (await post('/api/admin/ad-skedule', { voorrol: 3, breuke: [1], naroll: 1 }, own)).status === 200);
+  d = await spV();
+  t('tiers: custom schedule followed (opens tier 3, every break tier 1, end tier 1)', d.advertensies[0].naam === 'T3' && d.breuke.every((b) => /^T1/.test(b.ad.naam)) && /^T1/.test(d.naroll.naam));
+  await post('/api/admin/ad-skedule', { voorrol: 5, breuke: [4], naroll: 5 }, own); d = await spV();
+  t('tiers: an empty tier falls back to the nearest lower tier, so an ad always plays', d.advertensies[0].naam === 'T3' && d.breuke[0].ad.naam === 'T3' && d.naroll.naam === 'T3');
+  sql.exec("UPDATE advertensies SET aktief = 0 WHERE naam <> 'T2'"); d = await spV();
+  t('tiers: only one tier left active: it is used everywhere', d.advertensies[0].naam === 'T2' && d.breuke.every((b) => b.ad.naam === 'T2'));
+  const own2 = await (await call('/api/admin/rugsteun', {}, own)).json();
+  t('tiers: schedule included in the backup', own2.instellings.some((x) => x.sleutel === 'ad_skedule'));
+  await post('/api/admin/ad-skedule', { voorrol: 1, breuke: [2, 3], naroll: 2 }, own);
+  sql.exec('UPDATE advertensies SET aktief = 1');
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

@@ -1,8 +1,9 @@
 // Stroom: inhoud (titels), advertensies en die admin-roetes.
-// Net die eienaar (ADMIN_EMAIL) mag admin-roetes gebruik. Advertensies word slegs aan gratis lede gewys.
+// Die eienaar (ADMIN_EMAIL) en aangewese admins mag admin-roetes gebruik. Advertensies word slegs aan gratis lede gewys.
 
 import { eiProfiel, kinderVeilig } from './lede.js';
 import { toestelSoort, landKode } from './verslae.js';
+import { lesSkedule, kiesAd, breukVlak, vlakVan } from './vlakke.js';
 import { onderskrifLys } from './onderskrifte.js';
 import { lisensieVelde, LISENSIE_SET, lisensieInfo, skrapDokumente, BESLUITE } from './lisensie.js';
 import { bevorderGeskeduleerd, binnekortLys, herinnerNuut, parseRolverdeling, datumOk } from './binnekort.js';
@@ -20,7 +21,8 @@ export const GENRES = {
 const STATUSSE = ['gepubliseer', 'konsep', 'binnekort'];
 const INSKRYWING_STATUSSE = ['hangende', 'goedgekeur', 'afgekeur'];
 
-export const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
+import { adminOk } from './admin.js';
+export { adminOk };
 const isHttps = (s) => /^https:\/\/[^\s"'<>]+$/i.test(s);
 // Media-adres: 'n https-skakel of 'n eie opgelaaide lêer (/media/<sleutel>)
 const MEDIA_RE = /^\/media\/[a-f0-9]{24}\.(mp4|webm|m4v|jpg|jpeg|png|webp)$/;
@@ -247,21 +249,22 @@ export async function handleContent({ request, env, path, post, u }) {
     const epNr = body.ep == null ? null : Number(body.ep);
     let epi = null; try { epi = epNr != null ? JSON.parse(t.episodes || '[]')[epNr] || null : null; } catch { epi = null; }
     if (u.plan === 'avod') {          // Premium (svod) kry nooit advertensies nie
-      const ads = (await db.prepare('SELECT id, naam, video_url, klik_url FROM advertensies WHERE aktief = 1').all()).results;
-      const pick = (not) => { const pool = ads.length > 1 ? ads.filter((a) => a.id !== not) : ads; return pool[Math.floor(Math.random() * pool.length)]; };
+      const ads = (await db.prepare('SELECT id, naam, video_url, klik_url, vlak FROM advertensies WHERE aktief = 1').all()).results;
+      const sk = await lesSkedule(db);
+      const pick = (vlak, not) => kiesAd(ads, vlak, not);
       const wire = (ad) => ({ id: ad.id, naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null });
       let last = null;
       if (ads.length) {            // elke titel en elke episode begin met 'n advertensie
-        const ad = pick(null); last = ad.id;
+        const ad = pick(sk.voorrol, null); last = ad.id;
         await db.prepare('UPDATE advertensies SET vertonings = vertonings + 1 WHERE id = ?').bind(ad.id).run();
         advertensies = [wire(ad)];
       }
       // Advertensie-breuke: die episode se eie tye het voorrang, anders die titel s'n
       const pb = (epi && parseBreuke(epi.adpunte)) || parseBreuke(t.adpunte);
-      if (ads.length && Array.isArray(pb)) for (const sek of pb) { const ad = pick(last); last = ad.id; breuke.push({ t: sek, ad: wire(ad) }); }
+      if (ads.length && Array.isArray(pb)) for (const [i, sek] of pb.entries()) { const ad = pick(breukVlak(sk, i), last); last = ad.id; breuke.push({ t: sek, ad: wire(ad) }); }
       // Advertensie aan die einde: by 'n film, of by die laaste episode van 'n reeks (andersins kom die advertensie voor die volgende episode)
       let eindes = true; try { eindes = epNr == null || epNr + 1 >= JSON.parse(t.episodes || '[]').length; } catch { eindes = true; }
-      if (ads.length && eindes) naroll = wire(pick(last));
+      if (ads.length && eindes) naroll = wire(pick(sk.naroll, last));
     }
     // Slaan-inleiding-oor: net vir reeks-episodes, en net as 'n tydvenster gestel is
     let intro = null, krediete = null;
@@ -358,8 +361,8 @@ export async function handleContent({ request, env, path, post, u }) {
     const naam = clip(body.naam, 80), video = clip(body.video_url, 400), klik = clip(body.klik_url, 400);
     if (!naam || !isMedia(video)) return json({ fout: 'Naam en \'n video (https://-skakel of opgelaaide lêer) is verpligtend.' }, 400);
     if (klik && !isHttps(klik)) return json({ fout: 'Die klik-skakel moet met https:// begin.' }, 400);
-    if (body.id) await db.prepare('UPDATE advertensies SET naam=?, video_url=?, klik_url=?, aktief=? WHERE id = ?').bind(naam, video, klik || null, body.aktief ? 1 : 0, Number(body.id)).run();
-    else await db.prepare('INSERT INTO advertensies (naam, video_url, klik_url, aktief, created_at) VALUES (?,?,?,?,?)').bind(naam, video, klik || null, body.aktief === false ? 0 : 1, Date.now()).run();
+    if (body.id) await db.prepare('UPDATE advertensies SET naam=?, video_url=?, klik_url=?, aktief=?, vlak=? WHERE id = ?').bind(naam, video, klik || null, body.aktief ? 1 : 0, vlakVan(body.vlak), Number(body.id)).run();
+    else await db.prepare('INSERT INTO advertensies (naam, video_url, klik_url, aktief, vlak, created_at) VALUES (?,?,?,?,?,?)').bind(naam, video, klik || null, body.aktief === false ? 0 : 1, vlakVan(body.vlak), Date.now()).run();
     return json({ ok: true });
   }
 

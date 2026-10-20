@@ -6,7 +6,7 @@ import { datumOk } from './binnekort.js';
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers } });
-const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
+import { adminOk } from './admin.js';
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 
 export const LISENSIE_COLUMNS = [['titels', 'lisensie_begin', 'TEXT'], ['titels', 'lisensie_einde', 'TEXT'], ['titels', 'lisensie_besluit', 'TEXT'],

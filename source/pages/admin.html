@@ -19,6 +19,7 @@ head_extra:
       <button data-tab="ads" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Advertensies</button>
       <button data-tab="inskrywings" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Inskrywings (Cinema Club)</button>
       <a href="verslae.html" class="text-xs px-5 py-2 rounded-full border border-sky-500/40 text-sky-400 hover:text-white">Verslae &amp; Analise &rarr;</a>
+      <button data-tab="admins" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Admins</button>
       <button data-tab="toets" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Toetsing</button>
     </div>
 
@@ -35,6 +36,14 @@ head_extra:
 
       <form id="titelForm" class="hidden bg-slate-900/90 p-6 rounded-2xl border border-slate-800 space-y-5">
         <input type="hidden" id="t_id">
+        <div id="titelTabs" class="flex flex-wrap gap-2 border-b border-slate-800 pb-3" role="tablist" aria-label="Titel-besonderhede">
+          <button type="button" data-pane="algemeen" class="tt-btn">Algemene inligting</button>
+          <button type="button" data-pane="media" class="tt-btn">Media &amp; onderskrifte</button>
+          <button type="button" data-pane="reeks" class="tt-btn">Reeks &amp; afspeel</button>
+          <button type="button" data-pane="publiseer" class="tt-btn">Publisering</button>
+          <button type="button" data-pane="lisensie" class="tt-btn">Lisensie &amp; dokumente</button>
+        </div>
+        <div data-pane="algemeen" class="tt-pane space-y-5">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label class="block md:col-span-2"><span class="lbl">Titel</span><input id="t_titel" required maxlength="120" class="inp"></label>
           <label class="block"><span class="lbl">Tipe</span><select id="t_tipe" class="inp"></select></label>
@@ -43,6 +52,13 @@ head_extra:
           <label class="block"><span class="lbl">Jaar</span><input id="t_jaar" maxlength="4" class="inp" placeholder="2026"></label>
           <label class="block"><span class="lbl">Ouderdomsgradering</span><input id="t_ouderdom" maxlength="6" class="inp" placeholder="13+"></label>
           <label class="block"><span class="lbl">Speeltyd</span><input id="t_speeltyd" maxlength="20" class="inp" placeholder="54 min"></label>
+          <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
+          <label class="block md:col-span-3"><span class="lbl">Rolverdeling &amp; span (een per lyn: Naam | Rol)</span>
+            <textarea id="t_rolverdeling" rows="3" maxlength="3000" class="inp font-mono text-xs" placeholder="Anna Botha | Hoofrol&#10;Piet Nel | Pa&#10;Jaco Botes | Musiek"></textarea></label>
+        </div>
+        </div>
+        <div data-pane="media" class="tt-pane space-y-5 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label class="block md:col-span-3"><span class="lbl">Beeld (poster): laai op, of plak &rsquo;n https://-skakel</span><input id="t_banner" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="image/jpeg,image/png,image/webp" onchange="laaiOp(this, 't_banner')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Video: laai op (MP4 of WebM, maks 90 MB), of plak &rsquo;n https://-skakel</span><input id="t_video" maxlength="400" class="inp" placeholder="/media/... of https://...">
@@ -50,20 +66,27 @@ head_extra:
           <div class="block md:col-span-3"><span class="lbl">Groot film of reeks-episode (enige grootte, MP4/MOV/MKV): laai op na Cloudflare Stream</span>
             <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, 't_video')" class="text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span>
             <span class="block mt-1 text-[11px] text-slate-500">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</span></div>
-          <label class="block"><span class="lbl">Vrystellingsdatum (vir &ldquo;Binnekort&rdquo;)</span><input type="date" id="t_vrystelling" class="inp">
-            <span class="block mt-1 text-[11px] text-slate-500">Op hierdie datum gaan &rsquo;n Binnekort-titel vanself live, as dit &rsquo;n video het.</span></label>
           <label class="block md:col-span-2"><span class="lbl">Voorskou (trailer): laai op, of plak &rsquo;n https://-skakel</span><input id="t_trailer" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_trailer')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
-          <label class="block md:col-span-3"><span class="lbl">Rolverdeling &amp; span (een per lyn: Naam | Rol)</span>
-            <textarea id="t_rolverdeling" rows="3" maxlength="3000" class="inp font-mono text-xs" placeholder="Anna Botha | Hoofrol&#10;Piet Nel | Pa&#10;Jaco Botes | Musiek"></textarea></label>
-          <label class="block md:col-span-3"><span class="lbl">Skepper (e-pos van &rsquo;n Stroom-lid; opsioneel, vir Cinema Club-titels)</span><input id="t_skepper" type="email" maxlength="120" class="inp" placeholder="skepper@voorbeeld.co.za"></label>
-          <label class="block md:col-span-3"><span class="lbl">Reeks: inleiding wat oorgeslaan kan word (van-tot, bv. 0:45-1:30)</span><input id="t_intro" maxlength="30" class="inp" placeholder="0:45-1:30">
-            <span class="block mt-1 text-[11px] text-slate-500">Net vir reekse: die &ldquo;Slaan Inleiding Oor&rdquo;-knoppie wys net binne hierdie tydvenster. Laat leeg as daar geen inleiding is nie. Elke episode kan sy eie tye hê (sesde veld in die episode-lyn hieronder); skryf &ldquo;geen&rdquo; daar as &rsquo;n episode nie een het nie.</span></label>
-          <label class="block md:col-span-2"><span class="lbl">Advertensie-breuke (tye waar &rsquo;n advertensie speel, bv. 10:00, 22:30)</span><input id="t_adpunte" maxlength="120" class="inp" placeholder="10:00, 22:30">
-            <span class="block mt-1 text-[11px] text-slate-500">Net vir Gratis-lede (Premium sien nooit advertensies nie). Elke titel en episode begin altyd met &rsquo;n advertensie, en films eindig met een. Die film hou na die advertensie waar dit was. Per episode kan jy ander tye gee (sewende veld in die episode-lyn); &ldquo;geen&rdquo; skakel dit af vir &rsquo;n episode.</span></label>
-          <label class="block"><span class="lbl">Krediete begin (bv. 41:20)</span><input id="t_krediete" maxlength="12" class="inp" placeholder="41:20">
-            <span class="block mt-1 text-[11px] text-slate-500">Vanaf hier wys &ldquo;Volgende episode&rdquo; (reeks) of &ldquo;Slaan krediete oor&rdquo; (film). Leeg = die laaste 15 sekondes.</span></label>
-          <label class="block md:col-span-3"><span class="lbl">Sinopsis</span><textarea id="t_sinopsis" rows="3" maxlength="2000" class="inp"></textarea></label>
+        </div>
+        <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
+          <span class="lbl">Onderskrifte (.srt of .vtt)</span>
+          <p id="osNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy onderskrifte byvoeg.</p>
+          <div id="osVorm" class="hidden space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="os_ep" class="inp !w-auto" aria-label="Episode"></select>
+              <select id="os_taal" class="inp !w-auto" aria-label="Taal"></select>
+              <input type="file" id="os_leer" accept=".srt,.vtt,text/vtt,application/x-subrip,text/plain" onchange="laaiOnderskrif(this)" class="text-xs text-slate-400">
+            </div>
+            <p class="text-[11px] text-slate-500">Kies eers die episode (of &ldquo;Hele film&rdquo;) en die taal, dan die l&ecirc;er. Dieselfde taal weer oplaai vervang die ou een.</p>
+            <p id="os_status" class="text-xs text-slate-400"></p>
+          </div>
+          <div id="osLys" class="space-y-1"></div>
+        </div>
+        </div>
+        <div data-pane="reeks" class="tt-pane space-y-5 hidden">
+        <p class="text-xs text-slate-400 max-w-3xl">Net vir reekse. Elke episode kan sy eie inleiding, advertensie-breuke en krediete h&ecirc; (veld 6, 7 en 8 in die episode-lyn); wat jy leeg laat, volg die verstek hieronder.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label class="block md:col-span-3"><span class="lbl">Episodes (net vir reekse; een per lyn)</span>
             <textarea id="t_episodes" rows="3" class="inp font-mono text-xs" placeholder="Ep 1 | Titel | 28 min | Kort beskrywing | /media/... of https://video.mp4 | 0:45-1:30 | 10:00, 22:30 | 41:20"></textarea>
             <span class="block mt-1 text-[11px] text-slate-500">Veld 6 (opsioneel) = inleiding van-tot, veld 7 = advertensie-breuke, veld 8 = waar die krediete begin. Elk kan &ldquo;geen&rdquo; wees. Leeg = gebruik die titel se verstek hierbo.</span>
@@ -71,12 +94,27 @@ head_extra:
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span>
             <span class="block mt-2 text-[11px] text-slate-500">Of groot episode (Cloudflare Stream):</span>
             <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, null)" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-300 select-all"></span></label>
+          <label class="block md:col-span-3"><span class="lbl">Reeks: inleiding wat oorgeslaan kan word (van-tot, bv. 0:45-1:30)</span><input id="t_intro" maxlength="30" class="inp" placeholder="0:45-1:30">
+            <span class="block mt-1 text-[11px] text-slate-500">Net vir reekse: die &ldquo;Slaan Inleiding Oor&rdquo;-knoppie wys net binne hierdie tydvenster. Laat leeg as daar geen inleiding is nie. Elke episode kan sy eie tye hê (sesde veld in die episode-lyn hieronder); skryf &ldquo;geen&rdquo; daar as &rsquo;n episode nie een het nie.</span></label>
+          <label class="block md:col-span-2"><span class="lbl">Advertensie-breuke (tye waar &rsquo;n advertensie speel, bv. 10:00, 22:30)</span><input id="t_adpunte" maxlength="120" class="inp" placeholder="10:00, 22:30">
+            <span class="block mt-1 text-[11px] text-slate-500">Net vir Gratis-lede (Premium sien nooit advertensies nie). Elke titel en episode begin altyd met &rsquo;n advertensie, en films eindig met een. Die film hou na die advertensie waar dit was. Per episode kan jy ander tye gee (sewende veld in die episode-lyn); &ldquo;geen&rdquo; skakel dit af vir &rsquo;n episode.</span></label>
+          <label class="block"><span class="lbl">Krediete begin (bv. 41:20)</span><input id="t_krediete" maxlength="12" class="inp" placeholder="41:20">
+            <span class="block mt-1 text-[11px] text-slate-500">Vanaf hier wys &ldquo;Volgende episode&rdquo; (reeks) of &ldquo;Slaan krediete oor&rdquo; (film). Leeg = die laaste 15 sekondes.</span></label>
+        </div>
+        </div>
+        <div data-pane="publiseer" class="tt-pane space-y-5 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label class="block"><span class="lbl">Vrystellingsdatum (vir &ldquo;Binnekort&rdquo;)</span><input type="date" id="t_vrystelling" class="inp">
+            <span class="block mt-1 text-[11px] text-slate-500">Op hierdie datum gaan &rsquo;n Binnekort-titel vanself live, as dit &rsquo;n video het.</span></label>
+          <label class="block md:col-span-3"><span class="lbl">Skepper (e-pos van &rsquo;n Stroom-lid; opsioneel, vir Cinema Club-titels)</span><input id="t_skepper" type="email" maxlength="120" class="inp" placeholder="skepper@voorbeeld.co.za"></label>
         </div>
         <div class="flex flex-wrap items-center gap-6">
           <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="t_uitgelig"> Film van die Dag (hoofbanier)</label>
           <label class="flex items-center gap-2 text-sm text-slate-300">Status
             <select id="t_status" class="inp !w-auto"><option value="konsep">Konsep (nie sigbaar nie)</option><option value="binnekort">Binnekort (wys met &ldquo;Herinner my&rdquo;)</option><option value="gepubliseer">Gepubliseer</option></select></label>
         </div>
+        </div>
+        <div data-pane="lisensie" class="tt-pane space-y-5 hidden">
         <div id="lisensieBox" class="rounded-xl border border-slate-800 p-4 space-y-4">
           <span class="lbl !mb-0">Lisensie &amp; dokumente (net die admin sien dit)</span>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -103,21 +141,8 @@ head_extra:
             <div id="dkLys" class="space-y-1"></div>
           </div>
         </div>
-        <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
-          <span class="lbl">Onderskrifte (.srt of .vtt)</span>
-          <p id="osNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy onderskrifte byvoeg.</p>
-          <div id="osVorm" class="hidden space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <select id="os_ep" class="inp !w-auto" aria-label="Episode"></select>
-              <select id="os_taal" class="inp !w-auto" aria-label="Taal"></select>
-              <input type="file" id="os_leer" accept=".srt,.vtt,text/vtt,application/x-subrip,text/plain" onchange="laaiOnderskrif(this)" class="text-xs text-slate-400">
-            </div>
-            <p class="text-[11px] text-slate-500">Kies eers die episode (of &ldquo;Hele film&rdquo;) en die taal, dan die l&ecirc;er. Dieselfde taal weer oplaai vervang die ou een.</p>
-            <p id="os_status" class="text-xs text-slate-400"></p>
-          </div>
-          <div id="osLys" class="space-y-1"></div>
         </div>
-        <div class="flex gap-3">
+        <div class="sticky bottom-0 z-20 -mx-6 -mb-6 px-6 py-3 bg-slate-900/95 backdrop-blur border-t border-slate-800 rounded-b-2xl flex gap-3">
           <button type="submit" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-full uppercase tracking-wider">Stoor</button>
           <button type="button" onclick="sluitTitel()" class="text-xs border border-slate-700 text-slate-300 px-6 py-2.5 rounded-full uppercase tracking-wider">Kanselleer</button>
         </div>
@@ -137,16 +162,28 @@ head_extra:
     </section>
 
     <!-- ADVERTENSIES -->
+    <!-- ADMINS -->
+    <section id="tab-admins" class="hidden space-y-6">
+      <h2 class="text-xl font-bold text-white uppercase tracking-tight">Admins</h2>
+      <p class="text-xs text-slate-400 max-w-3xl leading-relaxed">Admins kan titels, advertensies, verslae en dokumente bestuur. Net die eienaar kan ander admins byvoeg of verwyder. Die persoon moet eers &rsquo;n gewone Stroom-rekening h&ecirc; (hulle registreer self by Stroom), dan tik jy hul e-pos hier.</p>
+      <form id="adminForm" class="hidden flex flex-wrap items-end gap-3">
+        <label class="block"><span class="lbl">E-pos van die nuwe admin</span><input id="adm_epos" type="email" required maxlength="120" class="inp !w-auto min-w-[18rem]" placeholder="naam@voorbeeld.co.za"></label>
+        <button class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2.5 rounded-full uppercase tracking-wider">Maak admin</button>
+      </form>
+      <div id="adminLys" class="space-y-3"></div>
+    </section>
+
     <section id="tab-ads" class="hidden space-y-6">
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-bold text-white uppercase tracking-tight">Advertensies (gratis lede)</h2>
         <button onclick="nuweAd()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full uppercase tracking-wider">+ Nuwe advertensie</button>
       </div>
-      <p class="text-xs text-slate-400 max-w-3xl">Gratis lede sien een advertensie voor elke film; Premium-lede sien nooit een nie. Is daar meer as een aktiewe advertensie, word &rsquo;n ewekansige een gekies. &ldquo;Vertonings&rdquo; tel hoeveel keer dit gespeel is.</p>
+      <p class="text-xs text-slate-400 max-w-3xl">Gratis lede sien &rsquo;n advertensie voor elke titel en episode, tydens die breuke wat jy by die titel stel, en aan die einde van &rsquo;n film. Premium-lede sien nooit een nie. &ldquo;Vertonings&rdquo; tel hoeveel keer dit gespeel is.</p>
       <form id="adForm" class="hidden bg-slate-900/90 p-6 rounded-2xl border border-slate-800 space-y-4">
         <input type="hidden" id="a_id">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label class="block"><span class="lbl">Naam (net vir jou)</span><input id="a_naam" required maxlength="80" class="inp"></label>
+          <label class="block"><span class="lbl">Vlak (1 = hoogste)</span><select id="a_vlak" class="inp"><option value="1">Vlak 1 (hoogste)</option><option value="2">Vlak 2</option><option value="3">Vlak 3</option><option value="4">Vlak 4</option><option value="5">Vlak 5 (laagste)</option></select></label>
           <label class="block"><span class="lbl">Klik-skakel (adverteerder se webwerf, https://)</span><input id="a_klik" maxlength="400" class="inp"></label>
           <label class="block md:col-span-2"><span class="lbl">Video: laai op (MP4 of WebM), of plak &rsquo;n https://-skakel</span><input id="a_video" required maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 'a_video')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
@@ -157,6 +194,15 @@ head_extra:
           <button type="button" onclick="sluitAd()" class="text-xs border border-slate-700 text-slate-300 px-6 py-2.5 rounded-full uppercase tracking-wider">Kanselleer</button>
         </div>
       </form>
+      <div id="skedBox" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+        <div>
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Wie speel waar (advertensie-vlakke)</h3>
+          <p class="text-xs text-slate-400 mt-1 max-w-3xl leading-relaxed">Gee elke advertensie &rsquo;n vlak (1 = hoogste, bv. jou beste betalende adverteerder). Kies hier watter vlak by elke plek speel. Is daar meer as een advertensie in &rsquo;n vlak, wissel hulle af. Het &rsquo;n vlak geen aktiewe advertensie nie, speel die naaste vlak daarna, sodat daar altyd een speel.</p>
+        </div>
+        <div id="skedVelde" class="flex flex-wrap items-end gap-4"></div>
+        <div id="skedWaarsku" class="text-xs text-amber-300 space-y-1"></div>
+        <div class="flex items-center gap-3"><button type="button" onclick="stoorSkedule()" class="text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2 rounded-full uppercase tracking-wider">Stoor skedule</button><button type="button" onclick="herstelSkedule()" class="text-xs border border-slate-700 text-slate-300 px-5 py-2 rounded-full uppercase tracking-wider">Herstel verstek</button><span id="skedMsg" class="text-xs text-emerald-400"></span></div>
+      </div>
       <div id="adLys" class="space-y-3"></div>
     </section>
 
@@ -185,6 +231,9 @@ head_extra:
   <style>
     .lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:6px; }
     .inp { width:100%; padding:10px 14px; background:#020617; border:1px solid #1e293b; border-radius:12px; color:#fff; font-size:14px; }
+    .tt-btn { font-size:12px; padding:7px 16px; border-radius:999px; border:1px solid #1e293b; color:#94a3b8; transition:.15s; }
+    .tt-btn:hover { color:#fff; }
+    .tt-btn.on { border-color:#0ea5e9; color:#7dd3fc; background:rgba(14,165,233,.1); }
     .inp:focus { outline:none; border-color:#0ea5e9; }
   </style>
 
@@ -205,9 +254,57 @@ head_extra:
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach((x) => { x.className = 'tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white'; });
       b.className = 'tab-btn text-xs px-5 py-2 rounded-full border border-slate-700 text-white';
-      ['titels', 'ads', 'inskrywings', 'toets'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+      ['titels', 'ads', 'inskrywings', 'admins', 'toets'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
       if (b.dataset.tab === 'toets') laaiPlan();
+      if (b.dataset.tab === 'admins') laaiAdmins();
     }));
+
+    // ---------- Titel-oortjies ----------
+    function toonPaneel(n) {
+      document.querySelectorAll('#titelForm .tt-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== n));
+      document.querySelectorAll('#titelTabs .tt-btn').forEach((b) => { const on = b.dataset.pane === n; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    }
+    document.querySelectorAll('#titelTabs .tt-btn').forEach((b) => b.addEventListener('click', () => toonPaneel(b.dataset.pane)));
+    $('titelForm').addEventListener('invalid', (e) => { const p = e.target.closest && e.target.closest('.tt-pane'); if (p) toonPaneel(p.dataset.pane); }, true);   // 'n verpligte veld in 'n ander oortjie
+    toonPaneel('algemeen');
+
+    // ---------- Advertensie-skedule (vlakke) ----------
+    let SKED = null, SK_TEL = {};
+    const vlakOpsies = (sel) => [1, 2, 3, 4, 5].map((n) => `<option value="${n}"${n === sel ? ' selected' : ''}>Vlak ${n}${n === 1 ? ' (hoogste)' : n === 5 ? ' (laagste)' : ''}</option>`).join('');
+    function tekenSkedule() {
+      const box = $('skedVelde'); if (!SKED) return;
+      const veld = (id, etiket, sel) => `<label class="block"><span class="lbl">${etiket}</span><select id="${id}" class="inp !w-auto" onchange="skedWysig()">${vlakOpsies(sel)}</select></label>`;
+      box.innerHTML = veld('sk_voorrol', 'Voor die titel / episode', SKED.voorrol)
+        + SKED.breuke.map((v, i) => veld('sk_b' + i, `Advertensie-breuk ${i + 1}` + (i === SKED.breuke.length - 1 && SKED.breuke.length > 0 ? ' en verder' : ''), v)).join('')
+        + veld('sk_naroll', 'Aan die einde (film / laaste episode)', SKED.naroll)
+        + `<span class="flex gap-2 pb-1"><button type="button" onclick="skedBreuk(1)" class="text-xs border border-slate-700 text-slate-300 px-3 py-2 rounded-full" ${SKED.breuke.length >= 6 ? 'disabled' : ''}>+ breuk</button><button type="button" onclick="skedBreuk(-1)" class="text-xs border border-slate-700 text-slate-300 px-3 py-2 rounded-full" ${SKED.breuke.length <= 1 ? 'disabled' : ''}>&minus; breuk</button></span>`;
+      const leeg = []; const gebruik = new Set([SKED.voorrol, SKED.naroll, ...SKED.breuke]);
+      [...gebruik].sort().forEach((v) => { if (!SK_TEL[v]) leeg.push(v); });
+      $('skedWaarsku').innerHTML = leeg.length ? leeg.map((v) => `Vlak ${v} het nog geen aktiewe advertensies nie; daar sal &rsquo;n advertensie van die naaste vlak speel.`).join('<br>') : '';
+    }
+    function skedLees() { return { voorrol: +$('sk_voorrol').value, breuke: SKED.breuke.map((_, i) => +$('sk_b' + i).value), naroll: +$('sk_naroll').value }; }
+    function skedWysig() { SKED = skedLees(); tekenSkedule(); }
+    function skedBreuk(d) { const s = skedLees(); if (d > 0) s.breuke.push(s.breuke[s.breuke.length - 1]); else s.breuke.pop(); SKED = s; tekenSkedule(); }
+    async function laaiSkedule() { try { const d = await api('/api/admin/ad-skedule'); SKED = d.skedule; SK_DEF = d.standaard; SK_TEL = d.aktief_per_vlak || {}; tekenSkedule(); } catch (e) { /* oortjie nog nie gewys */ } }
+    let SK_DEF = null;
+    function herstelSkedule() { if (SK_DEF) { SKED = JSON.parse(JSON.stringify(SK_DEF)); tekenSkedule(); } }
+    async function stoorSkedule() { try { await api('/api/admin/ad-skedule', skedLees()); $('skedMsg').textContent = 'Gestoor.'; setTimeout(() => { $('skedMsg').textContent = ''; }, 3000); laaiSkedule(); } catch (e) { boodskap(e.message, true); } }
+
+    // ---------- Admins ----------
+    async function laaiAdmins() {
+      try {
+        const d = await api('/api/admin/admins'); $('adminForm').classList.toggle('hidden', !d.kan_bestuur);
+        $('adminLys').replaceChildren(...d.admins.map((a) => {
+          const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
+          row.append(el('div', 'text-sm text-white', a.email + (a.name ? ' • ' + a.name : '')));
+          const r = el('div', 'flex items-center gap-3');
+          r.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (a.eienaar ? 'text-sky-300 border-sky-500/40' : 'text-emerald-400 border-emerald-500/40'), a.eienaar ? 'eienaar' : 'admin'));
+          if (d.kan_bestuur && !a.eienaar) { const x = el('button', 'text-xs text-rose-400 hover:text-white', 'Verwyder'); x.onclick = async () => { if (!confirm('Neem admin-toegang van ' + a.email + ' weg?')) return; try { await api('/api/admin/admin-verwyder', { id: a.id }); laaiAdmins(); } catch (e) { boodskap(e.message, true); } }; r.append(x); }
+          row.append(r); return row;
+        }));
+      } catch (e) { boodskap(e.message, true); }
+    }
+    $('adminForm').addEventListener('submit', async (e) => { wrap(e); try { await api('/api/admin/admin-byvoeg', { email: $('adm_epos').value }); $('adm_epos').value = ''; boodskap('Admin bygevoeg.'); laaiAdmins(); } catch (er) { boodskap(er.message, true); } });
 
     // ---------- Lêer-oplaai (na R2) ----------
     function laaiOp(input, targetId) {
@@ -392,7 +489,7 @@ head_extra:
       $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
       $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || ''; $('t_intro').value = t.intro || ''; $('t_adpunte').value = t.adpunte || ''; $('t_krediete').value = t.krediete || ''; $('t_lis_begin').value = t.lisensie_begin || ''; $('t_lis_einde').value = t.lisensie_einde || ''; $('t_lis_besluit').value = t.lisensie_besluit || ''; $('t_regshebber').value = t.regshebber || ''; $('t_kontak').value = t.regshebber_kontak || ''; $('t_admin_notas').value = t.admin_notas || '';
-      $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
+      toonPaneel('algemeen'); $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
       OS_SLUG = t.slug || null; OS_EPS = String(t.episodes_teks || '').split('\n').filter((x) => x.trim()).map((x) => x.split('|')[0].trim());
       $('osNuut').classList.toggle('hidden', !!OS_SLUG); $('osVorm').classList.toggle('hidden', !OS_SLUG); $('osLys').replaceChildren(); $('os_status').textContent = '';
       $('os_ep').replaceChildren(...[['-1', 'Hele film']].concat(OS_EPS.map((n, i) => [String(i), n || 'Ep ' + (i + 1)])).map(([v, l]) => { const o = el('option', '', l); o.value = v; return o; }));
@@ -453,7 +550,7 @@ head_extra:
       if (!d.advertensies.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', 'Nog geen advertensies nie. Gratis lede sien dan geen advertensie nie.')); return; }
       lys.replaceChildren(...d.advertensies.map((a) => {
         const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
-        const left = el('div', 'space-y-1'); left.append(el('div', 'font-bold text-white', a.naam), el('div', 'text-xs text-slate-400', `Vertonings: ${a.vertonings}`));
+        const left = el('div', 'space-y-1'); left.append(el('div', 'font-bold text-white', a.naam), el('div', 'text-xs text-slate-400', `Vlak ${a.vlak || 1} \u2022 Vertonings: ${a.vertonings}`));
         const right = el('div', 'flex items-center gap-3');
         right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (a.aktief ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-400 border-slate-600'), a.aktief ? 'aktief' : 'af'));
         const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigAd(a);
@@ -461,12 +558,12 @@ head_extra:
         right.append(w, s); row.append(left, right); return row;
       }));
     }
-    function wysigAd(a) { $('a_id').value = a.id || ''; $('a_naam').value = a.naam || ''; $('a_video').value = a.video_url || ''; $('a_klik').value = a.klik_url || ''; $('a_aktief').checked = a.aktief !== false; $('adForm').classList.remove('hidden'); }
+    function wysigAd(a) { $('a_id').value = a.id || ''; $('a_naam').value = a.naam || ''; $('a_video').value = a.video_url || ''; $('a_klik').value = a.klik_url || ''; $('a_vlak').value = String(a.vlak || 1); $('a_aktief').checked = a.aktief !== false; $('adForm').classList.remove('hidden'); }
     function nuweAd() { wysigAd({}); }
     function sluitAd() { $('adForm').classList.add('hidden'); }
     $('adForm').addEventListener('submit', async (e) => {
       wrap(e);
-      try { await api('/api/admin/ad', { id: $('a_id').value || null, naam: $('a_naam').value, video_url: $('a_video').value, klik_url: $('a_klik').value, aktief: $('a_aktief').checked }); boodskap('Gestoor.'); sluitAd(); laaiAds(); }
+      try { await api('/api/admin/ad', { id: $('a_id').value || null, naam: $('a_naam').value, video_url: $('a_video').value, klik_url: $('a_klik').value, vlak: Number($('a_vlak').value), aktief: $('a_aktief').checked }); boodskap('Gestoor.'); sluitAd(); laaiAds(); laaiSkedule(); }
       catch (er) { boodskap(er.message, true); }
     });
 
@@ -495,4 +592,4 @@ head_extra:
     async function laaiPlan() { const me = await api('/api/me'); $('planNou').textContent = me.plan === 'svod' ? 'Premium (geen advertensies)' : me.plan === 'avod' ? 'Gratis (met advertensies)' : me.plan; }
     async function toetsPlan(p) { try { await api('/api/admin/toets-plan', { plan: p }); boodskap('Jou rekening is nou ' + (p === 'svod' ? 'Premium.' : 'Gratis.')); laaiPlan(); } catch (e) { boodskap(e.message, true); } }
 
-    laaiTitels().catch((e) => boodskap(e.message, true)); laaiAds().catch(() => {}); laaiInsk().catch(() => {});
+    laaiTitels().catch((e) => boodskap(e.message, true)); laaiSkedule(); laaiAds().catch(() => {}); laaiInsk().catch(() => {});

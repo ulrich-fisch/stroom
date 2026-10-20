@@ -7,6 +7,8 @@ import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
 import { handleBinnekort, herinnerStatements, TITEL_COLUMNS, isBinnekortPath, sharePage } from './binnekort.js';
+import { handleVlakke, AD_COLUMNS } from './vlakke.js';
+import { handleAdmins, ADMIN_COLUMNS, eienaar } from './admin.js';
 import { handleDokumente, isDokumentPath, LISENSIE_COLUMNS, dokumenteStatements } from './lisensie.js';
 import { handleSkeppers, isSkepperPath, SKEPPER_COLUMNS, isSkepper } from './skeppers.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
@@ -49,7 +51,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20e';
+const SCHEMA = '2026-10-20g';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -105,7 +107,7 @@ async function migrate(db) {
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
     ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db), ...dokumenteStatements(db),
   ]);
-  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS, ...SERIE_COLUMNS, ...LISENSIE_COLUMNS]);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS, ...SERIE_COLUMNS, ...LISENSIE_COLUMNS, ...ADMIN_COLUMNS, ...AD_COLUMNS]);
   await seedContent(db);
 }
 
@@ -118,7 +120,7 @@ async function getUser(request, db) {
   const token = cookieValue(request, 'stroom_sessie');
   if (!token) return null;
   const row = await db.prepare(
-    `SELECT u.id, u.email, u.name, u.plan, u.plan_period, u.pf_token FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.email, u.name, u.plan, u.plan_period, u.pf_token, u.is_admin FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ? AND s.expires_at > ?`).bind(await sha256(token), Date.now()).first();
   return row || null;
 }
@@ -154,7 +156,7 @@ async function api(request, env, url, ctx) {
 
   if (path === '/api/me') {
     const u = await getUser(request, env.DB);
-    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null, admin: adminOk(u, env), skepper: await isSkepper(env.DB, u.id) }) : json({ fout: 'Nie ingeteken nie.' }, 401);
+    return u ? json({ email: u.email, name: u.name, plan: u.plan, plan_period: u.plan_period || null, admin: adminOk(u, env), eienaar: eienaar(u, env), skepper: await isSkepper(env.DB, u.id) }) : json({ fout: 'Nie ingeteken nie.' }, 401);
   }
   if (path === '/api/export') {
     const u = await getUser(request, env.DB);
@@ -183,7 +185,7 @@ async function api(request, env, url, ctx) {
   if (path === '/api/skep-admin') {
     // Net die eienaar (ADMIN_EMAIL) sien die inskrywings
     const u = await getUser(request, env.DB);
-    if (!u || !env.ADMIN_EMAIL || u.email !== String(env.ADMIN_EMAIL).trim().toLowerCase()) return json({ fout: 'Nie gevind nie.' }, 404);
+    if (!adminOk(u, env)) return json({ fout: 'Nie gevind nie.' }, 404);
     const rows = await env.DB.prepare('SELECT id, name, email, title, type, link, synopsis, status, created_at FROM indienings ORDER BY id DESC LIMIT 200').all();
     return json({ inskrywings: rows.results.map((r) => ({ ...r, created_at: new Date(r.created_at).toISOString() })) });
   }
@@ -209,6 +211,10 @@ async function api(request, env, url, ctx) {
     if (sk) return sk;
     const dk = await handleDokumente({ request, env, path, post, u: cu });
     if (dk) return dk;
+    const vl = await handleVlakke({ request, env, path, post, u: cu });
+    if (vl) return vl;
+    const am = await handleAdmins({ request, env, path, post, u: cu });
+    if (am) return am;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }
