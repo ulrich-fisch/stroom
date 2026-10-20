@@ -611,4 +611,29 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   delete env.PAYFAST_MERCHANT_ID; delete env.PAYFAST_MERCHANT_KEY; delete env.PAYFAST_PASSPHRASE;
 }
 
+// 10. Duimop / duimaf
+{
+  sql.exec('DELETE FROM attempts');
+  const rr = await post('/api/register', { email: 'duim@stroom.co.za', name: 'Duim', password: 'correct-horse' }); const c = ck(rr); await post('/api/plan', { plan: 'avod' }, c);
+  const pj2 = await (await call('/api/profiele', {}, c)).json(); const pid = pj2.profiele[0].id;
+  const slugD = sql.prepare("SELECT slug FROM titels WHERE status = 'gepubliseer' LIMIT 1").get().slug;
+  t('thumbs: needs login', (await post('/api/reaksie', { slug: slugD, waarde: 1 })).status === 401);
+  t('thumbs: bad value refused', (await post('/api/reaksie', { profiel: pid, slug: slugD, waarde: 2 }, c)).status === 400);
+  t('thumbs: unknown title refused', (await post('/api/reaksie', { profiel: pid, slug: 'bestaan-nie', waarde: 1 }, c)).status === 404);
+  let d = await (await post('/api/reaksie', { profiel: pid, slug: slugD, waarde: 1 }, c)).json();
+  t('thumbs: like counted', d.ok && d.likes >= 1 && d.reaksie === 1);
+  let kat = await (await call('/api/katalogus?profiel=' + pid, {}, c)).json(); let ti = kat.titels.find((x) => x.slug === slugD);
+  t('thumbs: catalogue shows my reaction and like count', ti.reaksie === 1 && ti.likes === d.likes);
+  d = await (await post('/api/reaksie', { profiel: pid, slug: slugD, waarde: -1 }, c)).json();
+  t('thumbs: switching to dislike removes the like and shows no public dislike count', d.reaksie === -1 && d.likes === 0 && !('af' in d));
+  kat = await (await call('/api/katalogus?profiel=' + pid, {}, c)).json(); ti = kat.titels.find((x) => x.slug === slugD);
+  t('thumbs: catalogue has no dislike total', ti.reaksie === -1 && !JSON.stringify(ti).includes('duim_af'));
+  const ex2 = await (await call('/api/export', {}, c)).json();
+  t('thumbs: in export', ex2.reaksies.length === 1 && ex2.reaksies[0].duim === 'af');
+  d = await (await post('/api/reaksie', { profiel: pid, slug: slugD, waarde: 0 }, c)).json();
+  t('thumbs: can be removed', d.reaksie === 0 && sql.prepare('SELECT COUNT(*) c FROM reaksie WHERE profiel_id = ?').get(pid).c === 0);
+  await post('/api/reaksie', { profiel: pid, slug: slugD, waarde: 1 }, c);
+  t('thumbs: deleted with the account', (await post('/api/delete-account', { password: 'correct-horse' }, c)).status === 200 && sql.prepare('SELECT COUNT(*) c FROM reaksie WHERE profiel_id = ?').get(pid).c === 0);
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

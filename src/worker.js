@@ -48,7 +48,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20a';
+const SCHEMA = '2026-10-20b';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -170,6 +170,7 @@ async function api(request, env, url, ctx) {
       my_lys: (await all(`SELECT p.naam AS profiel, l.slug, l.created_at FROM lys l JOIN profiele p ON p.id = l.profiel_id WHERE l.profiel_id IN (${pids}) ORDER BY l.created_at`)).map((r) => ({ profiel: r.profiel, titel: r.slug, bygevoeg: iso(r.created_at) })),
       kykvordering: (await all(`SELECT p.naam AS profiel, v.slug, v.ep, v.posisie, v.duur, v.voltooi, v.bygewerk FROM vordering v JOIN profiele p ON p.id = v.profiel_id WHERE v.profiel_id IN (${pids})`)).map((r) => ({ profiel: r.profiel, titel: r.slug, episode: r.ep, sekondes: Math.round(r.posisie), voltooi: !!r.voltooi, bygewerk: iso(r.bygewerk) })),
       graderings: (await all(`SELECT p.naam AS profiel, g.slug, g.sterre, g.bygewerk FROM gradering g JOIN profiele p ON p.id = g.profiel_id WHERE g.profiel_id IN (${pids})`)).map((r) => ({ profiel: r.profiel, titel: r.slug, sterre: r.sterre, bygewerk: iso(r.bygewerk) })),
+      reaksies: (await all(`SELECT p.naam AS profiel, x.slug, x.waarde FROM reaksie x JOIN profiele p ON p.id = x.profiel_id WHERE x.profiel_id IN (${pids})`)).map((r) => ({ profiel: r.profiel, titel: r.slug, duim: r.waarde === 1 ? 'op' : 'af' })),
       herinnerings: (await all('SELECT slug, created_at FROM herinner WHERE user_id = ?')).map((r) => ({ titel: r.slug, gestel: iso(r.created_at) })),
       kykgeskiedenis: (await all('SELECT slug, ep, ts FROM kykgebeure WHERE user_id = ? ORDER BY ts DESC LIMIT 5000')).map((r) => ({ titel: r.slug, episode: r.ep, tyd: iso(r.ts) })),
       kykure_per_dag: (await all('SELECT dag, slug, sek FROM kyktyd WHERE user_id = ? ORDER BY dag DESC LIMIT 5000')).map((r) => ({ dag: r.dag, titel: r.slug, sekondes: r.sek })),
@@ -365,6 +366,7 @@ async function api(request, env, url, ctx) {
       db.prepare(`DELETE FROM lys WHERE profiel_id IN ${pids}`).bind(id),
       db.prepare(`DELETE FROM vordering WHERE profiel_id IN ${pids}`).bind(id),
       db.prepare(`DELETE FROM gradering WHERE profiel_id IN ${pids}`).bind(id),
+      db.prepare(`DELETE FROM reaksie WHERE profiel_id IN ${pids}`).bind(id),
       db.prepare('DELETE FROM profiele WHERE user_id = ?').bind(id),
       db.prepare('DELETE FROM herinner WHERE user_id = ?').bind(id),
       // Anonieme totale bly vir verslae: kykure word na 'n anonieme rekord (0) verskuif, kyke en advertensiemetings verloor hul skakel na die lid

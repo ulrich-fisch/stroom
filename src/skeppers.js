@@ -39,6 +39,7 @@ export async function titelSyfers(db, titels, w, rates) {
   const ads = await by(`SELECT slug, SUM(CASE WHEN tipe = 'begin' THEN 1 ELSE 0 END) AS b, SUM(CASE WHEN tipe = 'klik' THEN 1 ELSE 0 END) AS k FROM meting WHERE slug IN (${ph}) AND ts >= ? AND ts < ? GROUP BY slug`, ...slugs, w.from, w.to);
   const gr = await by(`SELECT slug, AVG(sterre) AS gem, COUNT(*) AS aantal FROM gradering WHERE slug IN (${ph}) GROUP BY slug`, ...slugs);
   const vo = await by(`SELECT slug, COUNT(*) AS n, SUM(voltooi) AS v FROM vordering WHERE slug IN (${ph}) GROUP BY slug`, ...slugs);
+  const rk = await by(`SELECT slug, SUM(waarde = 1) AS op, SUM(waarde = -1) AS af FROM reaksie WHERE slug IN (${ph}) GROUP BY slug`, ...slugs);
   const hn = await by(`SELECT slug, COUNT(*) AS n FROM herinner WHERE slug IN (${ph}) GROUP BY slug`, ...slugs);
   const deel = Number(rates.skepper_deel) || 0;
   return titels.map((t) => {
@@ -46,7 +47,7 @@ export async function titelSyfers(db, titels, w, rates) {
     const waarde = rond(((a.b || 0) / 1000) * rates.cpm_voorrol + (a.k || 0) * rates.cpc);
     return { slug: t.slug, titel: t.titel, status: t.status, kyke: k.kyke || 0, unieke: k.unieke || 0, ure: rond(((tyd.get(t.slug) || {}).sek || 0) / 3600),
       advertensie_kyke: a.b || 0, klikke: a.k || 0, waarde, deel: rond(waarde * deel / 100),
-      gem: g ? Math.round(g.gem * 10) / 10 : null, aantal: g ? g.aantal : 0, voltooi_pct: pct(v.v || 0, v.n || 0), herinnerings: (hn.get(t.slug) || {}).n || 0 };
+      gem: g ? Math.round(g.gem * 10) / 10 : null, aantal: g ? g.aantal : 0, voltooi_pct: pct(v.v || 0, v.n || 0), herinnerings: (hn.get(t.slug) || {}).n || 0, duim_op: (rk.get(t.slug) || {}).op || 0, duim_af: (rk.get(t.slug) || {}).af || 0 };
   });
 }
 
@@ -91,7 +92,7 @@ export async function handleSkeppers({ request, env, path, post, u }) {
     const v = await skepperVerslag(db, u.id, w, rates);
     if (path === '/api/skepper/verslag') return json(v);
     const cols = [['titel', 'Titel'], ['status', 'Status'], ['kyke', 'Kyke'], ['unieke', 'Unieke kykers'], ['ure', 'Kykure'], ['advertensie_kyke', 'Advertensie-vertonings'], ['klikke', 'Klikke'],
-      ['waarde', 'Beraamde advertensiewaarde (R)'], ['deel', 'Jou beraamde deel (R)'], ['gem', 'Gem. gradering'], ['voltooi_pct', 'Voltooiing %'], ['herinnerings', 'Herinnerings']];
+      ['waarde', 'Beraamde advertensiewaarde (R)'], ['deel', 'Jou beraamde deel (R)'], ['gem', 'Gem. gradering'], ['duim_op', 'Duim op'], ['duim_af', 'Duim af'], ['voltooi_pct', 'Voltooiing %'], ['herinnerings', 'Herinnerings']];
     return new Response(toCsv(cols, v.titels), { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="stroom-skepper-${vandag()}.csv"`, 'Cache-Control': 'no-store' } });
   }
 

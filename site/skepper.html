@@ -88,7 +88,7 @@
       <div id="skKpi" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
       <p id="skDeel" class="text-xs text-slate-400"></p>
       <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 overflow-x-auto"><table class="w-full text-sm text-left">
-        <thead class="text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="py-2 pr-4">Titel</th><th class="pr-4">Kyke</th><th class="pr-4">Kykers</th><th class="pr-4">Kykure</th><th class="pr-4">Voltooi</th><th class="pr-4">Gradering</th><th class="pr-4">Herinnerings</th><th>Beraamde deel</th></tr></thead>
+        <thead class="text-[10px] uppercase tracking-wider text-slate-400"><tr><th class="py-2 pr-4">Titel</th><th class="pr-4">Kyke</th><th class="pr-4">Kykers</th><th class="pr-4">Kykure</th><th class="pr-4">Voltooi</th><th class="pr-4">Gradering</th><th class="pr-4">Duime</th><th class="pr-4">Herinnerings</th><th>Beraamde deel</th></tr></thead>
         <tbody id="skRye"></tbody></table></div>
       <p class="text-[11px] text-slate-500 leading-relaxed">&ldquo;Beraamde deel&rdquo; is &rsquo;n skatting uit die advertensies wat voor jou titel gespeel het. Dit is nie &rsquo;n faktuur of &rsquo;n gewaarborgde bedrag nie; werklike uitbetaling volg die ooreenkoms tussen jou en Fischbowl Media.</p>
     </div>
@@ -139,7 +139,7 @@
           $('skKpi').innerHTML = kpi(fmt(t.kyke), 'Kyke') + kpi(fmt(t.ure, 1), 'Kykure') + kpi(fmt(t.advertensie_kyke), 'Advertensie-vertonings') + kpi(d.deel_pct ? R(t.deel) : '—', 'Beraamde deel');
           $('skDeel').textContent = d.deel_pct ? 'Jou aandeel: ' + d.deel_pct + '% van die beraamde advertensiewaarde (' + R(t.waarde) + ').' : 'Jou aandeel is nog nie vasgestel nie.';
           $('skRye').innerHTML = d.titels.map(function (x) {
-            return '<tr class="border-t border-slate-800 text-slate-200"><td class="py-2 pr-4 font-semibold">' + esc(x.titel) + (x.status !== 'gepubliseer' ? ' <span class="text-[10px] text-slate-500 uppercase">' + esc(x.status) + '</span>' : '') + '</td><td class="pr-4">' + fmt(x.kyke) + '</td><td class="pr-4">' + fmt(x.unieke) + '</td><td class="pr-4">' + fmt(x.ure, 1) + '</td><td class="pr-4">' + (x.voltooi_pct == null ? '—' : x.voltooi_pct + '%') + '</td><td class="pr-4">' + (x.gem == null ? '—' : '★ ' + x.gem + ' (' + x.aantal + ')') + '</td><td class="pr-4">' + fmt(x.herinnerings) + '</td><td>' + (d.deel_pct ? R(x.deel) : '—') + '</td></tr>';
+            return '<tr class="border-t border-slate-800 text-slate-200"><td class="py-2 pr-4 font-semibold">' + esc(x.titel) + (x.status !== 'gepubliseer' ? ' <span class="text-[10px] text-slate-500 uppercase">' + esc(x.status) + '</span>' : '') + '</td><td class="pr-4">' + fmt(x.kyke) + '</td><td class="pr-4">' + fmt(x.unieke) + '</td><td class="pr-4">' + fmt(x.ure, 1) + '</td><td class="pr-4">' + (x.voltooi_pct == null ? '—' : x.voltooi_pct + '%') + '</td><td class="pr-4">' + (x.gem == null ? '—' : '★ ' + x.gem + ' (' + x.aantal + ')') + '</td><td class="pr-4">\uD83D\uDC4D ' + fmt(x.duim_op) + ' &nbsp;\uD83D\uDC4E ' + fmt(x.duim_af) + '</td><td class="pr-4">' + fmt(x.herinnerings) + '</td><td>' + (d.deel_pct ? R(x.deel) : '—') + '</td></tr>';
           }).join('');
         } catch (e) { $('skFout').textContent = e.message; }
       }
