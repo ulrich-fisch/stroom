@@ -314,10 +314,10 @@ head_extra:
       box.replaceChildren(kop, ...lys.map((t) => {
         const r = el('div', 'flex flex-wrap items-center justify-between gap-2 text-sm');
         const besluit = t.lisensie_besluit ? META.besluite[t.lisensie_besluit] : 'Besluit nodig: hernu, nuwe ooreenkoms of geen verdere ooreenkoms';
-        r.append(el('span', 'text-slate-200', `${t.titel} • ${dagTekst(t)} (${datumKort(t.lisensie_einde)})`),
-          el('span', 'text-xs ' + (t.lisensie_besluit ? 'text-slate-400' : 'text-rose-400 font-bold'), besluit));
+        const regs = el('span', 'flex flex-wrap items-center gap-3');
         const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Maak oop'); w.type = 'button'; w.onclick = () => { document.querySelector('[data-tab="titels"]').click(); wysigTitel(t); };
-        r.append(w); return r;
+        regs.append(el('span', 'text-xs ' + (t.lisensie_besluit ? 'text-slate-400' : 'text-rose-400 font-bold'), besluit), w);
+        r.append(el('span', 'text-slate-200', `${t.titel} \u2022 ${dagTekst(t)} (${datumKort(t.lisensie_einde)})`), regs); return r;
       }));
     }
     function teken() {
