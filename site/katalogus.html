@@ -13,16 +13,17 @@
   <title>Stroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@700;800&display=swap">
   <link rel="stylesheet" href="/stroom.css">
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><clipPath id="wvClip"><path d="M16 13 Q16 8 20.3 10.5 L52.7 29.5 Q57 32 52.7 34.5 L20.3 53.5 Q16 56 16 51 Z"/></clipPath><linearGradient id="wvGrad" gradientUnits="userSpaceOnUse" x1="14" y1="8" x2="58" y2="56"><stop offset="0" stop-color="#bae6fd"/><stop offset=".5" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs></svg>
 
 <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap justify-between items-center gap-y-3">
       <div class="flex items-center space-x-8">
-        <a href="katalogus.html" class="flex items-center space-x-3">
-          <span class="text-2xl font-black tracking-widest text-white uppercase italic">STROOM</span>
+        <a href="katalogus.html" class="brand flex items-center space-x-3" aria-label="Stroom">
+          <svg class="wv" width="40" height="40" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false"><g clip-path="url(#wvClip)" stroke="url(#wvGrad)" stroke-width="7"><path class="w1" d="M-48 21 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w2" opacity=".75" d="M-48 34 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w3" opacity=".5" d="M-48 47 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/></g></svg><span class="font-brand text-xl sm:text-2xl text-white">STROOM</span>
         </a>
         <nav class="hidden md:flex space-x-8 text-xs font-semibold tracking-wider uppercase text-slate-400">
           <a href="katalogus.html" class="text-white border-b-2 border-sky-400 pb-1">Katalogus</a>
@@ -71,10 +72,11 @@
     /* Gedeelde toneel: logo + stroom (golflyn) + vis wat oor die logo spring */
     .scn { position: relative; width: min(86vw, 640px); aspect-ratio: 2 / 1; container-type: inline-size; }
     .scn .lw { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-    .scn .logo { font: italic 900 14cqw/1 Inter, system-ui, sans-serif; text-transform: uppercase; padding: 0 .2em; opacity: 0;
+    .scn .logo { display: inline-flex; align-items: center; gap: .3em; font: 800 11cqw/1 Sora, Inter, system-ui, sans-serif; text-transform: uppercase; padding: 0 .2em; opacity: 0;
       background: linear-gradient(100deg, #fff 0 38%, #38bdf8 50%, #fff 62% 100%); background-size: 260% 100%; background-position: 100% 0;
       -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .scn svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .scn .logo .wv { width: 1.5em; height: 1.5em; margin-right: -.15em; position: static; }
+    .scn > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
     .scn .stream { fill: none; stroke: #38bdf8; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 360; stroke-dashoffset: 360; filter: drop-shadow(0 0 5px rgba(56,189,248,.7)); }
     .scn .fish { opacity: 0; }
     .scn .rip { fill: none; stroke: #7dd3fc; stroke-width: 1.2; opacity: 0; transform-box: fill-box; transform-origin: center; }
@@ -116,7 +118,7 @@
   </style>
   <div id="intro" aria-hidden="true" onclick="this.remove()">
     <div class="scn">
-      <div class="lw"><span class="logo">Stroom</span></div>
+      <div class="lw"><span class="logo"><svg class="wv wv-live" width="1em" height="1em" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false"><g clip-path="url(#wvClip)" stroke="url(#wvGrad)" stroke-width="7"><path class="w1" d="M-48 21 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w2" opacity=".75" d="M-48 34 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w3" opacity=".5" d="M-48 47 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/></g></svg><span>Stroom</span></span></div>
       <svg viewBox="0 0 400 200" aria-hidden="true">
         <path class="stream" d="M30 150 C 58 138, 83 162, 113 150 S 168 138, 198 150 S 253 162, 283 150 S 338 138, 366 150"/>
         <ellipse class="rip r1" cx="72" cy="150" rx="9" ry="2.6"/><ellipse class="rip r2" cx="330" cy="150" rx="9" ry="2.6"/>
@@ -143,8 +145,8 @@
         <span id="heroMatch" class="text-amber-300"></span>
         <span id="heroAge" class="border border-slate-600 px-2 py-0.5 rounded text-slate-300"></span>
       </div>
-      <p id="heroSynopsis" class="text-slate-300 text-sm sm:text-base font-normal max-w-xl leading-relaxed line-clamp-3">Besig om te laai...</p>
-      <div id="heroButtons" class="pt-1 flex flex-wrap items-center gap-2 sm:gap-3"></div>
+      <p id="heroSynopsis" class="text-slate-300 text-sm sm:text-base font-normal max-w-xl leading-relaxed line-clamp-3">Ons vang jou flieks…</p>
+      <div id="heroButtons" class="pt-1 flex flex-wrap items-center gap-2 sm:gap-3"><svg class="wv wv-live" width="34" height="34" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false"><g clip-path="url(#wvClip)" stroke="url(#wvGrad)" stroke-width="7"><path class="w1" d="M-48 21 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w2" opacity=".75" d="M-48 34 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w3" opacity=".5" d="M-48 47 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/></g></svg></div>
     </div>
   </section>
 
@@ -176,7 +178,7 @@
     </div>
 
     <!-- Rakke -->
-    <div id="shelves" class="space-y-10"></div>
+    <div id="shelves" class="space-y-10"><div class="space-y-3" role="status" aria-label="Besig om te laai"><div class="sk h-5 w-40 rounded-md"></div><div class="flex space-x-5 overflow-hidden"><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div></div></div><div class="space-y-3" role="status" aria-label="Besig om te laai"><div class="sk h-5 w-40 rounded-md"></div><div class="flex space-x-5 overflow-hidden"><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div><div class="sk shrink-0 w-40 sm:w-44 aspect-[2/3] rounded-xl"></div></div></div></div>
 
     <!-- Catalogue Grid -->
     <div class="space-y-4">
@@ -333,7 +335,7 @@
         <div id="stinger" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#02030b] cursor-pointer" onclick="endStinger()">
           <button onclick="event.stopPropagation(); closePlayer()" class="absolute top-3 right-4 text-slate-400 hover:text-white text-3xl font-bold px-2 leading-none" aria-label="Sluit">&times;</button>
           <div class="scn">
-          <div class="lw"><span class="logo">Stroom</span></div>
+          <div class="lw"><span class="logo"><svg class="wv wv-live" width="1em" height="1em" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false"><g clip-path="url(#wvClip)" stroke="url(#wvGrad)" stroke-width="7"><path class="w1" d="M-48 21 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w2" opacity=".75" d="M-48 34 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w3" opacity=".5" d="M-48 47 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/></g></svg><span>Stroom</span></span></div>
           <svg viewBox="0 0 400 200" aria-hidden="true">
             <path class="stream" d="M30 150 C 58 138, 83 162, 113 150 S 168 138, 198 150 S 253 162, 283 150 S 338 138, 366 150"/>
             <ellipse class="rip r1" cx="72" cy="150" rx="9" ry="2.6"/><ellipse class="rip r2" cx="330" cy="150" rx="9" ry="2.6"/>
@@ -419,6 +421,7 @@
     const starTxt = (t) => (t.gem ? `&#9733; ${t.gem} <span class="text-slate-500">(${t.aantal})</span>` : '<span class="text-slate-500">Nog nie gegradeer</span>');
     const jsonPost = (path, body) => fetch(path, { method: 'POST', headers: jsonHdr, body: JSON.stringify(body) });
 
+    const SKEL = document.getElementById('shelves').innerHTML;
     async function laaiKatalogus() {
       await profielReady;
       if (!activeProfileId) { window.location.href = 'profiel.html'; return; }
@@ -426,7 +429,7 @@
       let r;
       try { r = await fetch('/api/katalogus?profiel=' + activeProfileId); } catch (e) { r = null; }
       if (r && r.status === 400) { activeProfileId = 0; try { localStorage.removeItem('stroom_profiel_id'); } catch (e) {} window.location.href = 'profiel.html'; return; }
-      if (!r || !r.ok) { document.getElementById('heroSynopsis').textContent = 'Kon nie die katalogus laai nie. Probeer asseblief weer.'; return; }
+      if (!r || !r.ok) { const hs = document.getElementById('heroSection'); hs.style.display = 'none'; fishError(document.getElementById('shelves'), { retry: () => { hs.style.display = ''; document.getElementById('shelves').innerHTML = SKEL; laaiKatalogus(); } }); return; }
       const d = await r.json(); TITELS = d.titels; GENRES = d.genres || {}; BINNEKORT = d.binnekort || []; HERINNER_NUUT = d.herinner_nuut || [];
       renderGenreMenu(); renderHero(); renderGrid(); renderShelves(); renderHerinnerStrip();
       await laaiLid();
@@ -504,7 +507,7 @@
     function renderHero() {
       const h = weeklyPick();
       const box = document.getElementById('heroButtons'); box.replaceChildren();
-      if (!h) { document.getElementById('heroTitle').textContent = 'Stroom'; document.getElementById('heroSynopsis').textContent = 'Nuwe inhoud kom binnekort.'; return; }
+      if (!h) { document.getElementById('heroButtons').replaceChildren(); document.getElementById('heroTitle').textContent = 'Stroom'; document.getElementById('heroSynopsis').textContent = 'Nuwe inhoud kom binnekort.'; return; }
       document.getElementById('heroImg').style.backgroundImage = `url('${esc(h.banner)}')`;
       document.getElementById('heroMatch').innerHTML = starTxt(h);
       document.getElementById('heroAge').textContent = h.ouderdom || '';

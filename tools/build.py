@@ -28,7 +28,21 @@ FILTERS = ('<div class="flex items-center gap-2 shrink-0">'
 SW_REG = "<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
-         '  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">')
+         '  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@700;800&display=swap">')
+
+# Die STROOM-merk: 'n speel-driehoek gesny uit drie golwe. {{mark:30}} = staties, {{mark:30:live}} = golwe beweeg.
+# Die golwe is 3 periodes lank en skuif 56 eenhede (een periode) vir 'n naatlose lus. Die klip en kleur kom van MARK_DEFS (een keer per bladsy).
+_WAVE = 'c10 -10 20 -10 28 0 s18 10 28 0' * 3
+MARK_DEFS = ('<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>'
+             '<clipPath id="wvClip"><path d="M16 13 Q16 8 20.3 10.5 L52.7 29.5 Q57 32 52.7 34.5 L20.3 53.5 Q16 56 16 51 Z"/></clipPath>'
+             '<linearGradient id="wvGrad" gradientUnits="userSpaceOnUse" x1="14" y1="8" x2="58" y2="56">'
+             '<stop offset="0" stop-color="#bae6fd"/><stop offset=".5" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs></svg>')
+def mark(size, live=False):
+    return (f'<svg class="wv{" wv-live" if live else ""}" width="{size}" height="{size}" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">'
+            f'<g clip-path="url(#wvClip)" stroke="url(#wvGrad)" stroke-width="7"><path class="w1" d="M-48 21 {_WAVE}"/>'
+            f'<path class="w2" opacity=".75" d="M-48 34 {_WAVE}"/><path class="w3" opacity=".5" d="M-48 47 {_WAVE}"/></g></svg>')
+def marks(html):
+    return re.sub(r'\{\{mark:([0-9a-z.%]+)(:live)?\}\}', lambda m: mark(m.group(1), bool(m.group(2))), html)
 
 def parse(text):
     m = re.match(r'<!--page\n(.*?)-->\n(.*)', text, re.S)
@@ -67,8 +81,8 @@ def build():
                 f'  <meta name="apple-mobile-web-app-capable" content="yes">\n  <meta name="mobile-web-app-capable" content="yes">\n'
                 f'  <meta name="apple-mobile-web-app-title" content="Stroom">\n'
                 f'  <title>{meta["title"]}</title>\n  {FONTS}\n  <link rel="stylesheet" href="/stroom.css">{head_extra}\n</head>\n'
-                f'<body class="{meta["body"]}">\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n' + SW_REG + '\n</body>\n</html>\n')
-        open(f'{OUT}/{name}.html', 'w', encoding='utf-8').write(html)
+                f'<body class="{meta["body"]}">\n{MARK_DEFS}\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n' + SW_REG + '\n</body>\n</html>\n')
+        open(f'{OUT}/{name}.html', 'w', encoding='utf-8').write(marks(html))
     for f in os.listdir(f'{SRC}/static'):
         shutil.copy(f'{SRC}/static/{f}', f'{OUT}/{f}')
     tw = os.environ.get('TAILWIND') or f'{ROOT}/tools/tailwindcss'

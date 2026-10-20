@@ -27,3 +27,28 @@ body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-ser
 .plan-card.selected { border-color: #38bdf8; background-color: rgba(56, 189, 248, 0.08); }
 
 .profile-card:hover img { border-color: #38bdf8; }
+
+
+/* ---- Handelsmerk: die golf-merk (speel-driehoek van drie golwe), skelet-laai en die vis-foutskerm ---- */
+.font-brand { font-family: 'Sora', 'Inter', sans-serif; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.wv { flex: none; display: block; overflow: visible; }
+@keyframes wvflow { from { transform: translateX(0); } to { transform: translateX(56px); } }
+.wv-live .w1, .brand:hover .w1 { animation: wvflow 2.6s linear infinite; }
+.wv-live .w2, .brand:hover .w2 { animation: wvflow 3.4s linear infinite; animation-delay: -1.1s; }
+.wv-live .w3, .brand:hover .w3 { animation: wvflow 4.2s linear infinite; animation-delay: -2.3s; }
+
+.sk { background: linear-gradient(90deg, #0f1b34 0%, #18294d 50%, #0f1b34 100%); background-size: 600px 100%; animation: skshim 1.5s linear infinite; }
+@keyframes skshim { 0% { background-position: -300px 0; } 100% { background-position: 300px 0; } }
+
+/* Vriendelike fout: die vis spartel op droë grond */
+.fx { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 32px 16px; }
+.fx .fx-stage { position: relative; width: 200px; height: 150px; }
+.fx .fx-fish { position: absolute; left: 20px; bottom: 22px; width: 160px; height: 95px; transform-origin: 50% 90%; animation: fxflop 2.4s ease-in-out infinite; }
+.fx .fx-shadow { position: absolute; left: 0; bottom: 4px; animation: fxshadow 2.4s ease-in-out infinite; }
+.fx .fx-ground { position: absolute; left: 0; bottom: 0; }
+.fx .fx-blub { position: absolute; right: 10px; top: 0; font: 600 12px 'Sora', 'Inter', sans-serif; color: #bae6fd; background: #0c1528; border: 1px solid #2a3d66; border-radius: 999px; padding: 4px 12px; animation: fxblub 2.4s ease infinite; }
+@keyframes fxflop { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 6% { transform: translateY(-30px) rotate(-26deg); } 14% { transform: translateY(0) rotate(14deg); } 22% { transform: translateY(-14px) rotate(24deg); } 30% { transform: translateY(0) rotate(-10deg); } 38% { transform: translateY(-6px) rotate(8deg); } 46% { transform: translateY(0) rotate(-3deg); } }
+@keyframes fxshadow { 0%, 60%, 100% { transform: scaleX(1); opacity: .5; } 6% { transform: scaleX(.6); opacity: .25; } 22% { transform: scaleX(.75); opacity: .3; } }
+@keyframes fxblub { 0%, 8% { opacity: 0; transform: translateY(4px); } 14%, 50% { opacity: 1; transform: none; } 60%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wv path, .sk, .fx .fx-fish, .fx .fx-shadow, .fx .fx-blub { animation: none !important; } .fx .fx-blub { opacity: 1; } }
+#heroAge:empty, #heroMatch:empty { display: none; }

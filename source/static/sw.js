@@ -1,6 +1,6 @@
 // Stroom-diensskakel: laat die toep installeer en wys 'n vriendelike bladsy as jy aflyn is.
 // Dit stoor NOOIT ingeteken bladsye, API-antwoorde of video's nie (net die toep se vaste lêers).
-const CACHE = 'stroom-v1';
+const CACHE = 'stroom-v2';
 const SHELL = ['/offline.html', '/stroom.css', '/app.js', '/icon-192.png', '/favicon.png'];
 
 self.addEventListener('install', (e) => {
