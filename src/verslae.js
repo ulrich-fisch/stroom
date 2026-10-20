@@ -3,7 +3,7 @@
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });
 const DAY = 86400000, TZ = 7200;                                   // Suid-Afrika = UTC+2 (geen somertyd)
 const dayExpr = (col) => `strftime('%Y-%m-%d', ${col} / 1000 + ${TZ}, 'unixepoch')`;
-const adminOk = (u, env) => !!(u && env.ADMIN_EMAIL && u.email === String(env.ADMIN_EMAIL).trim().toLowerCase());
+import { adminOk } from './admin.js';
 
 export const DEFAULT_RATES = { cpm_voorrol: 120, cpc: 4, premium_maand: 59, premium_jaar: 590, skepper_deel: 0 };
 const RATE_KEYS = Object.keys(DEFAULT_RATES);
