@@ -7,6 +7,7 @@ import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
 import { handleBinnekort, herinnerStatements, TITEL_COLUMNS, isBinnekortPath, sharePage } from './binnekort.js';
+import { handleDokumente, isDokumentPath, LISENSIE_COLUMNS, dokumenteStatements } from './lisensie.js';
 import { handleSkeppers, isSkepperPath, SKEPPER_COLUMNS, isSkepper } from './skeppers.js';
 import { md5, config, buildCheckout, processItn, cancelSubscription, PLANS } from './payfast.js';
 
@@ -48,7 +49,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20d';
+const SCHEMA = '2026-10-20e';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -102,9 +103,9 @@ async function migrate(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL,
       title TEXT NOT NULL, type TEXT NOT NULL, link TEXT NOT NULL, synopsis TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'hangende', created_at INTEGER NOT NULL)`),
-    ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db),
+    ...contentStatements(db), ...memberStatements(db), ...reportStatements(db), ...subtitleStatements(db), ...herinnerStatements(db), ...dokumenteStatements(db),
   ]);
-  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS, ...SERIE_COLUMNS]);
+  await addColumns(db, [['users', 'plan_period', 'TEXT'], ['users', 'pf_token', 'TEXT'], ...REPORT_COLUMNS, ...TITEL_COLUMNS, ...SKEPPER_COLUMNS, ...SERIE_COLUMNS, ...LISENSIE_COLUMNS]);
   await seedContent(db);
 }
 
@@ -206,6 +207,8 @@ async function api(request, env, url, ctx) {
     if (bk) return bk;
     const sk = await handleSkeppers({ request, env, path, post, u: cu });
     if (sk) return sk;
+    const dk = await handleDokumente({ request, env, path, post, u: cu });
+    if (dk) return dk;
     const c = await handleContent({ request, env, path, post, u: cu });
     if (c) return c;
   }

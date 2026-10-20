@@ -22,6 +22,8 @@ head_extra:
       <button data-tab="toets" class="tab-btn text-xs px-5 py-2 rounded-full border border-slate-800 text-slate-400 hover:text-white">Toetsing</button>
     </div>
 
+    <div id="lisensieBanner" class="hidden rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 space-y-2"></div>
+
     <p id="msg" class="hidden text-sm"></p>
 
     <!-- TITELS -->
@@ -75,6 +77,32 @@ head_extra:
           <label class="flex items-center gap-2 text-sm text-slate-300">Status
             <select id="t_status" class="inp !w-auto"><option value="konsep">Konsep (nie sigbaar nie)</option><option value="binnekort">Binnekort (wys met &ldquo;Herinner my&rdquo;)</option><option value="gepubliseer">Gepubliseer</option></select></label>
         </div>
+        <div id="lisensieBox" class="rounded-xl border border-slate-800 p-4 space-y-4">
+          <span class="lbl !mb-0">Lisensie &amp; dokumente (net die admin sien dit)</span>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label class="block"><span class="lbl">Lisensie begin</span><input type="date" id="t_lis_begin" class="inp"></label>
+            <label class="block"><span class="lbl">Lisensie eindig (hoe lank dit op Stroom mag bly)</span><input type="date" id="t_lis_einde" class="inp"></label>
+            <label class="block"><span class="lbl">Besluit oor die ooreenkoms</span>
+              <select id="t_lis_besluit" class="inp"><option value="">Nog nie besluit nie</option><option value="hernu">Hernu die ooreenkoms</option><option value="nuut">Nuwe ooreenkoms nodig</option><option value="geen">Geen verdere ooreenkoms nie</option></select></label>
+            <label class="block"><span class="lbl">Regshebber / verspreider</span><input id="t_regshebber" maxlength="120" class="inp" placeholder="Wie besit die regte?"></label>
+            <label class="block md:col-span-2"><span class="lbl">Kontak (naam, e-pos, foon)</span><input id="t_kontak" maxlength="200" class="inp"></label>
+            <label class="block md:col-span-3"><span class="lbl">Interne notas (bedrag, voorwaardes, gebiede, wat afgespreek is)</span><textarea id="t_admin_notas" rows="3" maxlength="4000" class="inp"></textarea></label>
+          </div>
+          <p class="text-[11px] text-slate-500">Drie maande voor die einddatum verskyn &rsquo;n waarskuwing bo-aan die admin-bladsy. Niks word vanself van die platform afgehaal nie; jy besluit.</p>
+          <div class="space-y-2 pt-2 border-t border-slate-800">
+            <span class="lbl">Dokumente &amp; papierwerk (PDF, Word, Excel, foto&rsquo;s; maks 20 MB elk)</span>
+            <p id="dkNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy ooreenkomste en dokumente byvoeg.</p>
+            <div id="dkVorm" class="hidden space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="dk_soort" class="inp !w-auto" aria-label="Soort"></select>
+                <input id="dk_naam" maxlength="80" placeholder="Naam (bv. Lisensie 2026/27)" class="inp !w-auto min-w-[14rem]">
+                <input type="file" id="dk_leer" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.rtf,.odt,.png,.jpg,.jpeg" onchange="laaiDokument(this)" class="text-xs text-slate-400">
+              </div>
+              <p id="dk_status" class="text-xs text-slate-400"></p>
+            </div>
+            <div id="dkLys" class="space-y-1"></div>
+          </div>
+        </div>
         <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
           <span class="lbl">Onderskrifte (.srt of .vtt)</span>
           <p id="osNuut" class="text-xs text-slate-500">Stoor die titel eers; dan kan jy onderskrifte byvoeg.</p>
@@ -95,6 +123,16 @@ head_extra:
         </div>
       </form>
 
+      <div class="space-y-3">
+        <div id="katChips" class="flex flex-wrap gap-2" role="tablist" aria-label="Kategorie"></div>
+        <div class="flex flex-wrap items-center gap-3">
+          <input id="titelSoek" type="search" placeholder="Soek titel, regisseur of regshebber" class="inp !w-auto min-w-[16rem] flex-1 max-w-md" oninput="teken()">
+          <select id="titelFilter" class="inp !w-auto" onchange="teken()" aria-label="Filter">
+            <option value="">Alle titels</option><option value="aandag">Lisensie-aandag (&le; 3 maande of verval)</option><option value="geen">Sonder lisensiedatum</option>
+            <option value="gepubliseer">Gepubliseer</option><option value="binnekort">Binnekort</option><option value="konsep">Konsep</option>
+          </select>
+        </div>
+      </div>
       <div id="titelLys" class="space-y-3"></div>
     </section>
 
@@ -253,21 +291,99 @@ head_extra:
       $('t_tipe').replaceChildren(...META.tipes.map((t) => { const o = el('option', '', t); o.value = t; return o; }));
       $('t_genre').replaceChildren(...Object.entries(META.genres).map(([k, v]) => { const o = el('option', '', v); o.value = k; return o; }));
     }
-    async function laaiTitels() {
-      const d = await api('/api/admin/titels'); TITELS = d.titels; META = { tipes: d.tipes, genres: d.genres }; vulKeuses();
+    // ---------- Kategorie, soek en lisensie-aansig ----------
+    let KAT = '';
+    const KAT_ETIKET = { 'Speelfilm': 'Speelfilms', 'Reeks': 'Reekse', 'Kortfilm': 'Kortfilms', 'Dokumentêr': 'Dokumentêre' };
+    const dae = (n) => n + (n === 1 ? ' dag' : ' dae');
+    const dagTekst = (t) => t.vlak === 'geen' ? 'Geen lisensiedatum' : t.vlak === 'verval' ? 'Lisensie verval ' + dae(-t.dae) + ' gelede' : t.dae === 0 ? 'Lisensie eindig vandag' : dae(t.dae) + ' lisensie oor';
+    const vlakKlas = { geen: 'text-slate-500 border-slate-700', ok: 'text-emerald-400 border-emerald-500/40', waarsku: 'text-amber-300 border-amber-500/50', verval: 'text-rose-400 border-rose-500/50' };
+    const datumKort = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${+m[3]} ${['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Des'][+m[2] - 1]} ${m[1]}` : ''; };
+    function katChips() {
+      const box = $('katChips');
+      const tel = (k) => TITELS.filter((t) => !k || t.tipe === k).length;
+      box.replaceChildren(...[['', 'Alle titels']].concat(META.tipes.map((k) => [k, KAT_ETIKET[k] || k])).map(([k, l]) => {
+        const b = el('button', 'text-xs px-4 py-1.5 rounded-full border transition ' + (KAT === k ? 'border-sky-500 text-sky-300 bg-sky-500/10' : 'border-slate-800 text-slate-400 hover:text-white'), `${l} (${tel(k)})`);
+        b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(KAT === k)); b.onclick = () => { KAT = k; teken(); }; return b;
+      }));
+    }
+    function banner() {
+      const box = $('lisensieBanner');
+      const lys = TITELS.filter((t) => t.vlak === 'waarsku' || t.vlak === 'verval').sort((a, b) => a.dae - b.dae);
+      box.classList.toggle('hidden', !lys.length); if (!lys.length) return;
+      const kop = el('div', 'text-xs font-bold uppercase tracking-widest text-amber-300', `Lisensie-aandag: ${lys.length} titel${lys.length === 1 ? '' : 's'}`);
+      box.replaceChildren(kop, ...lys.map((t) => {
+        const r = el('div', 'flex flex-wrap items-center justify-between gap-2 text-sm');
+        const besluit = t.lisensie_besluit ? META.besluite[t.lisensie_besluit] : 'Besluit nodig: hernu, nuwe ooreenkoms of geen verdere ooreenkoms';
+        r.append(el('span', 'text-slate-200', `${t.titel} • ${dagTekst(t)} (${datumKort(t.lisensie_einde)})`),
+          el('span', 'text-xs ' + (t.lisensie_besluit ? 'text-slate-400' : 'text-rose-400 font-bold'), besluit));
+        const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Maak oop'); w.type = 'button'; w.onclick = () => { document.querySelector('[data-tab="titels"]').click(); wysigTitel(t); };
+        r.append(w); return r;
+      }));
+    }
+    function teken() {
+      katChips(); banner();
+      const q = ($('titelSoek').value || '').trim().toLowerCase(), f = $('titelFilter').value;
       const lys = $('titelLys');
-      if (!TITELS.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', 'Nog geen titels nie.')); return; }
-      lys.replaceChildren(...TITELS.map((t) => {
+      const sigbaar = TITELS.filter((t) => (!KAT || t.tipe === KAT) && (!q || [t.titel, t.regisseur, t.regshebber].some((x) => String(x || '').toLowerCase().includes(q)))
+        && (!f || (f === 'aandag' ? (t.vlak === 'waarsku' || t.vlak === 'verval') : f === 'geen' ? t.vlak === 'geen' : t.status === f)));
+      if (!sigbaar.length) { lys.replaceChildren(el('p', 'text-sm text-slate-500', TITELS.length ? 'Geen titels pas by hierdie filter nie.' : 'Nog geen titels nie.')); return; }
+      lys.replaceChildren(...sigbaar.map((t) => {
         const row = el('div', 'flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-xl p-4');
         const left = el('div', 'space-y-1');
         left.append(el('div', 'font-bold text-white', t.titel + (t.uitgelig ? '  ★' : '')),
           el('div', 'text-xs text-slate-400', `${t.tipe} • ${t.regisseur || '—'} • ${t.genre_etiket || ''} • ` + (t.aantal ? `★ ${t.gem} (${t.aantal})` : 'nog nie gegradeer nie') + (t.herinnerings ? ` • 🔔 ${t.herinnerings} herinnering${t.herinnerings === 1 ? '' : 's'}` : '')));
+        const lis = el('div', 'flex flex-wrap items-center gap-2 text-[11px]');
+        lis.append(el('span', 'px-2.5 py-0.5 rounded-full border font-semibold ' + vlakKlas[t.vlak], dagTekst(t) + (t.lisensie_einde ? ' • ' + datumKort(t.lisensie_einde) : '')));
+        if (t.regshebber) lis.append(el('span', 'text-slate-400', 'Regte: ' + t.regshebber));
+        if (t.lisensie_besluit && (t.vlak === 'waarsku' || t.vlak === 'verval')) lis.append(el('span', 'text-slate-400', '→ ' + META.besluite[t.lisensie_besluit]));
+        if (t.dokumente) lis.append(el('span', 'text-slate-400', '📄 ' + t.dokumente + ' dokument' + (t.dokumente === 1 ? '' : 'e')));
+        left.append(lis);
         const right = el('div', 'flex items-center gap-3');
-        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : t.status === 'binnekort' ? 'text-sky-400 border-sky-500/40' : 'text-amber-400 border-amber-500/40'), t.status === 'binnekort' && t.vrystelling ? 'binnekort ' + t.vrystelling : t.status));
+        right.append(el('span', 'text-[10px] font-bold uppercase px-3 py-1 rounded-full border ' + (t.status === 'gepubliseer' ? 'text-emerald-400 border-emerald-500/40' : t.status === 'binnekort' ? 'text-sky-400 border-sky-500/40' : 'text-amber-400 border-amber-500/40'), t.status));
         const w = el('button', 'text-xs text-sky-400 hover:text-white', 'Wysig'); w.onclick = () => wysigTitel(t);
         const s = el('button', 'text-xs text-rose-400 hover:text-white', 'Skrap'); s.onclick = () => skrapTitel(t);
         right.append(w, s); row.append(left, right); return row;
       }));
+    }
+    async function laaiTitels() {
+      const d = await api('/api/admin/titels'); TITELS = d.titels; META = { tipes: d.tipes, genres: d.genres, besluite: d.besluite }; vulKeuses(); teken();
+    }
+    // ---------- Dokumente ----------
+    const grootteTekst = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+    async function laaiDokumente() {
+      const slug = OS_SLUG; if (!slug) return;
+      try {
+        const d = await api('/api/admin/dokumente?slug=' + encodeURIComponent(slug)); if (slug !== OS_SLUG) return;
+        if (!$('dk_soort').options.length) $('dk_soort').replaceChildren(...Object.entries(d.soorte).map(([k, v]) => { const o = el('option', '', v); o.value = k; return o; }));
+        const lys = $('dkLys');
+        if (!d.dokumente.length) { lys.replaceChildren(el('p', 'text-xs text-slate-500', 'Nog geen dokumente nie.')); return; }
+        lys.replaceChildren(...d.dokumente.map((x) => {
+          const rij = el('div', 'flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2');
+          rij.append(el('span', 'text-slate-200', `${x.naam}.${x.ext} • ${x.soort_etiket} • ${grootteTekst(x.grootte)} • ${new Date(x.op).toLocaleDateString('af-ZA')}`));
+          const knoppies = el('span', 'flex gap-3');
+          const dl = el('a', 'text-sky-400 hover:text-white', 'Laai af'); dl.href = '/api/admin/dokument?id=' + x.id;
+          const del = el('button', 'text-rose-400 hover:text-white', 'Skrap'); del.type = 'button';
+          del.onclick = async () => { if (!confirm('Skrap "' + x.naam + '" permanent?')) return; try { await api('/api/admin/dokument-skrap', { id: x.id }); laaiDokumente(); laaiTitels(); } catch (e) { boodskap(e.message, true); } };
+          knoppies.append(dl, del); rij.append(knoppies); return rij;
+        }));
+      } catch (e) { /* probeer weer */ }
+    }
+    function laaiDokument(input) {
+      const f = input.files && input.files[0]; if (!f || !OS_SLUG) return;
+      const st = $('dk_status'), ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (f.size > 20 * 1024 * 1024) { st.className = 'text-xs text-rose-400'; st.textContent = 'Te groot (maks 20 MB).'; input.value = ''; return; }
+      const naam = $('dk_naam').value.trim() || f.name.replace(/\.[^.]+$/, '');
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/admin/dokument-laai-op?slug=' + encodeURIComponent(OS_SLUG) + '&soort=' + encodeURIComponent($('dk_soort').value) + '&ext=' + encodeURIComponent(ext) + '&naam=' + encodeURIComponent(naam));
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) { st.className = 'text-xs text-slate-300'; st.textContent = 'Laai op... ' + Math.round(e.loaded / e.total * 100) + '%'; } };
+      xhr.onload = () => {
+        let d = {}; try { d = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 200 && d.ok) { st.className = 'text-xs text-emerald-400'; st.textContent = 'Opgelaai.'; $('dk_naam').value = ''; laaiDokumente(); laaiTitels(); }
+        else { st.className = 'text-xs text-rose-400'; st.textContent = d.fout || 'Oplaai het misluk.'; }
+        input.value = '';
+      };
+      xhr.onerror = () => { st.className = 'text-xs text-rose-400'; st.textContent = 'Oplaai het misluk. Probeer weer.'; };
+      xhr.send(f);
     }
     function vulTitelVorm(t) {
       $('t_id').value = t.id || ''; $('t_titel').value = t.titel || ''; $('t_tipe').value = t.tipe || META.tipes[0];
@@ -275,12 +391,14 @@ head_extra:
       $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
       $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
-      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || ''; $('t_intro').value = t.intro || ''; $('t_adpunte').value = t.adpunte || ''; $('t_krediete').value = t.krediete || '';
+      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || ''; $('t_intro').value = t.intro || ''; $('t_adpunte').value = t.adpunte || ''; $('t_krediete').value = t.krediete || ''; $('t_lis_begin').value = t.lisensie_begin || ''; $('t_lis_einde').value = t.lisensie_einde || ''; $('t_lis_besluit').value = t.lisensie_besluit || ''; $('t_regshebber').value = t.regshebber || ''; $('t_kontak').value = t.regshebber_kontak || ''; $('t_admin_notas').value = t.admin_notas || '';
       $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
       OS_SLUG = t.slug || null; OS_EPS = String(t.episodes_teks || '').split('\n').filter((x) => x.trim()).map((x) => x.split('|')[0].trim());
       $('osNuut').classList.toggle('hidden', !!OS_SLUG); $('osVorm').classList.toggle('hidden', !OS_SLUG); $('osLys').replaceChildren(); $('os_status').textContent = '';
       $('os_ep').replaceChildren(...[['-1', 'Hele film']].concat(OS_EPS.map((n, i) => [String(i), n || 'Ep ' + (i + 1)])).map(([v, l]) => { const o = el('option', '', l); o.value = v; return o; }));
       if (OS_SLUG) laaiOnderskrifte();
+      $('dkNuut').classList.toggle('hidden', !!OS_SLUG); $('dkVorm').classList.toggle('hidden', !OS_SLUG); $('dkLys').replaceChildren(); $('dk_status').textContent = '';
+      if (OS_SLUG) laaiDokumente();
     }
     // ---------- Onderskrifte ----------
     let OS_SLUG = null, OS_EPS = [];
@@ -314,7 +432,7 @@ head_extra:
       } catch (e) { st.className = 'text-xs text-rose-400'; st.textContent = e.message; }
       inp.value = ''; laaiOnderskrifte();
     }
-    function nuweTitel() { vulTitelVorm({}); }
+    function nuweTitel() { vulTitelVorm(KAT ? { tipe: KAT } : {}); }
     function wysigTitel(t) { vulTitelVorm(t); }
     function sluitTitel() { $('titelForm').classList.add('hidden'); }
     async function skrapTitel(t) { if (!confirm('Skrap "' + t.titel + '" permanent?')) return; try { await api('/api/admin/titel-skrap', { id: t.id }); boodskap('Geskrap.'); laaiTitels(); } catch (e) { boodskap(e.message, true); } }
@@ -324,7 +442,7 @@ head_extra:
         await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
           genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value,
           banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
-          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value, skepper_epos: $('t_skepper').value, intro: $('t_intro').value, adpunte: $('t_adpunte').value, krediete: $('t_krediete').value });
+          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value, skepper_epos: $('t_skepper').value, intro: $('t_intro').value, adpunte: $('t_adpunte').value, krediete: $('t_krediete').value, lisensie_begin: $('t_lis_begin').value, lisensie_einde: $('t_lis_einde').value, lisensie_besluit: $('t_lis_besluit').value, regshebber: $('t_regshebber').value, regshebber_kontak: $('t_kontak').value, admin_notas: $('t_admin_notas').value });
         boodskap('Gestoor.'); sluitTitel(); laaiTitels();
       } catch (er) { boodskap(er.message, true); }
     });

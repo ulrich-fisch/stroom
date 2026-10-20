@@ -103,7 +103,7 @@ export async function handleSkeppers({ request, env, path, post, u }) {
     const data = { stroom_rugsteun: 1, gemaak: new Date().toISOString(),
       titels: await all('SELECT * FROM titels ORDER BY id'), advertensies: await all('SELECT * FROM advertensies ORDER BY id'),
       onderskrifte: await all('SELECT * FROM onderskrifte ORDER BY slug, ep, taal'), instellings: await all("SELECT * FROM instellings WHERE sleutel <> 'skema'"),
-      indienings: await all('SELECT * FROM indienings ORDER BY id') };
+      indienings: await all('SELECT * FROM indienings ORDER BY id'), dokumente_lys: await all('SELECT id, slug, naam, soort, ext, grootte, created_at FROM dokumente ORDER BY id') };
     return json(data, 200, { 'Content-Disposition': `attachment; filename="stroom-rugsteun-${vandag()}.json"` });
   }
   const rates = await lesTariewe(db), w = venster(q);

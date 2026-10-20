@@ -674,4 +674,51 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   t('series settings are not leaked in the catalogue', !JSON.stringify(await (await call('/api/katalogus?profiel=' + pid, {}, c)).json()).includes('adpunte'));
 }
 
+// 12. Lisensie, regshebber en dokumente per titel (slegs admin)
+{
+  sql.exec('DELETE FROM attempts');
+  const adm = ck(await post('/api/login', { email: 'admin9@stroom.co.za', password: 'correct-horse' }));
+  const lid2 = ck(await post('/api/register', { email: 'lisensie-lid@stroom.co.za', name: 'L', password: 'correct-horse' })); await post('/api/plan', { plan: 'avod' }, lid2);
+  const dagVan = (n) => new Date(Date.now() + 7200000 + n * 86400000).toISOString().slice(0, 10);
+  const basis = { titel: 'Lisensie Toets', tipe: 'Dokumentêr', genre_sleutel: 'drama', status: 'konsep' };
+  t('licence: bad date refused', (await post('/api/admin/titel', { ...basis, lisensie_einde: '31/03/2027' }, adm)).status === 400);
+  t('licence: end before start refused', (await post('/api/admin/titel', { ...basis, lisensie_begin: '2027-05-01', lisensie_einde: '2027-01-01' }, adm)).status === 400);
+  t('licence: bad decision refused', (await post('/api/admin/titel', { ...basis, lisensie_besluit: 'kaboem' }, adm)).status === 400);
+  r = await post('/api/admin/titel', { ...basis, lisensie_begin: dagVan(-300), lisensie_einde: dagVan(60), lisensie_besluit: '', regshebber: 'Ou Filmhuis', regshebber_kontak: 'info@filmhuis.co.za', admin_notas: 'Betaal R5000 per jaar' }, adm);
+  const slL = (await r.json()).slug; t('licence: saved', r.status === 200 && !!slL);
+  const rij = async (sl_) => (await (await call('/api/admin/titels', {}, adm)).json()).titels.find((x) => x.slug === sl_);
+  let tl = await rij(slL);
+  t('licence: days left computed, warning level (<= 90 days)', tl.dae === 60 && tl.vlak === 'waarsku' && tl.regshebber === 'Ou Filmhuis' && tl.admin_notas === 'Betaal R5000 per jaar');
+  const mk2 = async (n) => { const x = await (await post('/api/admin/titel', { ...basis, titel: 'Lis ' + n, lisensie_einde: dagVan(n) }, adm)).json(); return rij(x.slug); };
+  t('licence: 91 days = ok, 90 = warning, yesterday = expired, none = geen', (await mk2(91)).vlak === 'ok' && (await mk2(90)).vlak === 'waarsku' && (await mk2(-1)).vlak === 'verval' && (await mk2(0)).vlak === 'waarsku' && (await rij((await (await post('/api/admin/titel', { ...basis, titel: 'Sonder' }, adm)).json()).slug)).vlak === 'geen');
+  t('licence: never shown to members in the catalogue', !/regshebber|lisensie|admin_notas|Filmhuis/.test(JSON.stringify(await (await call('/api/katalogus', {}, lid2)).json())));
+  t('licence: not shown on share page either', !/Filmhuis|lisensie/.test(await (await call('/t/' + slL)).text()));
+  // dokumente
+  const store = new Map(); env.VIDEOS = { put: async (k, b) => { store.set(k, new Uint8Array(await new Response(b).arrayBuffer())); }, get: async (k) => store.has(k) ? { body: store.get(k), size: store.get(k).length, httpMetadata: {} } : null, delete: async (k) => { store.delete(k); } };
+  const up = (qs, body, cookie, len) => call('/api/admin/dokument-laai-op?' + qs, { method: 'POST', body, headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': String(len != null ? len : body.length) } }, cookie);
+  const pdf = new TextEncoder().encode('%PDF-1.4 toets');
+  t('docs: member refused', (await up('slug=' + slL + '&ext=pdf&soort=ooreenkoms&naam=X', pdf, lid2)).status === 404 && (await call('/api/admin/dokumente?slug=' + slL, {}, lid2)).status === 404);
+  t('docs: unknown file type refused', (await up('slug=' + slL + '&ext=exe&soort=ooreenkoms', pdf, adm)).status === 400);
+  t('docs: unknown kind refused', (await up('slug=' + slL + '&ext=pdf&soort=geheim', pdf, adm)).status === 400);
+  t('docs: unsaved title refused', (await up('slug=bestaan-nie&ext=pdf&soort=ooreenkoms', pdf, adm)).status === 404);
+  t('docs: over 20 MB refused', (await up('slug=' + slL + '&ext=pdf&soort=ooreenkoms', pdf, adm, 21 * 1024 * 1024)).status === 413);
+  r = await up('slug=' + slL + '&ext=pdf&soort=ooreenkoms&naam=' + encodeURIComponent('Lisensie 2026/27 <b>'), pdf, adm); const dj = await r.json();
+  t('docs: uploaded', r.status === 200 && dj.id > 0 && store.size === 1);
+  const lys = await (await call('/api/admin/dokumente?slug=' + slL, {}, adm)).json();
+  t('docs: listed with clean name and kind label', lys.dokumente.length === 1 && lys.dokumente[0].soort_etiket === 'Lisensie-ooreenkoms' && !/[<>\/]/.test(lys.dokumente[0].naam) && lys.dokumente[0].ext === 'pdf');
+  t('docs: count shows on title list', (await rij(slL)).dokumente === 1);
+  r = await call('/api/admin/dokument?id=' + dj.id, {}, adm);
+  t('docs: admin downloads it as attachment, not inline', r.status === 200 && /attachment/.test(r.headers.get('Content-Disposition')) && r.headers.get('X-Content-Type-Options') === 'nosniff' && /no-store/.test(r.headers.get('Cache-Control')) && (await r.text()).startsWith('%PDF'));
+  t('docs: member cannot download', (await call('/api/admin/dokument?id=' + dj.id, {}, lid2)).status === 404 && (await call('/api/admin/dokument?id=' + dj.id)).status === 404);
+  const sleutel = sql.prepare('SELECT sleutel FROM dokumente WHERE id = ?').get(dj.id).sleutel;
+  t('docs: file is not reachable through the public /media/ route', (await call('/media/' + sleutel)).status !== 200 && (await call('/media/' + sleutel, {}, lid2)).status !== 200);
+  const bk2 = await (await call('/api/admin/rugsteun', {}, adm)).json();
+  t('backup lists documents (names only)', bk2.dokumente_lys.some((x) => x.id === dj.id) && !JSON.stringify(bk2).includes('dok/'.concat('zzz')));
+  t('docs: delete removes row and file', (await post('/api/admin/dokument-skrap', { id: dj.id }, adm)).status === 200 && store.size === 0 && !sql.prepare('SELECT 1 FROM dokumente WHERE id = ?').get(dj.id));
+  await up('slug=' + slL + '&ext=docx&soort=faktuur&naam=Fak', pdf, adm); await up('slug=' + slL + '&ext=jpg&soort=ander&naam=Foto', pdf, adm);
+  const idL = sql.prepare('SELECT id FROM titels WHERE slug = ?').get(slL).id;
+  t('docs: deleting the title removes all its documents and files', (await post('/api/admin/titel-skrap', { id: idL }, adm)).status === 200 && store.size === 0 && sql.prepare('SELECT COUNT(*) c FROM dokumente WHERE slug = ?').get(slL).c === 0);
+  delete env.VIDEOS;
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
