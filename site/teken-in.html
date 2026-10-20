@@ -211,6 +211,7 @@
         }
         const data = await res.json().catch(function () { return {}; });
         if (!res.ok) { showError(data.fout || 'Iets het skeefgeloop. Probeer weer.'); return; }
+        try { sessionStorage.removeItem('stroom_intro'); } catch (e) {}   // die intro speel weer ná elke inteken
         localStorage.setItem('stroom_logged_in', 'true');
         localStorage.setItem('stroom_active_profile', data.name || 'Profiel');
         // Nuwe rekening -> kies plan (gratis of betaald). Bestaande -> profiel.

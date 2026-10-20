@@ -52,3 +52,37 @@ body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-ser
 @keyframes fxblub { 0%, 8% { opacity: 0; transform: translateY(4px); } 14%, 50% { opacity: 1; transform: none; } 60%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .wv path, .sk, .fx .fx-fish, .fx .fx-shadow, .fx .fx-blub { animation: none !important; } .fx .fx-blub { opacity: 1; } }
 #heroAge:empty, #heroMatch:empty { display: none; }
+
+/* ---- Tuisblad-herontwerp: held, skyfies, kaarte, foon-kieslys ---- */
+.hero-h { font-family: 'Sora', 'Inter', sans-serif; font-weight: 800; letter-spacing: -.01em; }
+.shelf-h { font-family: 'Sora', 'Inter', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: -.01em; color: #f1f6ff; }
+@media (min-width: 640px) { .shelf-h { font-size: 1.4rem; } }
+.btn-play { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 52px; padding: 0 1.75rem; border-radius: 12px; border: 0; cursor: pointer;
+  background: linear-gradient(135deg, #7dd3fc, #60a5fa); color: #04101f; font-weight: 700; font-size: .9rem; box-shadow: 0 10px 30px rgba(56,189,248,.35); transition: transform .15s, box-shadow .15s; }
+.btn-play:hover { transform: translateY(-1px); box-shadow: 0 14px 34px rgba(56,189,248,.5); }
+.btn-ghost { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 1.4rem; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: .85rem; color: #f1f6ff;
+  border: 1px solid #2a3d66; background: rgba(12,21,40,.7); transition: border-color .15s, background .15s; }
+.btn-ghost:hover { border-color: #7dd3fc; background: rgba(17,29,54,.85); }
+.btn-ghost.btn-icon { width: 52px; padding: 0; }
+.chip { flex: none; min-height: 44px; padding: 0 1.25rem; border-radius: 999px; border: 1px solid #1b2a4a; background: #0c1528; color: #cbd5e1; font-weight: 500; font-size: .875rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.chip:hover { border-color: #38bdf8; color: #fff; }
+.chip.on { background: #38bdf8; border-color: #38bdf8; color: #04101f; font-weight: 700; }
+
+.img-fade { opacity: 0; transition: opacity .5s ease; }
+.img-fade.in { opacity: 1; }
+.mubi-card { background-color: #0c1528 !important; }
+.mubi-card:hover { border-color: rgba(125,211,252,.6); box-shadow: 0 18px 40px rgba(56,189,248,.18), 0 0 0 1px rgba(125,211,252,.35); }
+.play-ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(7,12,24,.45); color: #04101f; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.play-ov svg { box-sizing: content-box; padding: 17px 15px 17px 19px; border-radius: 999px; background: linear-gradient(135deg, #7dd3fc, #60a5fa); box-shadow: 0 8px 24px rgba(56,189,248,.5); }
+@media (hover: hover) { .mubi-card:hover .play-ov { opacity: 1; } }
+
+@keyframes herozoom { from { transform: scale(1); } to { transform: scale(1.06); } }
+@media (min-width: 640px) { .hero-zoom { animation: herozoom 24s ease-in-out infinite alternate; } }
+@media (max-width: 767px) { body.has-tabs { padding-bottom: calc(56px + env(safe-area-inset-bottom)); } }
+
+/* Sagte oorgang tussen bladsye (moderne blaaiers) */
+@view-transition { navigation: auto; }
+@keyframes vtfade { from { opacity: 0; } to { opacity: 1; } }
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) { animation: vtfade .25s ease both; }
+@media (prefers-reduced-motion: reduce) { .hero-zoom, ::view-transition-new(root) { animation: none; } .img-fade { opacity: 1; transition: none; } }

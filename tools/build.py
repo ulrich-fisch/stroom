@@ -22,7 +22,7 @@ ITEM = 'block w-full text-left p-2 rounded-lg hover:bg-slate-800/80 transition'
 def _type_item(v, label): return f'<button type="button" onclick="setTypeFilter(\'{v}\', \'{label}\')" class="{ITEM}">{label}</button>'
 FILTERS = ('<div class="flex items-center gap-2 shrink-0">'
            f'<div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="{BTN}"><span id="typeLabel">Tipe</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
-           f'<div class="{MENU}"><div class="{BOX}">' + ''.join([_type_item('all', 'Alle Inhoud'), _type_item('film', 'Films'), _type_item('reeks', 'Reekse'), _type_item('dokumenter', 'Dokument&ecirc;re')]) + '</div></div></div>'
+           f'<div class="{MENU}"><div class="{BOX}">' + ''.join([_type_item('all', 'Alle Inhoud'), _type_item('film', 'Films'), _type_item('reeks', 'Reekse'), _type_item('kortfilm', 'Kortfilms'), _type_item('dokumenter', 'Dokument&ecirc;re')]) + '</div></div></div>'
            f'<div class="relative group"><button type="button" onclick="toggleDd(this, event)" class="{BTN}"><span id="genreLabel">Genre</span><span class="text-[10px] text-slate-500">&#9660;</span></button>'
            f'<div class="{MENU}"><div id="genreItems" class="{BOX} max-h-80 overflow-y-auto"></div></div></div></div>')
 SW_REG = "<script>if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });</script>"
@@ -43,6 +43,23 @@ def mark(size, live=False):
             f'<path class="w2" opacity=".75" d="M-48 34 {_WAVE}"/><path class="w3" opacity=".5" d="M-48 47 {_WAVE}"/></g></svg>')
 def marks(html):
     return re.sub(r'\{\{mark:([0-9a-z.%]+)(:live)?\}\}', lambda m: mark(m.group(1), bool(m.group(2))), html)
+
+_TAB_ICON = {
+    'tuis': '<path d="M4 11 L12 4 L20 11 V20 H4 Z"/>',
+    'soek': '<circle cx="11" cy="11" r="7"/><path d="M20 20 L16 16"/>',
+    'lys': '<path d="M6 4 H18 V21 L12 17 L6 21 Z"/>',
+    'rekening': '<circle cx="12" cy="8" r="4"/><path d="M4 21 C4 16 8 14 12 14 S20 16 20 21"/>',
+}
+def tabs(active):
+    items = [('tuis', 'Tuis', 'katalogus.html', ''), ('soek', 'Soek', 'katalogus.html?soek=1', " onclick=\"tabKlik(event, 'soek')\""),
+             ('lys', 'My Lys', 'katalogus.html?lys=1', " onclick=\"tabKlik(event, 'lys')\""), ('rekening', 'Rekening', 'rekening.html', '')]
+    out = ['<nav id="tabBar" class="md:hidden fixed bottom-0 inset-x-0 z-40 flex bg-[#091020]/95 backdrop-blur-xl border-t border-[#1b2a4a]" style="padding-bottom:env(safe-area-inset-bottom)" aria-label="Hoofkieslys">']
+    for k, label, href, extra in items:
+        on = k == active
+        out.append(f'<a href="{href}"{extra} class="flex-1 flex flex-col items-center justify-center gap-1 min-h-[56px] text-[11px] {"text-sky-400 font-semibold" if on else "text-slate-400 font-medium"}"{" aria-current=\"page\"" if on else ""}>'
+                   f'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{_TAB_ICON[k]}</svg>{label}</a>')
+    out.append('</nav>')
+    return ''.join(out)
 
 def parse(text):
     m = re.match(r'<!--page\n(.*?)-->\n(.*)', text, re.S)
@@ -70,6 +87,7 @@ def build():
             parts.append(h)
         parts.append(content)
         if meta.get('footer') == 'app': parts.append(footer)
+        if meta.get('tabs') == 'yes': parts.append(tabs(meta.get('tab', '')))
         scripts = []
         if meta.get('header') == 'app' or meta.get('appjs') == 'yes': scripts.append('<script src="/app.js"></script>')
         if script: scripts.append('<script>\n' + script + '\n</script>')
@@ -81,7 +99,7 @@ def build():
                 f'  <meta name="apple-mobile-web-app-capable" content="yes">\n  <meta name="mobile-web-app-capable" content="yes">\n'
                 f'  <meta name="apple-mobile-web-app-title" content="Stroom">\n'
                 f'  <title>{meta["title"]}</title>\n  {FONTS}\n  <link rel="stylesheet" href="/stroom.css">{head_extra}\n</head>\n'
-                f'<body class="{meta["body"]}">\n{MARK_DEFS}\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n' + SW_REG + '\n</body>\n</html>\n')
+                f'<body class="{meta["body"]}{" has-tabs" if meta.get("tabs") == "yes" else ""}">\n{MARK_DEFS}\n\n' + '\n\n'.join(parts) + '\n\n' + '\n'.join(scripts) + '\n' + SW_REG + '\n</body>\n</html>\n')
         open(f'{OUT}/{name}.html', 'w', encoding='utf-8').write(marks(html))
     for f in os.listdir(f'{SRC}/static'):
         shutil.copy(f'{SRC}/static/{f}', f'{OUT}/{f}')

@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@700;800&display=swap">
   <link rel="stylesheet" href="/stroom.css">
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950">
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950 has-tabs">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><clipPath id="wvClip"><path d="M16 13 Q16 8 20.3 10.5 L52.7 29.5 Q57 32 52.7 34.5 L20.3 53.5 Q16 56 16 51 Z"/></clipPath><linearGradient id="wvGrad" gradientUnits="userSpaceOnUse" x1="14" y1="8" x2="58" y2="56"><stop offset="0" stop-color="#bae6fd"/><stop offset=".5" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs></svg>
 
 <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
@@ -161,6 +161,8 @@
       <p>&copy; 2026 Fischbowl Media. Alle regte voorbehou.</p>
     </div>
   </footer>
+
+<nav id="tabBar" class="md:hidden fixed bottom-0 inset-x-0 z-40 flex bg-[#091020]/95 backdrop-blur-xl border-t border-[#1b2a4a]" style="padding-bottom:env(safe-area-inset-bottom)" aria-label="Hoofkieslys"><a href="katalogus.html" class="flex-1 flex flex-col items-center justify-center gap-1 min-h-[56px] text-[11px] text-slate-400 font-medium"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 L12 4 L20 11 V20 H4 Z"/></svg>Tuis</a><a href="katalogus.html?soek=1" onclick="tabKlik(event, 'soek')" class="flex-1 flex flex-col items-center justify-center gap-1 min-h-[56px] text-[11px] text-slate-400 font-medium"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16 16"/></svg>Soek</a><a href="katalogus.html?lys=1" onclick="tabKlik(event, 'lys')" class="flex-1 flex flex-col items-center justify-center gap-1 min-h-[56px] text-[11px] text-slate-400 font-medium"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4 H18 V21 L12 17 L6 21 Z"/></svg>My Lys</a><a href="rekening.html" class="flex-1 flex flex-col items-center justify-center gap-1 min-h-[56px] text-[11px] text-slate-400 font-medium"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21 C4 16 8 14 12 14 S20 16 20 21"/></svg>Rekening</a></nav>
 
 <script src="/app.js"></script>
 <script>

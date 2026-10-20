@@ -1,4 +1,6 @@
 <!--page
+tabs: yes
+tab: tuis
 title: Stroom
 body: min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-slate-950
 header: app
@@ -76,12 +78,13 @@ head_extra:
   </div>
 
   <!-- Spotlight Banner (gevul uit die katalogus) -->
-  <section id="heroSection" class="relative border-b border-slate-800/80 bg-[#070c18] sm:min-h-[68vh] sm:flex sm:items-end overflow-hidden">
-    <div id="heroImg" class="aspect-video sm:aspect-auto sm:absolute sm:inset-0 bg-cover bg-center"></div>
-    <div class="hidden sm:block absolute inset-0" style="background: linear-gradient(to top, #070c18 5%, rgba(7,12,24,0.35) 55%, rgba(7,12,24,0.5) 100%), linear-gradient(to right, rgba(7,12,24,0.92) 0%, rgba(7,12,24,0.55) 45%, transparent 75%);"></div>
+  <section id="heroSection" class="relative border-b border-slate-800/80 bg-[#070c18] sm:min-h-[76vh] sm:flex sm:items-end overflow-hidden">
+    <div id="heroImg" class="aspect-video sm:aspect-auto sm:absolute sm:inset-0 bg-cover bg-center hero-zoom"></div>
+    <div class="hidden sm:block absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 80% 25%, rgba(37,99,235,0.28), rgba(7,12,24,0) 70%), linear-gradient(to top, #070c18 4%, rgba(7,12,24,0.3) 50%, rgba(10,29,68,0.4) 100%), linear-gradient(to right, rgba(7,12,24,0.94) 0%, rgba(7,12,24,0.55) 45%, transparent 75%);"></div>
+    <svg class="hidden sm:block absolute inset-x-0 bottom-0 w-full h-1/2 opacity-30 pointer-events-none" viewBox="0 0 1280 320" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M0 200 C220 120 380 280 640 200 S1040 120 1280 200" stroke="#38bdf8" stroke-width="2"/><path d="M0 250 C220 170 380 330 640 250 S1040 170 1280 250" stroke="#3b82f6" stroke-width="2" opacity=".7"/><path d="M0 300 C220 220 380 380 640 300 S1040 220 1280 300" stroke="#2563eb" stroke-width="2" opacity=".5"/></svg>
     <div class="relative max-w-2xl px-5 sm:px-12 py-6 sm:pt-32 sm:pb-14 space-y-3 sm:space-y-4">
-      <span class="inline-block bg-sky-500/15 text-sky-300 border border-sky-500/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Keuse van die Week</span>
-      <h1 id="heroTitle" class="text-3xl sm:text-6xl font-black text-white tracking-tight leading-[1.05] uppercase">Stroom</h1>
+      <span class="inline-block bg-sky-400/10 text-sky-300 border border-sky-400/40 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">Keuse van die Week</span>
+      <h1 id="heroTitle" class="hero-h text-3xl sm:text-6xl text-white leading-[1.05]">Stroom</h1>
       <div class="flex items-center gap-3 text-xs font-semibold">
         <span id="heroMatch" class="text-amber-300"></span>
         <span id="heroAge" class="border border-slate-600 px-2 py-0.5 rounded text-slate-300"></span>
@@ -100,6 +103,9 @@ head_extra:
       <div class="flex gap-2"><button id="herinnerKyk" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-full uppercase tracking-wider">Kyk nou</button><button onclick="herinnerSluit()" class="text-xs border border-slate-600 text-slate-300 hover:text-white px-3 py-1.5 rounded-full" aria-label="Maak toe">&times;</button></div>
     </div>
 
+    <!-- Tipe-skyfies -->
+    <div id="typeChips" class="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1" role="group" aria-label="Soort inhoud"></div>
+
     <!-- Aktiewe filters (kies bo in die kopstuk) -->
     <div class="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
       <p id="filterStatus" class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Alle inhoud &bull; Alle genres</p>
@@ -108,14 +114,14 @@ head_extra:
 
     <!-- Gaan voort (kyk-vordering) -->
     <div id="continueSection" class="space-y-4 hidden">
-      <h2 class="text-xl font-bold text-sky-400 tracking-wider uppercase">Gaan Voort Kyk</h2>
-      <div id="continueGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-2"></div>
+      <h2 class="shelf-h">Gaan voort kyk</h2>
+      <div id="continueGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-4 px-2 -mx-2 -my-2"></div>
     </div>
 
     <!-- My Watchlist Section -->
     <div id="watchlistSection" class="space-y-4 hidden">
-      <h2 class="text-xl font-bold text-sky-400 tracking-wider uppercase">My Lys (Bewaarde Inhoud)</h2>
-      <div id="watchlistGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-2"></div>
+      <h2 class="shelf-h">My Lys</h2>
+      <div id="watchlistGrid" class="flex space-x-6 overflow-x-auto no-scrollbar py-4 px-2 -mx-2 -my-2"></div>
     </div>
 
     <!-- Rakke -->
@@ -123,7 +129,7 @@ head_extra:
 
     <!-- Catalogue Grid -->
     <div class="space-y-4">
-      <h2 id="katalogusTitel" class="text-2xl font-bold text-white tracking-tight uppercase">Verken die Katalogus</h2>
+      <h2 id="katalogusTitel" class="shelf-h">Verken die katalogus</h2>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="catalogGrid"></div>
     </div>
@@ -332,6 +338,9 @@ head_extra:
     (function () {   // Intro net een keer per sessie
       const el = document.getElementById('intro'); if (!el) return;
       let seen = false;
+      // Nog geen profiel gekies nie: die bladsy gaan nou na die profielkieser. Moenie die intro hier "gebruik" nie; dit speel nadat jy 'n profiel gekies het.
+      let geenProfiel = false; try { geenProfiel = !localStorage.getItem('stroom_profiel_id'); } catch (e) {}
+      if (geenProfiel) { el.remove(); return; }
       try { seen = sessionStorage.getItem('stroom_intro') === '1'; sessionStorage.setItem('stroom_intro', '1'); } catch (e) {}
       if (seen) el.remove(); else { setTimeout(() => { if (el.parentNode) fishJump(el); }, 1050); setTimeout(() => { if (el.parentNode) el.remove(); }, 3800); }
     })();
@@ -339,7 +348,9 @@ head_extra:
     const jsonHdr = { 'Content-Type': 'application/json' };
     let TITELS = [], GENRES = {}, BINNEKORT = [], HERINNER_NUUT = [];
     const byKey = (slug) => TITELS.find((t) => t.slug === slug) || BINNEKORT.find((t) => t.slug === slug);
-    const typeKind = (t) => (t.tipe === 'Reeks' ? 'reeks' : t.tipe === 'Dokumentêr' ? 'dokumenter' : 'film');
+    const typeKind = (t) => (t.tipe === 'Reeks' ? 'reeks' : t.tipe === 'Dokumentêr' ? 'dokumenter' : t.tipe === 'Kortfilm' ? 'kortfilm' : 'film');
+    const IMGF = ' onload="this.classList.add(\'in\')" onerror="this.classList.add(\'in\')"';
+    const PLAY_OV = '<span class="play-ov" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4 L19 12 L7 20 Z"/></svg></span>';
     const badgeColor = (t) => (t.tipe === 'Reeks' ? 'text-red-400' : t.tipe === 'Kortfilm' ? 'text-sky-400' : t.genre_sleutel === 'kuns' ? 'text-purple-400' : 'text-sky-400');
 
     let LYS = new Set(), VORDER = [];
@@ -386,16 +397,16 @@ head_extra:
       return TITELS[Math.floor(Date.now() / (7 * 86400000)) % TITELS.length];
     }
     function shelfCard(t) {
-      return `<div class="min-w-[220px] sm:min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}" loading="lazy"><span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
+      return `<div class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy">${PLAY_OV}<span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
         <div class="p-3"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3><p class="text-[11px] text-amber-300">${starTxt(t)}</p></div></div>`;
     }
     const MAANDE = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des'];
     const datumTxt = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${Number(m[3])} ${MAANDE[Number(m[2]) - 1]} ${m[1]}` : ''; };
     const herinnerTxt = (t) => (t.herinner ? '&#128276; Herinnering gestel' : '&#128276; Herinner my');
     function soonCard(t) {
-      return `<div class="min-w-[220px] sm:min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-sky-500/30 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}" loading="lazy"><span class="absolute top-2 left-2 bg-sky-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Binnekort${t.vrystelling ? ' &bull; ' + esc(datumTxt(t.vrystelling)) : ''}</span></div>
+      return `<div class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-sky-500/30 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy"><span class="absolute top-2 left-2 bg-sky-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Binnekort${t.vrystelling ? ' &bull; ' + esc(datumTxt(t.vrystelling)) : ''}</span></div>
         <div class="p-3 space-y-2"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3>
         <button data-herinner="${esc(t.slug)}" onclick="event.stopPropagation(); toggleHerinner('${esc(t.slug)}')" class="text-[11px] font-semibold ${t.herinner ? 'text-sky-300 border-sky-500/50' : 'text-slate-300 border-slate-700 hover:border-white'} border rounded-full px-3 py-1 transition">${herinnerTxt(t)}</button></div></div>`;
     }
@@ -422,7 +433,7 @@ head_extra:
         ['Reekse', TITELS.filter((t) => t.tipe === 'Reeks')],
         ['Dokumentêre', TITELS.filter((t) => t.tipe === 'Dokumentêr')],
       ];
-      document.getElementById('shelves').innerHTML = defs.filter(([, l]) => l.length).map(([n, l, card]) => `<div class="space-y-3"><h2 class="text-lg font-bold text-white tracking-tight uppercase">${n}</h2><div class="flex space-x-5 overflow-x-auto no-scrollbar py-1">${l.map(card || shelfCard).join('')}</div></div>`).join('');
+      document.getElementById('shelves').innerHTML = defs.filter(([, l]) => l.length).map(([n, l, card]) => `<div class="space-y-3"><h2 class="shelf-h">${n}</h2><div class="flex space-x-5 overflow-x-auto no-scrollbar py-3 px-2 -mx-2 -my-2">${l.map(card || shelfCard).join('')}</div></div>`).join('');
     }
     function shareTitle(slug) {
       const t = byKey(slug); const u = location.origin + '/t/' + encodeURIComponent(slug);
@@ -440,9 +451,9 @@ head_extra:
       document.getElementById('heroSynopsis').textContent = h.sinopsis || '';
       const vo = VORDER.find((v) => v.slug === h.slug);
       box.innerHTML = `
-        <button onclick="speel('${esc(h.slug)}', ${vo && vo.ep >= 0 ? vo.ep : 'null'})" class="flex-1 sm:flex-none bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-7 py-3 rounded-full text-xs uppercase tracking-widest transition">&#9654; ${vo ? 'Gaan voort' : 'Speel'}</button>
-        <button onclick="openInfoModal('${esc(h.slug)}')" class="border border-slate-600 hover:border-white text-white px-5 py-3 rounded-full text-xs font-semibold uppercase tracking-wider transition">Meer Inligting</button>
-        <button data-lys="${esc(h.slug)}" onclick="toggleWatchlist('${esc(h.slug)}')" class="border border-slate-600 hover:border-white text-white w-11 h-11 rounded-full text-base transition flex items-center justify-center" aria-label="My Lys" title="My Lys">${LYS.has(h.slug) ? '&#10003;' : '+'}</button>`;
+        <button onclick="speel('${esc(h.slug)}', ${vo && vo.ep >= 0 ? vo.ep : 'null'})" class="btn-play flex-1 sm:flex-none">&#9654; ${vo ? 'Gaan voort' : 'Speel'}</button>
+        <button onclick="openInfoModal('${esc(h.slug)}')" class="btn-ghost">Meer inligting</button>
+        <button data-lys="${esc(h.slug)}" onclick="toggleWatchlist('${esc(h.slug)}')" class="btn-ghost btn-icon text-base" aria-label="My Lys" title="My Lys">${LYS.has(h.slug) ? '&#10003;' : '+'}</button>`;
     }
 
     // Soek ignoreer hoofletters en tekens (ê, ë, ô...)
@@ -455,7 +466,7 @@ head_extra:
              data-title="${esc(norm([t.titel, t.regisseur, t.genre_etiket, t.tipe, t.jaar, t.sinopsis, (t.rolverdeling || []).map((x) => x.naam).join(' ')].join(' ')))}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
              onclick="openInfoModal('${esc(t.slug)}')">
           <div class="aspect-[16/10] relative">
-            <img src="${esc(t.banner)}" class="w-full h-full object-cover" alt="${esc(t.titel)}">
+            <img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}">${PLAY_OV}
             <span class="absolute top-3 left-3 bg-slate-950/80 ${badgeColor(t)} border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">${esc(t.tipe)}</span>
             <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span>
           </div>
@@ -917,7 +928,13 @@ head_extra:
     function setGenreFilter(genre, label) { genreF = genre; genreName = genre === 'all' ? 'Alle genres' : label; if (document.activeElement) document.activeElement.blur(); updateFilterUi(); filterFilms(); scrollToCatalogue(); }
     function clearFilters() { typeF = 'all'; genreF = 'all'; typeName = 'Alle Inhoud'; genreName = 'Alle genres'; const b = document.getElementById('searchInput'); if (b) b.value = ''; updateFilterUi(); filterFilms(); }
     function scrollToCatalogue() { const g = document.getElementById('catalogGrid'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    const CHIPS = [['all', 'Alles', 'Alle Inhoud'], ['film', 'Films', 'Films'], ['reeks', 'Reekse', 'Reekse'], ['kortfilm', 'Kortfilms', 'Kortfilms'], ['dokumenter', 'Dokument\u00EAre', 'Dokument\u00EAre']];
+    function renderChips() {
+      const box = document.getElementById('typeChips'); if (!box) return;
+      box.innerHTML = CHIPS.map(([v, l, n]) => `<button type="button" onclick="setTypeFilter('${v}', '${n}')" class="chip${typeF === v ? ' on' : ''}" aria-pressed="${typeF === v}">${l}</button>`).join('');
+    }
     function updateFilterUi() {
+      renderChips();
       document.getElementById('typeLabel').textContent = typeF === 'all' ? 'Tipe' : typeName;
       document.getElementById('genreLabel').textContent = genreF === 'all' ? 'Genre' : genreName;
     }
@@ -970,8 +987,8 @@ head_extra:
       if (!items.length) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
       grid.innerHTML = items.map((t) => `
-        <div class="min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" /></div>
+        <div class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}</div>
           <div class="p-4 flex justify-between items-center">
             <div><h3 class="font-bold text-white text-sm">${esc(t.titel)}</h3><p class="text-xs text-slate-400">${esc(t.regisseur)}</p></div>
             <button onclick="event.stopPropagation(); toggleWatchlist('${esc(t.slug)}')" class="text-xs text-rose-400 hover:text-white">Verwyder</button>
@@ -984,11 +1001,14 @@ head_extra:
       if (!items.length) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
       grid.innerHTML = items.map(({ v, t }) => `
-        <div class="min-w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="speel('${esc(t.slug)}', ${v.ep >= 0 ? v.ep : 'null'})">
-          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover" />
+        <div class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="speel('${esc(t.slug)}', ${v.ep >= 0 ? v.ep : 'null'})">
+          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}
             <div class="absolute bottom-0 inset-x-0 h-1 bg-slate-700"><div class="h-full bg-sky-400" style="width:${Math.min(100, Math.round(v.posisie / v.duur * 100))}%"></div></div></div>
           <div class="p-4"><h3 class="font-bold text-white text-sm">${esc(t.titel)}${v.ep >= 0 ? ' &bull; Episode ' + (v.ep + 1) : ''}</h3><p class="text-xs text-slate-400">${Math.max(1, Math.round((v.duur - v.posisie) / 60))} min oor</p></div>
         </div>`).join('');
     }
 
-    laaiKatalogus();
+    renderChips();
+    // Skakels van die foon-kieslys onder: ?soek=1 sit die kursor in die soekboks, ?lys=1 spring na My Lys
+    (function () { const q = new URLSearchParams(location.search); if (q.get('soek') || q.get('lys')) window.__tabAksie = q.get('soek') ? 'soek' : 'lys'; })();
+    laaiKatalogus().then(() => { if (window.__tabAksie) { tabAksie(window.__tabAksie); window.__tabAksie = null; try { history.replaceState(null, '', location.pathname); } catch (e) {} } });
