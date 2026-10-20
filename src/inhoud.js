@@ -82,7 +82,7 @@ export async function seedContent(db) {
 
 // ---- Reeks-instellings: inleiding (om oor te slaan) en advertensie-breuke ----
 // Tyd word as 1:30, 1:02:30 of sekondes (90) geskryf.
-export const SERIE_COLUMNS = [['titels', 'intro', 'TEXT'], ['titels', 'adpunte', 'TEXT'], ['titels', 'voorrol', 'INTEGER NOT NULL DEFAULT 1']];
+export const SERIE_COLUMNS = [['titels', 'intro', 'TEXT'], ['titels', 'adpunte', 'TEXT'], ['titels', 'voorrol', 'INTEGER NOT NULL DEFAULT 1'], ['titels', 'krediete', 'TEXT']];
 export function parseTyd(v) {
   const t = String(v == null ? '' : v).trim();
   if (!/^\d{1,5}(:\d{1,2}){0,2}$/.test(t)) return NaN;
@@ -117,21 +117,30 @@ export function parseBreuke(v) {
   const uniek = [...new Set(out)].sort((a, b) => a - b);
   return uniek.length && uniek.length <= 12 ? uniek : false;
 }
+// Waar die krediete begin: '' -> null, 'geen' -> 'geen', "41:20" -> 2480; ongeldig -> false
+export function parseKrediete(v) {
+  const t = String(v == null ? '' : v).trim().toLowerCase();
+  if (!t) return null;
+  if (t === 'geen' || t === '-') return 'geen';
+  const sek = parseTyd(t);
+  return Number.isFinite(sek) && sek >= 10 ? sek : false;
+}
+export const kredieteTeks = (k) => (k === 'geen' ? 'geen' : Number.isFinite(k) ? fmtTyd(k) : '');
 export const breukeTeks = (b) => (b === 'geen' ? 'geen' : Array.isArray(b) ? b.map(fmtTyd).join(', ') : '');
 
 function parseEpisodes(text) {
   const out = [];
   for (const line of String(text || '').split('\n')) {
     if (!line.trim()) continue;
-    const [ep, titel, duur, beskrywing, url, intro, breuke] = line.split('|').map((x) => x.trim());
+    const [ep, titel, duur, beskrywing, url, intro, breuke, krediete] = line.split('|').map((x) => x.trim());
     if (!titel || !isVideo(url || '')) return null;
-    const pi = parseIntro(intro), pb = parseBreuke(breuke);
-    if (pi === false || pb === false) return null;
-    out.push({ ep: clip(ep, 12) || `Ep ${out.length + 1}`, titel: clip(titel, 120), duur: clip(duur, 20), beskrywing: clip(beskrywing, 300), url, intro: introTeks(pi), adpunte: breukeTeks(pb) });
+    const pi = parseIntro(intro), pb = parseBreuke(breuke), pk = parseKrediete(krediete);
+    if (pi === false || pb === false || pk === false) return null;
+    out.push({ ep: clip(ep, 12) || `Ep ${out.length + 1}`, titel: clip(titel, 120), duur: clip(duur, 20), beskrywing: clip(beskrywing, 300), url, intro: introTeks(pi), adpunte: breukeTeks(pb), krediete: kredieteTeks(pk) });
   }
   return out;
 }
-const episodesToText = (json_) => { try { return JSON.parse(json_).map((e) => { const f = [e.ep, e.titel, e.duur, e.beskrywing, e.url, e.intro || '', e.adpunte || '']; while (f.length > 5 && !f[f.length - 1]) f.pop(); return f.join(' | '); }).join('\n'); } catch { return ''; } };
+const episodesToText = (json_) => { try { return JSON.parse(json_).map((e) => { const f = [e.ep, e.titel, e.duur, e.beskrywing, e.url, e.intro || '', e.adpunte || '', e.krediete || '']; while (f.length > 5 && !f[f.length - 1]) f.pop(); return f.join(' | '); }).join('\n'); } catch { return ''; } };
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'titel';
 
 // Wat 'n lid sien: nooit die video-adres nie (dit kom eers by /api/speel)
@@ -233,7 +242,7 @@ export async function handleContent({ request, env, path, post, u }) {
       if (!tr.ok || !td.result || !td.result.token) return json({ fout: 'Kon nie nou speel nie. Probeer asseblief weer.' }, 502);
       url = `https://customer-${env.STREAM_CODE}.cloudflarestream.com/${td.result.token}/manifest/video.m3u8`; hls = true;
     }
-    let advertensies = [], breuke = [];
+    let advertensies = [], breuke = [], naroll = null;
     const epNr = body.ep == null ? null : Number(body.ep);
     let epi = null; try { epi = epNr != null ? JSON.parse(t.episodes || '[]')[epNr] || null : null; } catch { epi = null; }
     if (u.plan === 'avod') {          // Premium (svod) kry nooit advertensies nie
@@ -241,7 +250,7 @@ export async function handleContent({ request, env, path, post, u }) {
       const pick = (not) => { const pool = ads.length > 1 ? ads.filter((a) => a.id !== not) : ads; return pool[Math.floor(Math.random() * pool.length)]; };
       const wire = (ad) => ({ id: ad.id, naam: ad.naam, url: ad.video_url, klik: ad.klik_url || null });
       let last = null;
-      if (ads.length && t.voorrol !== 0) {
+      if (ads.length) {            // elke titel en elke episode begin met 'n advertensie
         const ad = pick(null); last = ad.id;
         await db.prepare('UPDATE advertensies SET vertonings = vertonings + 1 WHERE id = ?').bind(ad.id).run();
         advertensies = [wire(ad)];
@@ -249,10 +258,14 @@ export async function handleContent({ request, env, path, post, u }) {
       // Advertensie-breuke: die episode se eie tye het voorrang, anders die titel s'n
       const pb = (epi && parseBreuke(epi.adpunte)) || parseBreuke(t.adpunte);
       if (ads.length && Array.isArray(pb)) for (const sek of pb) { const ad = pick(last); last = ad.id; breuke.push({ t: sek, ad: wire(ad) }); }
+      // Advertensie aan die einde: by 'n film, of by die laaste episode van 'n reeks (andersins kom die advertensie voor die volgende episode)
+      let eindes = true; try { eindes = epNr == null || epNr + 1 >= JSON.parse(t.episodes || '[]').length; } catch { eindes = true; }
+      if (ads.length && eindes) naroll = wire(pick(last));
     }
     // Slaan-inleiding-oor: net vir reeks-episodes, en net as 'n tydvenster gestel is
-    let intro = null;
+    let intro = null, krediete = null;
     if (epNr != null && epi) { const pi = parseIntro(epi.intro) || parseIntro(t.intro); if (pi && pi !== 'geen') intro = pi; }
+    { const pk = (epi && parseKrediete(epi.krediete)) || parseKrediete(t.krediete); if (Number.isFinite(pk)) krediete = pk; }
     await db.prepare('INSERT INTO kykgebeure (slug, profiel_id, ep, ts, user_id, plan, land, toestel) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
       .bind(t.slug, prof ? prof.id : null, body.ep == null ? -1 : Number(body.ep), Date.now(), u.id, u.plan, landKode(request), toestelSoort(request)).run();
     let begin = 0;
@@ -262,7 +275,7 @@ export async function handleContent({ request, env, path, post, u }) {
       if (v && !v.voltooi && v.ep === wantEp && v.posisie > 5) begin = Math.max(0, v.posisie - 3);   // 'n paar sekondes terug
     }
     const onderskrifte = await onderskrifLys(db, t.slug, body.ep == null ? -1 : Number(body.ep));
-    return json({ url, hls, begin, slug: t.slug, ep: body.ep == null ? null : Number(body.ep), titel, krediet, plan: u.plan, advertensies, breuke, intro, onderskrifte });
+    return json({ url, hls, begin, slug: t.slug, ep: body.ep == null ? null : Number(body.ep), titel, krediet, plan: u.plan, advertensies, breuke, naroll, intro, krediete, onderskrifte });
   }
 
   // ----- Admin (slegs eienaar; almal anders kry "nie gevind") -----
@@ -288,7 +301,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (banner && !isMedia(banner)) return json({ fout: 'Die beeld moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
     if (video && !isVideo(video)) return json({ fout: 'Die video moet \'n https://-skakel, \'n opgelaaide lêer of \'n Stream-video wees.' }, 400);
     const eps = parseEpisodes(body.episodes_teks);
-    if (eps === null) return json({ fout: 'Episodes: een per lyn as  Ep 1 | Titel | 28 min | Beskrywing | https://... (opsioneel daarna: | inleiding 0:45-1:30 | advertensies 10:00, 22:30). Tye skryf jy as 1:30 of 1:02:30.' }, 400);
+    if (eps === null) return json({ fout: 'Episodes: een per lyn as  Ep 1 | Titel | 28 min | Beskrywing | https://... (opsioneel daarna: | inleiding 0:45-1:30 | advertensies 10:00, 22:30 | krediete 41:20). Tye skryf jy as 1:30 of 1:02:30.' }, 400);
     const vrystelling = clip(body.vrystelling, 10), trailer = clip(body.trailer, 400), rolverdeling = String(body.rolverdeling || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 30).map((l) => clip(l, 130)).join('\n');
     if (!datumOk(vrystelling)) return json({ fout: 'Vrystellingsdatum moet soos 2026-12-01 wees.' }, 400);
     if (trailer && !isMedia(trailer)) return json({ fout: 'Die voorskou moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
@@ -299,7 +312,8 @@ export async function handleContent({ request, env, path, post, u }) {
     const pIntro = parseIntro(body.intro), pBreuke = parseBreuke(body.adpunte);
     if (pIntro === false) return json({ fout: 'Inleiding moet soos 0:45-1:30 wees (van-tot), of "geen".' }, 400);
     if (pBreuke === false) return json({ fout: 'Advertensie-breuke moet tye soos 10:00, 22:30 wees (nie vroeër as 0:10 nie, maks 12), of "geen".' }, 400);
-    const voorrol = body.voorrol === false || body.voorrol === 0 || body.voorrol === '0' ? 0 : 1;
+    const pKred = parseKrediete(body.krediete);
+    if (pKred === false) return json({ fout: 'Krediete-begin moet \'n tyd soos 41:20 wees (of "geen").' }, 400);
     const sk = clip(body.skepper_epos, 120).toLowerCase();
     let skepperId = null;
     if (sk) {
@@ -313,7 +327,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (body.id) {
       await db.prepare(`UPDATE titels SET titel=?, tipe=?, jaar=?, ouderdom=?, speeltyd=?, regisseur=?, genre_sleutel=?, genre_etiket=?, banner=?, video_url=?,
         sinopsis=?, episodes=?, pas=?, uitgelig=?, status=?, vrystelling=?, trailer=?, rolverdeling=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
-      await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, voorrol = ? WHERE id = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), voorrol, Number(body.id)).run();
+      await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ? WHERE id = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), Number(body.id)).run();
       return json({ ok: true });
     }
     let slug = slugify(titel);
@@ -321,7 +335,7 @@ export async function handleContent({ request, env, path, post, u }) {
     if (exists) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     await db.prepare(`INSERT INTO titels (titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url,
       sinopsis, episodes, pas, uitgelig, status, vrystelling, trailer, rolverdeling, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
-    await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, voorrol = ? WHERE slug = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), voorrol, slug).run();
+    await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ? WHERE slug = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), slug).run();
     return json({ ok: true, slug });
   }
 

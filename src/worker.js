@@ -48,7 +48,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20c';
+const SCHEMA = '2026-10-20d';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 

@@ -208,6 +208,8 @@ head_extra:
           Slaan Inleiding Oor &rarr;
         </button>
 
+        <button id="creditsBtn" onclick="skipCredits()" class="hidden absolute bottom-14 right-3 sm:bottom-20 sm:right-6 z-30 bg-slate-950/90 hover:bg-sky-500 hover:text-slate-950 text-white border border-slate-700 font-bold text-[11px] sm:text-xs px-4 py-2 rounded-full transition">Slaan Krediete Oor &rarr;</button>
+
         <div id="nextCard" class="hidden absolute bottom-24 right-6 z-30 bg-slate-950/95 border border-slate-700 rounded-2xl p-4 w-72 space-y-3 shadow-2xl">
           <p class="text-[10px] uppercase tracking-widest text-sky-400 font-bold">Volgende episode</p>
           <p id="nextTitle" class="text-sm font-bold text-white leading-snug">---</p>
@@ -575,7 +577,7 @@ head_extra:
     let adMode = false, filmUrl = null, filmHls = false, adSkipTimer = null, hlsObj = null;
     const AD_SKIP_AFTER = 5;
 
-    let cur = null, lastSave = 0, resumeAt = 0, breaks = [], breakI = 0, midResume = null;
+    let cur = null, lastSave = 0, resumeAt = 0, breaks = [], breakI = 0, midResume = null, postAd = false;
     async function speel(slug, ep, vanVoor, auto) {
       let r, d = {};
       try { r = await fetch('/api/speel', { method: 'POST', headers: jsonHdr, body: JSON.stringify({ slug, ep: ep == null ? null : ep, profiel: activeProfileId, herbegin: !!vanVoor }) }); d = await r.json().catch(() => ({})); }
@@ -589,9 +591,9 @@ head_extra:
       cur = { slug: d.slug || slug, ep: d.ep == null ? -1 : d.ep }; resumeAt = d.begin || 0; lastSave = 0;
       { const tt = byKey(cur.slug); if (tt) drawThumbs(tt); }
       // Reeks-inleiding en advertensie-breuke (die bediener bepaal die tye)
-      cur.intro = d.intro || null; breaks = (d.breuke || []).slice().sort((a, b) => a.t - b.t); midResume = null;
+      cur.intro = d.intro || null; cur.krediete = d.krediete == null ? null : d.krediete; cur.naroll = d.naroll || null; cur.fin = false; postAd = false; breaks = (d.breuke || []).slice().sort((a, b) => a.t - b.t); midResume = null;
       breakI = 0; while (breakI < breaks.length && breaks[breakI].t <= resumeAt) breakI++;     // breuke wat jy reeds verby is, speel nie weer nie
-      document.getElementById('skipIntroBtn').classList.add('hidden');
+      document.getElementById('skipIntroBtn').classList.add('hidden'); document.getElementById('creditsBtn').classList.add('hidden');
       if (d.advertensies && d.advertensies.length) playAd(d.advertensies[0]); else playFilm();
     }
 
@@ -652,14 +654,14 @@ head_extra:
       adMode = true;
       document.getElementById('voorBalk').classList.remove('hidden');
       document.getElementById('playerOverlay').classList.add('hidden');
-      document.getElementById('skipIntroBtn').classList.add('hidden');
+      document.getElementById('skipIntroBtn').classList.add('hidden'); document.getElementById('creditsBtn').classList.add('hidden');
       const link = document.getElementById('voorLink');
       if (ad.klik) { link.href = ad.klik; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
       const skip = document.getElementById('voorSkip'); skip.disabled = true; skip.classList.add('opacity-60'); skip.innerText = `Oorslaan oor ${AD_SKIP_AFTER}s`;
       detachHls();
-      player.onended = () => { if (adMode) { track('klaar', player.duration); playFilm(); } };
-      player.onerror = () => { if (adMode) playFilm(); };          // as die advertensie nie laai nie, speel die film
-      player.src = ad.url; player.load(); player.play().catch(() => { if (adMode) playFilm(); });
+      player.onended = () => { if (adMode) { track('klaar', player.duration); afterAd(); } };
+      player.onerror = () => { if (adMode) afterAd(); };          // as die advertensie nie laai nie, gaan voort
+      player.src = ad.url; player.load(); player.play().catch(() => { if (adMode) afterAd(); });
     }
 
     function endAdUi() {
@@ -667,7 +669,10 @@ head_extra:
       document.getElementById('playerOverlay').classList.remove('hidden');
       player.onended = null; player.onerror = null;
     }
-    function skipAd() { if (adMode && player.currentTime >= AD_SKIP_AFTER) { track('oor', player.currentTime); playFilm(); } }
+    function skipAd() { if (adMode && player.currentTime >= AD_SKIP_AFTER) { track('oor', player.currentTime); afterAd(); } }
+    // Ná 'n advertensie: die slot-advertensie sluit die speler, enige ander een gaan voort met die film
+    function afterAd() { if (postAd) { postAd = false; endAdUi(); adMode = false; closePlayer(); } else playFilm(); }
+    function skipCredits() { if (adMode || !cur) return; if (nextEp()) { playNext(true); return; } player.pause(); document.getElementById('creditsBtn').classList.add('hidden'); endFilm(); }
 
     function togglePlayPause() { if (adMode) return; if (player.paused) { player.play(); playBtn.innerText = '❚❚'; } else { player.pause(); playBtn.innerText = '▶'; } }
     function skipTime(s) { if (adMode) return; player.currentTime += s; }
@@ -788,6 +793,7 @@ head_extra:
     function stayHere() { stayed = true; document.getElementById('nextCard').classList.add('hidden'); }
     function stillWatching() { streak = 0; playNext(false); }
     function onFilmEnded() {
+      if (!nextEp() && cur && cur.naroll) { postAd = true; playAd(cur.naroll); return; }      // film of laaste episode: 'n advertensie aan die einde
       if (!nextEp() || stayed) return;
       if (streak >= 3) { document.getElementById('nextCard').classList.add('hidden'); document.getElementById('stillCard').classList.remove('hidden'); }
       else playNext(false);
@@ -795,7 +801,8 @@ head_extra:
     function updateNextCard() {
       const n = nextEp(); const card = document.getElementById('nextCard');
       const left = player.duration - player.currentTime;
-      const show = !!n && !stayed && !adMode && isFinite(left) && left <= 15 && left > 0 && player.duration > 20;
+      const inKred = cur && cur.krediete != null && player.currentTime >= cur.krediete;
+      const show = !!n && !stayed && !adMode && isFinite(left) && left > 0 && player.duration > 20 && (left <= 15 || inKred);
       if (show) document.getElementById('nextTitle').textContent = `${n.info.ep} \u2022 ${n.info.titel}`;
       card.classList.toggle('hidden', !show);
     }
@@ -850,7 +857,8 @@ head_extra:
     }
     player.addEventListener('loadedmetadata', () => { if (!adMode && resumeAt > 0 && resumeAt < player.duration) { player.currentTime = resumeAt; } resumeAt = 0; });
     player.addEventListener('pause', () => saveProgress(true));
-    player.addEventListener('ended', () => { if (!adMode) { saveProgress(true); onFilmEnded(); } });
+    player.addEventListener('ended', () => { if (!adMode) endFilm(); });
+    function endFilm() { if (!cur || cur.fin) return; cur.fin = true; saveProgress(true); onFilmEnded(); }
     window.addEventListener('pagehide', () => saveProgress(true));
     function closePlayer() { saveProgress(true); renderContinue(); renderHero(); hideNextUi(); document.getElementById('qualMenu').classList.add('hidden'); document.getElementById('ccMenu').classList.add('hidden'); clearTracks(); cur = null; adMode = false; endAdUi(); detachHls(); clearTimeout(stingerTimer); stingerTimer = null; clearTimeout(fishTimer); if (fishStop) { fishStop(); fishStop = null; } (function (st) { st.classList.add('hidden'); st.classList.remove('on'); })(document.getElementById('stinger')); player.pause(); player.removeAttribute('src'); player.load(); document.getElementById('playerModal').classList.add('hidden'); }
 
@@ -870,6 +878,7 @@ head_extra:
         currentTimeEl.innerText = formatTime(player.currentTime);
         durationTimeEl.innerText = formatTime(player.duration);
         const it = cur && cur.intro; document.getElementById('skipIntroBtn').classList.toggle('hidden', !(it && player.currentTime >= it.van && player.currentTime < it.tot));
+        document.getElementById('creditsBtn').classList.toggle('hidden', !(cur && cur.krediete != null && !nextEp() && !cur.fin && player.currentTime >= cur.krediete));
         if (breakI < breaks.length && player.currentTime >= breaks[breakI].t) {
           let b = breaks[breakI]; while (breakI + 1 < breaks.length && breaks[breakI + 1].t <= player.currentTime) breakI++;
           b = breaks[breakI]; breakI++; midRoll(b);
