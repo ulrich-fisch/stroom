@@ -104,11 +104,9 @@
             <input type="file" accept="image/jpeg,image/png,image/webp" onchange="laaiOp(this, 't_banner')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
           <label class="block md:col-span-3"><span class="lbl">Video: laai op (MP4 of WebM, maks 90 MB), of plak &rsquo;n https://-skakel</span><input id="t_video" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_video')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
-          <div class="block md:col-span-3 -mt-2 rounded-xl border border-slate-800 p-3">
-            <span class="lbl">Groot film of reeks-episode (enige grootte, MP4/MOV/MKV): laai op na Cloudflare Stream</span>
-            <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, 't_video')" class="mt-1 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span>
-            <p class="text-[11px] text-slate-500 mt-1">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</p>
-          </div>
+          <div class="block md:col-span-3"><span class="lbl">Groot film of reeks-episode (enige grootte, MP4/MOV/MKV): laai op na Cloudflare Stream</span>
+            <input type="file" accept="video/*,.mkv" onchange="laaiStream(this, 't_video')" class="text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span>
+            <span class="block mt-1 text-[11px] text-slate-500">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</span></div>
           <label class="block"><span class="lbl">Vrystellingsdatum (vir &ldquo;Binnekort&rdquo;)</span><input type="date" id="t_vrystelling" class="inp">
             <span class="block mt-1 text-[11px] text-slate-500">Op hierdie datum gaan &rsquo;n Binnekort-titel vanself live, as dit &rsquo;n video het.</span></label>
           <label class="block md:col-span-2"><span class="lbl">Voorskou (trailer): laai op, of plak &rsquo;n https://-skakel</span><input id="t_trailer" maxlength="400" class="inp" placeholder="/media/... of https://...">
