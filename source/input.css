@@ -33,6 +33,19 @@ body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-ser
 .reel-tag.on { opacity: 1; }
 .feat-ic { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 9999px; color: #38bdf8; background: rgba(56, 189, 248, .1); border: 1px solid rgba(56, 189, 248, .25); transition: transform .25s ease, background .25s ease; }
 .feat:hover .feat-ic { transform: translateY(-2px); background: rgba(56, 189, 248, .18); }
+/* Trailers: hero (speel een keer, stil) en sweef-voorskou op kaarte */
+.hero-vid { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; opacity: 0; transition: opacity 1.2s ease; pointer-events: none; }
+@media (min-width: 640px) { .hero-vid { height: 100%; aspect-ratio: auto; } }
+.hero-vid.on { opacity: 1; }
+.pv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; pointer-events: none; z-index: 1; }
+.pv.on { opacity: 1; }
+.pv-box .play-ov, .pv-box > span { z-index: 2; }
+@media (hover: hover) { .pv-box:has(.pv.on) .play-ov { opacity: 0 !important; } }
+
+.plan-list { display: flex; flex-direction: column; gap: .4rem; font-size: 11px; line-height: 1.35; color: #94a3b8; }
+.plan-list li { display: flex; gap: .5rem; align-items: flex-start; }
+.plan-list svg { flex: none; margin-top: 1px; color: #38bdf8; }
+
 /* Gereelde vrae (oor-ons) */
 .faq summary { cursor: pointer; list-style: none; padding: 1rem 1.25rem; font-weight: 700; font-size: .875rem; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .faq summary::-webkit-details-marker { display: none; }

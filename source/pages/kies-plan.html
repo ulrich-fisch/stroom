@@ -14,7 +14,7 @@ appjs: yes
       <a href="index.html" class="brand flex items-center space-x-3" aria-label="Stroom">
         {{mark:40}}<span class="font-brand text-xl sm:text-2xl text-white">STROOM</span>
       </a>
-      <span class="text-xs text-slate-400 font-mono">Stap 2 van 3: Plan-Keuse</span>
+      <span class="flex items-center gap-3 text-xs text-slate-400 font-mono whitespace-nowrap"><span class="hidden sm:flex gap-1.5" aria-hidden="true"><i class="w-6 h-1 rounded-full bg-sky-400"></i><i class="w-6 h-1 rounded-full bg-sky-400"></i><i class="w-6 h-1 rounded-full bg-slate-700"></i></span>Stap 2 van 3</span>
     </div>
   </header>
 
@@ -23,9 +23,9 @@ appjs: yes
     <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 backdrop-blur-xl relative">
       
       <div class="space-y-2 text-center sm:text-left border-b border-slate-800/80 pb-6">
-        <span class="text-xs text-sky-400 font-mono font-bold uppercase tracking-widest">VEILIGE STROOM BETAALPORTAAL</span>
+        <span class="inline-flex items-center gap-2 text-xs text-sky-400 font-mono font-bold uppercase tracking-widest"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Veilige Stroom-betaalportaal</span>
         <h1 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">KIES JOU STROOM PLAN</h1>
-        <p class="text-xs text-slate-400">Geen langtermyn-kontrakte nie. Kanselleer of verander jou plan enige tyd aanlyn.</p>
+        <p class="text-xs text-slate-400">Geen langtermyn-kontrakte nie. Kanselleer of verander jou plan enige tyd aanlyn. Selfs ná &rsquo;n week van gedagte verander? Die vis oordeel nie.</p>
       </div>
 
       <!-- Plan Cards Grid (3 Options: Gratis AVOD, Maandeliks SVOD, Jaarliks SVOD) -->
@@ -34,15 +34,16 @@ appjs: yes
         <!-- Card 1: Gratis AVOD -->
         <div id="planAvod" onclick="selectPlan('avod')" class="plan-card border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition flex flex-col justify-between">
           <div class="space-y-3">
+            <span class="feat-ic !w-9 !h-9"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span>
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Gratis AVOD</span>
+              <span class="text-xs font-bold text-sky-300 uppercase tracking-wider">Gratis</span>
               <span class="radio-indicator w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center"></span>
             </div>
             <div>
               <span class="text-3xl font-black text-white">R0</span>
               <span class="text-xs text-slate-400"> / altyd</span>
             </div>
-            <p class="text-[11px] text-slate-400 leading-normal">Kyk gekeurde Afrikaanse rolprente met af-en-toe kort advertensies.</p>
+            <ul class="plan-list"><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Gekeurde Afrikaanse rolprente</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Af-en-toe kort advertensies</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Geen kredietkaart nodig</span></li></ul>
           </div>
           <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Basiese Toegang</span>
         </div>
@@ -50,6 +51,7 @@ appjs: yes
         <!-- Card 2: Maandeliks Premium (Default) -->
         <div id="planMonthly" onclick="selectPlan('monthly')" class="plan-card selected border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition flex flex-col justify-between">
           <div class="space-y-3">
+            <span class="feat-ic !w-9 !h-9"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg></span>
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Maandeliks</span>
               <span class="radio-indicator w-4 h-4 rounded-full border-2 border-sky-400 flex items-center justify-center"><span class="w-2 h-2 rounded-full bg-sky-400"></span></span>
@@ -58,15 +60,16 @@ appjs: yes
               <span class="text-3xl font-black text-white">R59</span>
               <span class="text-xs text-slate-400"> / maand</span>
             </div>
-            <p class="text-[11px] text-slate-400 leading-normal">7 dae gratis toetstydperk. Ad-vrye Full HD stroom op alle toestelle.</p>
+            <ul class="plan-list"><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>7 dae gratis toetstydperk</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Ad-vrye Full HD op alle toestelle</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Toegang tot Cinema Club</span></li></ul>
           </div>
           <span class="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Gewildste Keuse</span>
         </div>
 
         <!-- Card 3: Jaarliks Premium -->
         <div id="planAnnual" onclick="selectPlan('annual')" class="plan-card border border-slate-800 rounded-2xl p-5 cursor-pointer space-y-3 transition relative overflow-hidden flex flex-col justify-between">
-          <span class="absolute top-0 right-0 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-3 py-0.5 rounded-bl-lg">Spaar 16%</span>
-          <div class="space-y-3">
+          <span class="absolute top-0 right-0 bg-indigo-400 text-slate-950 text-[9px] font-black uppercase px-3 py-0.5 rounded-bl-lg">Spaar 16%</span>
+          <div class="space-y-3 !mt-0">
+            <span class="feat-ic !w-9 !h-9"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15 9 22 9.5 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9.5 9 9 12 2"/></svg></span>
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Jaarliks</span>
               <span class="radio-indicator w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center"></span>
@@ -75,9 +78,9 @@ appjs: yes
               <span class="text-3xl font-black text-white">R590</span>
               <span class="text-xs text-slate-400"> / jaar</span>
             </div>
-            <p class="text-[11px] text-slate-400 leading-normal">Beste waarde. Eenmalige jaarlikse fooi vir onbeperkte ad-vrye toegang.</p>
+            <ul class="plan-list"><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Alles in Maandeliks</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Een betaling per jaar</span></li><li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span>Onbeperkte ad-vrye toegang</span></li></ul>
           </div>
-          <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Beste Waarde</span>
+          <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Beste Waarde</span>
         </div>
 
       </div>
@@ -88,15 +91,15 @@ appjs: yes
         
         <div class="grid grid-cols-3 gap-3 text-center text-xs font-semibold">
           <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
-            <span>💳 Kaart</span>
+            <span class="text-sky-300"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span><span>Kaart</span>
             <span class="text-[9px] text-slate-500">Visa / Mastercard</span>
           </div>
           <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
-            <span>🏦 Instant EFT</span>
+            <span class="text-sky-300"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M12 3L3 10h18z"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/></svg></span><span>Instant EFT</span>
             <span class="text-[9px] text-slate-500">Ozow / PayFast</span>
           </div>
           <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 flex flex-col items-center justify-center space-y-1">
-            <span>📱 SnapScan</span>
+            <span class="text-sky-300"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span><span>SnapScan</span>
             <span class="text-[9px] text-slate-500">Zapper / QR</span>
           </div>
         </div>
@@ -109,7 +112,7 @@ appjs: yes
         </button>
 
         <p class="text-[10px] text-slate-500 text-center leading-normal">
-          🔒 Veilige betaling deur PayFast.
+          <span class="inline-flex items-center gap-1.5"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Veilige betaling deur PayFast. Ons sien nie jou kaartnommer nie, en die vis ook nie.</span>
         </p>
       </div>
 

@@ -80,6 +80,7 @@ head_extra:
   <!-- Spotlight Banner (gevul uit die katalogus) -->
   <section id="heroSection" class="relative border-b border-slate-800/80 bg-[#070c18] sm:min-h-[76vh] sm:flex sm:items-end overflow-hidden">
     <div id="heroImg" class="aspect-video sm:aspect-auto sm:absolute sm:inset-0 bg-cover bg-center hero-zoom"></div>
+    <video id="heroVid" class="hero-vid" muted playsinline preload="none" tabindex="-1" aria-hidden="true"></video>
     <div class="hidden sm:block absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 80% 25%, rgba(37,99,235,0.28), rgba(7,12,24,0) 70%), linear-gradient(to top, #070c18 4%, rgba(7,12,24,0.3) 50%, rgba(10,29,68,0.4) 100%), linear-gradient(to right, rgba(7,12,24,0.94) 0%, rgba(7,12,24,0.55) 45%, transparent 75%);"></div>
     <svg class="hidden sm:block absolute inset-x-0 bottom-0 w-full h-1/2 opacity-30 pointer-events-none" viewBox="0 0 1280 320" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M0 200 C220 120 380 280 640 200 S1040 120 1280 200" stroke="#38bdf8" stroke-width="2"/><path d="M0 250 C220 170 380 330 640 250 S1040 170 1280 250" stroke="#3b82f6" stroke-width="2" opacity=".7"/><path d="M0 300 C220 220 380 380 640 300 S1040 220 1280 300" stroke="#2563eb" stroke-width="2" opacity=".5"/></svg>
     <div class="relative max-w-2xl px-5 sm:px-12 py-6 sm:pt-32 sm:pb-14 space-y-3 sm:space-y-4">
@@ -397,16 +398,16 @@ head_extra:
       return TITELS[Math.floor(Date.now() / (7 * 86400000)) % TITELS.length];
     }
     function shelfCard(t) {
-      return `<div class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy">${PLAY_OV}<span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
+      return `<div data-slug="${esc(t.slug)}" class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative pv-box"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy">${PLAY_OV}<span class="absolute bottom-2 right-2 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span></div>
         <div class="p-3"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3><p class="text-[11px] text-amber-300">${starTxt(t)}</p></div></div>`;
     }
     const MAANDE = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des'];
     const datumTxt = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${Number(m[3])} ${MAANDE[Number(m[2]) - 1]} ${m[1]}` : ''; };
     const herinnerTxt = (t) => (t.herinner ? '&#128276; Herinnering gestel' : '&#128276; Herinner my');
     function soonCard(t) {
-      return `<div class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-sky-500/30 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-        <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy"><span class="absolute top-2 left-2 bg-sky-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Binnekort${t.vrystelling ? ' &bull; ' + esc(datumTxt(t.vrystelling)) : ''}</span></div>
+      return `<div data-slug="${esc(t.slug)}" class="shrink-0 w-[220px] sm:w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-sky-500/30 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+        <div class="aspect-video relative pv-box"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}" loading="lazy"><span class="absolute top-2 left-2 bg-sky-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">Binnekort${t.vrystelling ? ' &bull; ' + esc(datumTxt(t.vrystelling)) : ''}</span></div>
         <div class="p-3 space-y-2"><h3 class="font-bold text-white text-sm leading-snug">${esc(t.titel)}</h3>
         <button data-herinner="${esc(t.slug)}" onclick="event.stopPropagation(); toggleHerinner('${esc(t.slug)}')" class="text-[11px] font-semibold ${t.herinner ? 'text-sky-300 border-sky-500/50' : 'text-slate-300 border-slate-700 hover:border-white'} border rounded-full px-3 py-1 transition">${herinnerTxt(t)}</button></div></div>`;
     }
@@ -449,6 +450,7 @@ head_extra:
       document.getElementById('heroAge').textContent = h.ouderdom || '';
       document.getElementById('heroTitle').textContent = h.titel;
       document.getElementById('heroSynopsis').textContent = h.sinopsis || '';
+      heroTrailer(h);
       const vo = VORDER.find((v) => v.slug === h.slug);
       box.innerHTML = `
         <button onclick="speel('${esc(h.slug)}', ${vo && vo.ep >= 0 ? vo.ep : 'null'})" class="btn-play flex-1 sm:flex-none">&#9654; ${vo ? 'Gaan voort' : 'Speel'}</button>
@@ -462,10 +464,10 @@ head_extra:
       const grid = document.getElementById('catalogGrid');
       if (!TITELS.length) { grid.innerHTML = '<p class="text-sm text-slate-400 col-span-full">Nuwe inhoud kom binnekort.</p>'; return; }
       grid.innerHTML = TITELS.map((t) => `
-        <div class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
+        <div data-slug="${esc(t.slug)}" class="mubi-card bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 cursor-pointer film-item"
              data-title="${esc(norm([t.titel, t.regisseur, t.genre_etiket, t.tipe, t.jaar, t.sinopsis, (t.rolverdeling || []).map((x) => x.naam).join(' ')].join(' ')))}" data-type="${typeKind(t)}" data-genre="${esc(t.genre_sleutel)}"
              onclick="openInfoModal('${esc(t.slug)}')">
-          <div class="aspect-[16/10] relative">
+          <div class="aspect-[16/10] relative pv-box">
             <img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} alt="${esc(t.titel)}">${PLAY_OV}
             <span class="absolute top-3 left-3 bg-slate-950/80 ${badgeColor(t)} border border-slate-800 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">${esc(t.tipe)}</span>
             <span class="absolute bottom-3 right-3 bg-slate-950/80 text-[10px] px-2 py-0.5 rounded text-slate-300 font-mono">${esc(t.speeltyd)}</span>
@@ -582,6 +584,56 @@ head_extra:
     }
     function closeInfoModal() { sluitTrailer(); document.getElementById('infoModal').classList.add('hidden'); try { history.replaceState(null, '', location.pathname); } catch (e) {} }
 
+    // ---------- Voorskou-snitte: hero-trailer (speel een keer, stil) en sweef-voorskou op rekenaars ----------
+    const MIN_BEWEGING = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const SPAAR_DATA = (() => { const c = navigator.connection || {}; return !!c.saveData || /(^|-)2g$/.test(c.effectiveType || ''); })();
+    const TRAILER_OK = (u) => !!u && (/^\/media\/[a-f0-9]{24}\.(mp4|webm|m4v)$/.test(u) || /^https:\/\/[^\s]+\.(mp4|webm|m4v)(\?[^\s]*)?$/i.test(u));
+    let heroSlug = null;
+    function naIntro(fn, n) { if (!document.getElementById('intro') || (n || 0) > 40) return fn(); setTimeout(() => naIntro(fn, (n || 0) + 1), 250); }
+    function heroTrailer(h) {
+      const v = document.getElementById('heroVid'); if (!v) return;
+      if (h.slug === heroSlug) return;
+      heroSlug = h.slug; v.classList.remove('on'); v.pause(); v.removeAttribute('src'); v.load();
+      if (MIN_BEWEGING || SPAAR_DATA || !TRAILER_OK(h.trailer)) return;
+      v.onerror = () => { v.classList.remove('on'); v.removeAttribute('src'); };
+      v.oncanplay = () => { v.oncanplay = null; naIntro(() => { if (heroSlug !== h.slug) return; const p = v.play(); if (p && p.catch) p.catch(() => {}); v.classList.add('on'); }); };   // eers ná die vis-intro
+      v.onended = () => v.classList.remove('on');   // klaar gespeel: vervaag terug na die plakkaat
+      v.src = h.trailer; v.load();
+    }
+    function heroPouse() { const v = document.getElementById('heroVid'); if (v && !v.paused) v.pause(); }
+    document.addEventListener('visibilitychange', () => { const v = document.getElementById('heroVid'); if (!v || !v.classList.contains('on')) return; if (document.hidden) v.pause(); else if (!v.ended) v.play().catch(() => {}); });
+    (function () {
+      const hs = document.getElementById('heroSection'), v = document.getElementById('heroVid');
+      if (hs && v && 'IntersectionObserver' in window) new IntersectionObserver((es) => { if (!v.classList.contains('on') || v.ended) return; if (es[0].isIntersecting) v.play().catch(() => {}); else v.pause(); }, { threshold: 0.25 }).observe(hs);
+    })();
+
+    // Sweef oor 'n kaart (muis-toestelle): 'n kort, stil voorskou van die trailer
+    let pvTimer = null, pvVid = null, pvKaart = null;
+    function pvStop() {
+      clearTimeout(pvTimer); pvKaart = null;
+      const v = pvVid; pvVid = null; if (!v) return;
+      v.classList.remove('on'); setTimeout(() => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, 350);
+    }
+    function pvStart(kaart, t) {
+      const box = kaart.querySelector('.pv-box'); if (!box) return;
+      const v = document.createElement('video'); v.className = 'pv'; v.muted = true; v.playsInline = true; v.setAttribute('aria-hidden', 'true'); v.tabIndex = -1;
+      v.onerror = () => { t._pvSleg = true; if (pvVid === v) pvStop(); };
+      v.oncanplay = () => { v.oncanplay = null; if (pvVid !== v) return; v.play().catch(() => {}); v.classList.add('on'); };
+      v.ontimeupdate = () => { if (v.currentTime > 12 && pvVid === v) pvStop(); };   // 'n voorsmakie, nie die hele film nie
+      v.onended = () => { if (pvVid === v) pvStop(); };
+      pvVid = v; box.appendChild(v); v.src = t.trailer; v.load();
+    }
+    if (!MIN_BEWEGING && !SPAAR_DATA && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      document.addEventListener('mouseover', (e) => {
+        const k = e.target.closest ? e.target.closest('[data-slug]') : null;
+        if (k === pvKaart) return;
+        pvStop(); if (!k) return;
+        const t = byKey(k.dataset.slug); if (!t || t._pvSleg || !TRAILER_OK(t.trailer)) return;
+        pvKaart = k; pvTimer = setTimeout(() => pvStart(k, t), 600);
+      });
+      document.addEventListener('scroll', pvStop, { passive: true }); window.addEventListener('blur', pvStop);
+    }
+
     // ---------- Speler (met advertensie vir gratis lede) ----------
     const player = document.getElementById('videoPlayer');
     const playBtn = document.getElementById('playPauseBtn');
@@ -593,6 +645,7 @@ head_extra:
 
     let cur = null, lastSave = 0, resumeAt = 0, breaks = [], breakI = 0, midResume = null, postAd = false;
     async function speel(slug, ep, vanVoor, auto) {
+      heroPouse(); pvStop();
       let r, d = {};
       try { r = await fetch('/api/speel', { method: 'POST', headers: jsonHdr, body: JSON.stringify({ slug, ep: ep == null ? null : ep, profiel: activeProfileId, herbegin: !!vanVoor }) }); d = await r.json().catch(() => ({})); }
       catch (e) { r = { ok: false }; }
@@ -987,8 +1040,8 @@ head_extra:
       if (!items.length) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
       grid.innerHTML = items.map((t) => `
-        <div class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
-          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}</div>
+        <div data-slug="${esc(t.slug)}" class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="openInfoModal('${esc(t.slug)}')">
+          <div class="aspect-video relative pv-box"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}</div>
           <div class="p-4 flex justify-between items-center">
             <div><h3 class="font-bold text-white text-sm">${esc(t.titel)}</h3><p class="text-xs text-slate-400">${esc(t.regisseur)}</p></div>
             <button onclick="event.stopPropagation(); toggleWatchlist('${esc(t.slug)}')" class="text-xs text-rose-400 hover:text-white">Verwyder</button>
@@ -1001,8 +1054,8 @@ head_extra:
       if (!items.length) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
       grid.innerHTML = items.map(({ v, t }) => `
-        <div class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="speel('${esc(t.slug)}', ${v.ep >= 0 ? v.ep : 'null'})">
-          <div class="aspect-video relative"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}
+        <div data-slug="${esc(t.slug)}" class="shrink-0 w-[260px] bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mubi-card cursor-pointer" onclick="speel('${esc(t.slug)}', ${v.ep >= 0 ? v.ep : 'null'})">
+          <div class="aspect-video relative pv-box"><img src="${esc(t.banner)}" class="w-full h-full object-cover img-fade"${IMGF} />${PLAY_OV}
             <div class="absolute bottom-0 inset-x-0 h-1 bg-slate-700"><div class="h-full bg-sky-400" style="width:${Math.min(100, Math.round(v.posisie / v.duur * 100))}%"></div></div></div>
           <div class="p-4"><h3 class="font-bold text-white text-sm">${esc(t.titel)}${v.ep >= 0 ? ' &bull; Episode ' + (v.ep + 1) : ''}</h3><p class="text-xs text-slate-400">${Math.max(1, Math.round((v.duur - v.posisie) / 60))} min oor</p></div>
         </div>`).join('');
