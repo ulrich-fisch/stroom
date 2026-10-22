@@ -33,6 +33,12 @@ body { background-color: #070c18; color: #f8fafc; font-family: 'Inter', sans-ser
 .reel-tag.on { opacity: 1; }
 .feat-ic { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 9999px; color: #38bdf8; background: rgba(56, 189, 248, .1); border: 1px solid rgba(56, 189, 248, .25); transition: transform .25s ease, background .25s ease; }
 .feat:hover .feat-ic { transform: translateY(-2px); background: rgba(56, 189, 248, .18); }
+/* Gereelde vrae (oor-ons) */
+.faq summary { cursor: pointer; list-style: none; padding: 1rem 1.25rem; font-weight: 700; font-size: .875rem; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: #38bdf8; font-size: 1.25rem; line-height: 1; transition: transform .2s ease; }
+.faq[open] summary::after { transform: rotate(45deg); }
+.faq p { padding: 0 1.25rem 1.1rem; font-size: .8125rem; line-height: 1.65; color: #94a3b8; }
 @media (prefers-reduced-motion: reduce) { .reel { display: none; } }
 
 .tab-btn.active { background-color: #38bdf8; color: #020617; font-weight: 800; }

@@ -173,7 +173,7 @@ function tabAksie(wat) {
   } else {
     var s = document.getElementById('watchlistSection');
     if (s && !s.classList.contains('hidden')) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    else stroomToast("Jou lys is nog leeg. Tik die + op 'n titel om dit hier te bewaar.");
+    else stroomToast("Jou lys is nog so leeg soos 'n bioskoop sonder springmielies. Tik die + op 'n titel om dit te vul.");
   }
 }
 function tabKlik(e, wat) {

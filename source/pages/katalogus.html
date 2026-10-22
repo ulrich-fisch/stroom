@@ -596,7 +596,7 @@ head_extra:
       let r, d = {};
       try { r = await fetch('/api/speel', { method: 'POST', headers: jsonHdr, body: JSON.stringify({ slug, ep: ep == null ? null : ep, profiel: activeProfileId, herbegin: !!vanVoor }) }); d = await r.json().catch(() => ({})); }
       catch (e) { r = { ok: false }; }
-      if (!r.ok) { alert(d.fout || 'Kon nie nou speel nie. Probeer asseblief weer.'); return; }
+      if (!r.ok) { alert(d.fout || 'Die stroom het hier gehik. Probeer asseblief weer.'); return; }
       document.getElementById('modalTitle').innerText = d.titel;
       document.getElementById('modalCredit').innerText = d.krediet || '';
       document.getElementById('playerModal').classList.remove('hidden');
@@ -648,11 +648,11 @@ head_extra:
         await loadHlsLib();
         if (!window.Hls || !Hls.isSupported()) throw new Error('hls');
         hlsObj = new Hls();
-        hlsObj.on(Hls.Events.ERROR, (e, data) => { if (data && data.fatal) { alert('Kon nie die video laai nie. Probeer asseblief weer.'); } });
+        hlsObj.on(Hls.Events.ERROR, (e, data) => { if (data && data.fatal) { alert('Die video wou nie laai nie. Probeer asseblief weer.'); } });
         hlsObj.loadSource(url); hlsObj.attachMedia(player);
         hlsObj.on(Hls.Events.MANIFEST_PARSED, () => { applyQuality(); renderQualMenu(); if (document.getElementById('stinger').classList.contains('hidden')) player.play().catch(() => {}); });
         hlsObj.on(Hls.Events.LEVEL_SWITCHED, () => updateQualBtn());
-      } catch (e) { alert('Jou blaaier kon nie die video laai nie. Probeer asseblief weer.'); }
+      } catch (e) { alert('Jou blaaier wou nie die video laai nie. Probeer asseblief weer.'); }
     }
 
     // Meting (neutrale naam sodat advertensie-blokkeerders dit nie stop nie): begin, klaar, oor, klik
@@ -963,7 +963,7 @@ head_extra:
       document.getElementById('filterClear').classList.toggle('hidden', !searching);
       let none = document.getElementById('geenResultate');
       if (!none) { none = document.createElement('p'); none.id = 'geenResultate'; none.className = 'text-sm text-slate-400 col-span-full'; document.getElementById('catalogGrid').after(none); }
-      none.textContent = words.length ? `Niks gevind vir \u201c${raw}\u201d nie. Probeer 'n ander woord, of soek op genre of jaar.` : 'Niks gevind nie. Probeer \'n ander filter.';
+      none.textContent = words.length ? `Ons het in die stroom gekyk, maar \u201c${raw}\u201d het nie aangebyt nie. Probeer 'n ander woord, of soek op genre of jaar.` : 'Niks het aangebyt nie. Probeer \'n ander filter.';
       none.style.display = shown || !TITELS.length ? 'none' : 'block';
     }
     document.addEventListener('keydown', (e) => {
