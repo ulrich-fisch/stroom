@@ -313,6 +313,8 @@ export async function handleContent({ request, env, path, post, u }) {
     if (status === 'binnekort' && !banner) return json({ fout: 'Binnekort-titels het \'n beeld nodig.' }, 400);
     if (status === 'gepubliseer' && !banner) return json({ fout: 'Gepubliseerde titels het \'n beeld nodig.' }, 400);
     if (status === 'gepubliseer' && !video && !eps.length) return json({ fout: 'Gepubliseerde titels het \'n video-skakel (of episodes) nodig.' }, 400);
+    const snit = clip(body.snit, 400);
+    if (snit && !isMedia(snit)) return json({ fout: 'Die agtergrond-snit moet \'n https://-skakel of \'n opgelaaide lêer wees.' }, 400);
     const pas = Math.max(0, Math.min(100, parseInt(body.pas, 10) || 90));
     const pIntro = parseIntro(body.intro), pBreuke = parseBreuke(body.adpunte);
     if (pIntro === false) return json({ fout: 'Inleiding moet soos 0:45-1:30 wees (van-tot), of "geen".' }, 400);
@@ -334,6 +336,7 @@ export async function handleContent({ request, env, path, post, u }) {
       await db.prepare(`UPDATE titels SET titel=?, tipe=?, jaar=?, ouderdom=?, speeltyd=?, regisseur=?, genre_sleutel=?, genre_etiket=?, banner=?, video_url=?,
         sinopsis=?, episodes=?, pas=?, uitgelig=?, status=?, vrystelling=?, trailer=?, rolverdeling=? WHERE id = ?`).bind(...vals, Number(body.id)).run();
       await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ?, ' + LISENSIE_SET + ' WHERE id = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), ...lis.waardes, Number(body.id)).run();
+      await db.prepare('UPDATE titels SET snit = ? WHERE id = ?').bind(snit, Number(body.id)).run();
       return json({ ok: true });
     }
     let slug = slugify(titel);
@@ -342,6 +345,7 @@ export async function handleContent({ request, env, path, post, u }) {
     await db.prepare(`INSERT INTO titels (titel, tipe, jaar, ouderdom, speeltyd, regisseur, genre_sleutel, genre_etiket, banner, video_url,
       sinopsis, episodes, pas, uitgelig, status, vrystelling, trailer, rolverdeling, slug, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(...vals, slug, Date.now()).run();
     await db.prepare('UPDATE titels SET skepper_id = ?, intro = ?, adpunte = ?, krediete = ?, ' + LISENSIE_SET + ' WHERE slug = ?').bind(skepperId, introTeks(pIntro), breukeTeks(pBreuke), kredieteTeks(pKred), ...lis.waardes, slug).run();
+    await db.prepare('UPDATE titels SET snit = ? WHERE slug = ?').bind(snit, slug).run();
     return json({ ok: true, slug });
   }
 
@@ -393,18 +397,27 @@ export async function handleContent({ request, env, path, post, u }) {
   return json({ fout: 'Nie gevind nie.' }, 404);
 }
 
+// Openbaar: die kort agtergrond-snitte vir die voorblad (slegs gepubliseerde/binnekort-titels wat 'n snit het)
+export async function reelLys(env) {
+  const rows = env.DB ? (await env.DB.prepare("SELECT slug, titel, snit, banner FROM titels WHERE snit != '' AND snit IS NOT NULL AND status IN ('gepubliseer','binnekort') ORDER BY uitgelig DESC, id DESC LIMIT 12").all()).results : [];
+  return new Response(JSON.stringify({ snitte: rows.map((r) => ({ slug: r.slug, titel: r.titel, snit: r.snit, beeld: r.banner || '' })) }),
+    { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+}
+
 // Bedien opgelaaide media (slegs vir ingetekende lede met 'n plan), met Range-ondersteuning vir video
 export async function serveMedia(request, env, u, key) {
   // Plakkate (beelde) is openbaar, sodat WhatsApp/Facebook 'n voorskou kan wys. Video's bly agter die slot.
   const openbaar = /\.(jpg|jpeg|png|webp)$/.test(key);
-  if (!openbaar && !u) return new Response('Nie ingeteken nie.', { status: 401 });
-  if (!openbaar && u.plan === 'none') return new Response('Kies eers jou plan.', { status: 403 });
+  // Uitsondering: die kort agtergrond-snitte (max. 'n paar sekondes) wat die openbare voorblad wys.
+  const snitOpen = !openbaar && (!u || u.plan === 'none') && !!env.DB && !!(await env.DB.prepare("SELECT 1 AS x FROM titels WHERE snit = ? AND status IN ('gepubliseer','binnekort')").bind('/media/' + key).first());
+  if (!openbaar && !snitOpen && !u) return new Response('Nie ingeteken nie.', { status: 401 });
+  if (!openbaar && !snitOpen && u.plan === 'none') return new Response('Kies eers jou plan.', { status: 403 });
   if (!env.VIDEOS || !MEDIA_KEY.test(key)) return new Response('Nie gevind nie.', { status: 404 });
   const ranged = request.headers.has('Range');
   const obj = await env.VIDEOS.get(key, ranged ? { range: request.headers } : undefined);
   if (!obj) return new Response('Nie gevind nie.', { status: 404 });
   const headers = { 'Content-Type': (obj.httpMetadata && obj.httpMetadata.contentType) || 'application/octet-stream',
-    'Accept-Ranges': 'bytes', 'Cache-Control': (openbaar ? 'public' : 'private') + ', max-age=3600' };
+    'Accept-Ranges': 'bytes', 'Cache-Control': (openbaar || snitOpen ? 'public' : 'private') + ', max-age=3600' };
   let status = 200;
   if (ranged && obj.range) {
     let { offset, length, suffix } = obj.range;

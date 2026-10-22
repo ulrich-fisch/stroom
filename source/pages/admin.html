@@ -68,6 +68,8 @@ head_extra:
             <span class="block mt-1 text-[11px] text-slate-500">Die veld hierbo vul vanself met <span class="font-mono">stream:...</span>. Cloudflare sit dit self om; wag tot dit &ldquo;Gereed&rdquo; wys voor jy publiseer.</span></div>
           <label class="block md:col-span-2"><span class="lbl">Voorskou (trailer): laai op, of plak &rsquo;n https://-skakel</span><input id="t_trailer" maxlength="400" class="inp" placeholder="/media/... of https://...">
             <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_trailer')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
+          <label class="block md:col-span-2"><span class="lbl">Agtergrond-snit vir die openbare voorblad (8&ndash;15 sekondes, klein l&ecirc;er, sonder klank; sien almal wat besoek)</span><input id="t_snit" maxlength="400" class="inp" placeholder="/media/... of https://...">
+            <input type="file" accept="video/mp4,video/webm,video/x-m4v" onchange="laaiOp(this, 't_snit')" class="mt-2 text-xs text-slate-400"><span class="up-status ml-2 text-xs text-slate-400"></span></label>
         </div>
         <div id="onderskrifBox" class="rounded-xl border border-slate-800 p-4 space-y-3">
           <span class="lbl">Onderskrifte en closed captions (.srt of .vtt)</span>
@@ -489,7 +491,7 @@ head_extra:
       $('t_jaar').value = t.jaar || ''; $('t_ouderdom').value = t.ouderdom || ''; $('t_speeltyd').value = t.speeltyd || '';
       $('t_banner').value = t.banner || ''; $('t_video').value = t.video_url || '';
       $('t_sinopsis').value = t.sinopsis || ''; $('t_episodes').value = t.episodes_teks || ''; $('t_uitgelig').checked = !!t.uitgelig;
-      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || ''; $('t_intro').value = t.intro || ''; $('t_adpunte').value = t.adpunte || ''; $('t_krediete').value = t.krediete || ''; $('t_lis_begin').value = t.lisensie_begin || ''; $('t_lis_einde').value = t.lisensie_einde || ''; $('t_lis_besluit').value = t.lisensie_besluit || ''; $('t_regshebber').value = t.regshebber || ''; $('t_kontak').value = t.regshebber_kontak || ''; $('t_admin_notas').value = t.admin_notas || '';
+      $('t_status').value = t.status || 'konsep'; $('t_vrystelling').value = t.vrystelling || ''; $('t_trailer').value = t.trailer || ''; $('t_snit').value = t.snit || ''; $('t_rolverdeling').value = t.rolverdeling || ''; $('t_skepper').value = t.skepper_epos || ''; $('t_intro').value = t.intro || ''; $('t_adpunte').value = t.adpunte || ''; $('t_krediete').value = t.krediete || ''; $('t_lis_begin').value = t.lisensie_begin || ''; $('t_lis_einde').value = t.lisensie_einde || ''; $('t_lis_besluit').value = t.lisensie_besluit || ''; $('t_regshebber').value = t.regshebber || ''; $('t_kontak').value = t.regshebber_kontak || ''; $('t_admin_notas').value = t.admin_notas || '';
       toonPaneel('algemeen'); $('titelForm').classList.remove('hidden'); $('titelForm').scrollIntoView({ behavior: 'smooth' });
       OS_SLUG = t.slug || null; OS_EPS = String(t.episodes_teks || '').split('\n').filter((x) => x.trim()).map((x) => x.split('|')[0].trim());
       $('osNuut').classList.toggle('hidden', !!OS_SLUG); $('osVorm').classList.toggle('hidden', !OS_SLUG); $('osLys').replaceChildren(); $('os_status').textContent = '';
@@ -540,7 +542,7 @@ head_extra:
         await api('/api/admin/titel', { id: $('t_id').value || null, titel: $('t_titel').value, tipe: $('t_tipe').value, regisseur: $('t_regisseur').value,
           genre_sleutel: $('t_genre').value, jaar: $('t_jaar').value, ouderdom: $('t_ouderdom').value, speeltyd: $('t_speeltyd').value,
           banner: $('t_banner').value, video_url: $('t_video').value, sinopsis: $('t_sinopsis').value, episodes_teks: $('t_episodes').value,
-          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, rolverdeling: $('t_rolverdeling').value, skepper_epos: $('t_skepper').value, intro: $('t_intro').value, adpunte: $('t_adpunte').value, krediete: $('t_krediete').value, lisensie_begin: $('t_lis_begin').value, lisensie_einde: $('t_lis_einde').value, lisensie_besluit: $('t_lis_besluit').value, regshebber: $('t_regshebber').value, regshebber_kontak: $('t_kontak').value, admin_notas: $('t_admin_notas').value });
+          uitgelig: $('t_uitgelig').checked, status: $('t_status').value, vrystelling: $('t_vrystelling').value, trailer: $('t_trailer').value, snit: $('t_snit').value, rolverdeling: $('t_rolverdeling').value, skepper_epos: $('t_skepper').value, intro: $('t_intro').value, adpunte: $('t_adpunte').value, krediete: $('t_krediete').value, lisensie_begin: $('t_lis_begin').value, lisensie_einde: $('t_lis_einde').value, lisensie_besluit: $('t_lis_besluit').value, regshebber: $('t_regshebber').value, regshebber_kontak: $('t_kontak').value, admin_notas: $('t_admin_notas').value });
         boodskap('Gestoor.'); sluitTitel(); laaiTitels();
       } catch (er) { boodskap(er.message, true); }
     });

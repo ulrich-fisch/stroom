@@ -2,7 +2,7 @@
 // Beskermde bladsye word slegs bedien as die besoeker 'n geldige sessie het.
 // Rekeninge en sessies leef in D1 (env.DB). Sonder DB word beskermde bladsye geweier.
 
-import { handleContent, contentStatements, seedContent, adminOk, serveMedia, SERIE_COLUMNS } from './inhoud.js';
+import { handleContent, contentStatements, seedContent, adminOk, serveMedia, reelLys, SERIE_COLUMNS } from './inhoud.js';
 import { handleMember, memberStatements, isMemberPath } from './lede.js';
 import { handleReports, reportStatements, REPORT_COLUMNS, isReportPath } from './verslae.js';
 import { handleSubtitles, subtitleStatements, isSubtitlePath } from './onderskrifte.js';
@@ -51,7 +51,7 @@ function safeEqual(a, b) {
 // Skemaweergawe: verhoog hierdie waarde elke keer as enige CREATE/ALTER in die kode verander.
 // Die bediener onthou in die databasis watter weergawe reeds gedoen is, sodat 'n koue begin
 // net EEN vinnige navraag kos. Die volle opstelling is ook vinnig (4-5 ritte) en kan veilig herhaal word.
-const SCHEMA = '2026-10-20g';
+const SCHEMA = '2026-10-22a';
 
 const withTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tydsverloop')), ms); })]).finally(() => clearTimeout(t)); };
 
@@ -189,6 +189,7 @@ async function api(request, env, url, ctx) {
     const rows = await env.DB.prepare('SELECT id, name, email, title, type, link, synopsis, status, created_at FROM indienings ORDER BY id DESC LIMIT 200').all();
     return json({ inskrywings: rows.results.map((r) => ({ ...r, created_at: new Date(r.created_at).toISOString() })) });
   }
+  if (path === '/api/reel' && !post) return reelLys(env);
   if (path === '/api/status') {
     const c = config(env);
     // Geen geheime waardes nie: slegs lengtes en 'n kort vingerafdruk om te vergelyk
