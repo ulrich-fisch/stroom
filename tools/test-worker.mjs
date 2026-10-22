@@ -807,4 +807,19 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   sql.exec('UPDATE advertensies SET aktief = 1');
 }
 
+// 404 fish page: unknown pages get the friendly page with a real 404 status; files and APIs are untouched
+{
+  const echt = env.ASSETS; const BESTAAN = new Set(['/privaatheid.html', '/weg.html', '/app.js']);
+  env.ASSETS = { fetch: async (req) => { const p = new URL(req.url).pathname; return BESTAAN.has(p) ? new Response(p === '/weg.html' ? '<title>FISH</title>' : 'ok', { status: 200 }) : new Response('nf', { status: 404 }); } };
+  const html = { headers: { Accept: 'text/html' } };
+  let r = await call('/bestaan-nie.html', html);
+  t('404: unknown page shows the fish page with status 404', r.status === 404 && (await r.text()).includes('FISH') && /text\/html/.test(r.headers.get('Content-Type')));
+  r = await call('/nog-een', html); t('404: unknown page without extension too', r.status === 404 && (await r.text()).includes('FISH'));
+  r = await call('/privaatheid.html', html); t('404: real pages unaffected', r.status === 200 && !(await r.text()).includes('FISH'));
+  r = await call('/ontbreek.js'); t('404: missing script stays a plain 404 (not the fish page)', r.status === 404 && !(await r.text()).includes('FISH'));
+  r = await post('/bestaan-nie.html', {}); t('404: POST not hijacked', !(await r.text()).includes('FISH'));
+  r = await call('/admin.html', html, lid); t('404: admin page for a normal member shows the fish page (404)', r.status === 404 && (await r.text()).includes('FISH'));
+  env.ASSETS = echt;
+}
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED');

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#070c18">
+  <meta name="robots" content="noindex">
+  <title>Bladsy nie gevind - Stroom</title>
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 70% 45% at 50% 30%,rgba(29,78,216,.3),rgba(7,12,24,0) 70%),#070c18;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;text-align:center;padding:24px}
+    .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 8px}
+    .brand b{font-family:Sora,Inter,system-ui,sans-serif;font-weight:800;letter-spacing:.16em;font-size:24px;color:#fff}
+    h2{font-family:Sora,Inter,system-ui,sans-serif;font-size:22px;margin:8px 0;color:#fff}
+    p{color:#94a3b8;font-size:14px;line-height:1.6;max-width:300px;margin:0 auto 20px}
+        small{display:block;margin-top:12px;color:#6f81a3;font-size:12px}
+    
+    main{padding:24px}
+    .nf{position:relative;width:min(320px,86vw);height:170px;margin:4px auto 6px}
+    .big{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 118px Sora,Inter,sans-serif;letter-spacing:.04em;color:rgba(56,189,248,.09)}
+    .fish{position:absolute;left:50%;top:36px;margin-left:-80px;width:160px;height:95px;animation:swim 6s ease-in-out infinite}
+    .q{position:absolute;left:50%;top:8px;margin-left:34px;font:700 22px Sora,Inter,sans-serif;color:#bae6fd;animation:q 6s ease-in-out infinite}
+    .bub{position:absolute;border:1.5px solid rgba(186,230,253,.55);border-radius:50%;opacity:0;animation:up 4.4s ease-in infinite}
+    .b1{left:calc(50% - 98px);top:100px;width:9px;height:9px}.b2{left:calc(50% - 112px);top:90px;width:6px;height:6px;animation-delay:1.3s}.b3{left:calc(50% - 88px);top:84px;width:5px;height:5px;animation-delay:2.6s}
+    .wv{position:absolute;left:0;right:0;bottom:6px;height:22px;overflow:hidden;opacity:.55}
+    .wv svg{width:200%;height:22px;animation:wf 5s linear infinite}
+    @keyframes swim{0%,100%{transform:translate(-34px,2px) rotate(-3deg)}25%{transform:translate(0,-8px) rotate(2deg)}50%{transform:translate(34px,2px) rotate(-1deg)}75%{transform:translate(0,-6px) rotate(3deg)}}
+    @keyframes q{0%,12%{opacity:0;transform:translate(-30px,6px)}22%,70%{opacity:1}85%,100%{opacity:0}}
+    @keyframes up{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translateY(-52px)}}
+    @keyframes wf{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+    .acts a{font-weight:700;font-size:13px;padding:13px 24px;border-radius:12px;text-decoration:none;letter-spacing:.04em}
+    .pri{background:linear-gradient(135deg,#7dd3fc,#60a5fa);color:#04101f}
+    .sec{background:#0c1528;border:1px solid #2a3d66;color:#e2e8f0}
+    @media (prefers-reduced-motion:reduce){.fish,.q,.bub,.wv svg{animation:none}.q{opacity:1}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <defs><clipPath id="c"><path d="M16 13 Q16 8 20.3 10.5 L52.7 29.5 Q57 32 52.7 34.5 L20.3 53.5 Q16 56 16 51 Z"/></clipPath>
+        <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="14" y1="8" x2="58" y2="56"><stop offset="0" stop-color="#bae6fd"/><stop offset=".5" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+        <g clip-path="url(#c)" stroke="url(#g)" stroke-width="7">
+          <path class="w1" d="M-48 21 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w2" opacity=".75" d="M-48 34 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/><path class="w3" opacity=".5" d="M-48 47 c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0c10 -10 20 -10 28 0 s18 10 28 0"/>
+        </g>
+      </svg>
+      <b>STROOM</b>
+    </div>
+    <div class="nf" aria-hidden="true">
+      <div class="big">404</div>
+      <i class="bub b1"></i><i class="bub b2"></i><i class="bub b3"></i>
+      <span class="q">?</span>
+      <div class="fish"><svg width="160" height="95" viewBox="-32 -16 54 32" aria-hidden="true"><g transform="scale(1.15)">
+        <path d="M-13 0 C-7 -9 8 -9 15 0 C8 9 -7 9 -13 0 Z" fill="#38bdf8"/><path d="M-12 0 L-24 -8 L-20 0 L-24 8 Z" fill="#0ea5e9"/>
+        <path d="M-2 -6 L2 -12 L6 -6 Z" fill="#0ea5e9"/><path d="M-8 1 C-2 5 6 5 12 1 C6 7 -2 7 -8 1 Z" fill="#e0f2fe" opacity=".85"/>
+        <circle cx="9" cy="-1.6" r="1.8" fill="#02030b"/><path d="M14 1.5 Q15.5 2.5 14 3.5" stroke="#02030b" stroke-width=".8" fill="none" stroke-linecap="round"/></g></svg></div>
+      <div class="wv"><svg viewBox="0 0 400 22" preserveAspectRatio="none" fill="none"><path d="M0 11 c25 -12 50 -12 75 0 s50 12 75 0 s50 -12 75 0 s50 12 75 0 s50 -12 75 0 s50 12 75 0" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg></div>
+    </div>
+    <h2>Hierdie bladsy het weggeswem</h2>
+    <p>Ons het die hele stroom deurgesoek, maar die bladsy wat jy soek is nêrens te vind nie. Dalk is die skakel skeef getik, of die bladsy het stroomaf getrek.</p>
+    <div class="acts"><a class="pri" href="/">Terug na Stroom</a><a class="sec" href="/katalogus.html">Soek in die katalogus</a></div>
+    <small>Fout 404. Die vis het gesê hy het dit laas daar gesien.</small>
+  </main>
+</body>
+</html>

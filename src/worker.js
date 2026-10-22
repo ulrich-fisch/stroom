@@ -397,6 +397,15 @@ async function api(request, env, url, ctx) {
   return json({ fout: 'Nie gevind nie.' }, 404);
 }
 
+// Vriendelike 404: 'n bladsy-aanvraag wat nêrens heen gaan nie kry die vis-bladsy (met status 404)
+async function bladsyOf404(request, env) {
+  const res = await env.ASSETS.fetch(request);
+  const gaan = request.method === 'GET' && res.status === 404 && /\.html$|\/[^./]*$/.test(new URL(request.url).pathname) && /text\/html|\*\/\*/.test(request.headers.get('Accept') || '*/*');
+  if (!gaan) return res;
+  const weg = await env.ASSETS.fetch(new Request(new URL('/weg.html', request.url)));
+  return weg.ok ? new Response(weg.body, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } }) : res;
+}
+
 async function handle(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) return api(request, env, url, ctx);
@@ -419,9 +428,9 @@ async function handle(request, env, ctx) {
 
     const protectedPage = NEEDS_SESSION.has(page) || NEEDS_PLAN.has(page) || NEEDS_ADMIN.has(page);
     const isHtml = !page.includes('.') ;
-    if (isHtml && !PUBLIC_PAGES.has(page) && !protectedPage) return env.ASSETS.fetch(request); // 404 deur Cloudflare
+    if (isHtml && !PUBLIC_PAGES.has(page) && !protectedPage) return bladsyOf404(request, env); // 404 -> vis-bladsy
 
-    if (!protectedPage) return env.ASSETS.fetch(request);
+    if (!protectedPage) return bladsyOf404(request, env);
 
     const redirect = (to) => new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'no-store' } });
     if (!env.DB) return redirect('/teken-in.html?mode=login');
@@ -429,7 +438,7 @@ async function handle(request, env, ctx) {
     const user = await getUser(request, env.DB);
     if (!user) return redirect('/teken-in.html?mode=login');
     if (NEEDS_PLAN.has(page) && user.plan === 'none') return redirect('/kies-plan.html');
-    if (NEEDS_ADMIN.has(page) && !adminOk(user, env)) return new Response('Nie gevind nie.', { status: 404 });
+    if (NEEDS_ADMIN.has(page) && !adminOk(user, env)) return env.ASSETS.fetch(new Request(new URL('/weg.html', request.url))).then((w) => new Response(w.body, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } }));
 
     const res = await env.ASSETS.fetch(request);
     const out = new Response(res.body, res);
