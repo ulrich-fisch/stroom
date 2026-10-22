@@ -70,19 +70,26 @@
   <!-- Creator Form Portal -->
   <main class="max-w-4xl mx-auto px-6 py-12 w-full space-y-10">
     <div class="text-center space-y-3 max-w-2xl mx-auto">
-      <span class="text-xs text-sky-400 font-mono tracking-widest uppercase">Vir Filmmakers &amp; Vervaardigers</span>
+      <span class="inline-flex items-center gap-2 text-xs text-sky-400 font-mono tracking-widest uppercase bg-sky-500/10 border border-sky-500/20 px-4 py-1 rounded-full"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>Vir Filmmakers &amp; Vervaardigers</span>
       <h1 class="text-4xl sm:text-5xl font-black text-white uppercase tracking-tight">Word Deel van Stroom</h1>
       <p class="text-slate-400 font-normal text-sm leading-relaxed">
         Dien jou film in en genereer 'n nie-eksklusiewe Voorneme-ooreenkoms (LOI). Jy behou 100% van jou intellektuele eiendom.
       </p>
     </div>
 
+    <!-- Hoe dit werk -->
+    <ol class="grid sm:grid-cols-3 gap-5">
+      <li class="feat bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2 text-center"><span class="feat-ic mx-auto"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><h3 class="text-sm font-bold text-white">1. Dien jou film in</h3><p class="text-xs text-slate-400 leading-relaxed">Plak &rsquo;n privaat kykskakel en vertel ons &rsquo;n bietjie van die storie.</p></li>
+      <li class="feat bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2 text-center"><span class="feat-ic mx-auto"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span><h3 class="text-sm font-bold text-white">2. Ons keur dit</h3><p class="text-xs text-slate-400 leading-relaxed">Ons kyk elke film self, selfs die lang eindkrediete.</p></li>
+      <li class="feat bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2 text-center"><span class="feat-ic mx-auto"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span><h3 class="text-sm font-bold text-white">3. Jy bly eienaar</h3><p class="text-xs text-slate-400 leading-relaxed">Nie-eksklusief, en jy behou al jou regte. Jou film is vry om elders ook te leef.</p></li>
+    </ol>
+
     <!-- Slot: net vir Premium-lede -->
     <div id="skepSlot" class="hidden bg-slate-900/90 p-8 rounded-2xl border border-slate-800 text-center space-y-4">
-      <span class="text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Slegs vir Premium-lede</span>
+      <span class="feat-ic mx-auto"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="block text-xs font-bold uppercase tracking-widest text-sky-400 font-mono">Slegs vir Premium-lede</span>
       <h2 class="text-2xl font-black text-white uppercase tracking-tight">Stroom is nie &rsquo;n oop-oplaai-platform nie</h2>
       <p class="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-        Net ernstige filmmakers met &rsquo;n Premium-rekening kan werk indien. Elke inskrywing word eers deur ons gekeur voordat dit gepubliseer word.
+        Net ernstige filmmakers met &rsquo;n Premium-rekening kan werk indien. Elke inskrywing word eers deur ons gekeur voordat dit gepubliseer word. Die deur is nog toe, maar die sleutel is net &rsquo;n Premium-opgradering ver.
       </p>
       <a href="rekening.html" class="inline-block text-xs bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-full transition uppercase tracking-wider">Opgradeer na Premium</a>
     </div>
@@ -198,8 +205,8 @@
       } catch (err) { r = { ok: false }; }
       msg.classList.remove('hidden');
       if (r.ok) {
-        msg.className = 'text-sm text-center text-emerald-400';
-        msg.textContent = 'Dankie! Jou film is ontvang en wag vir keuring. Ons kontak jou per e-pos.';
+        msg.className = 'text-sm text-center text-sky-300';
+        msg.textContent = 'Dankie! Jou film is ontvang en wag vir keuring. Ons kyk dit gou (ja, ook die eindkrediete) en kontak jou per e-pos.';
         const em = document.getElementById('accountEmailField').value, nm = document.getElementById('creatorName').value;
         document.getElementById('skepForm').reset();
         document.getElementById('accountEmailField').value = em; document.getElementById('creatorName').value = nm;
