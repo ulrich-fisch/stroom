@@ -11,7 +11,7 @@ export const herinnerStatements = (db) => [
     user_id INTEGER NOT NULL, slug TEXT NOT NULL, created_at INTEGER NOT NULL, gemeld INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, slug))`),
 ];
 // Kolomme wat later by titels bygevoeg is (die worker voeg dit by as dit ontbreek)
-export const TITEL_COLUMNS = [['titels', 'vrystelling', 'TEXT'], ['titels', 'trailer', 'TEXT'], ['titels', 'rolverdeling', 'TEXT']];
+export const TITEL_COLUMNS = [['titels', 'vrystelling', 'TEXT'], ['titels', 'trailer', 'TEXT'], ['titels', 'rolverdeling', 'TEXT'], ['titels', 'snit', 'TEXT']];
 
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 const slugOk = (s) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(s);

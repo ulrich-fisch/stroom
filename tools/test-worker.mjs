@@ -730,6 +730,26 @@ t('startup: missing version triggers full setup once and records it', koue > 5 &
   await up('slug=' + slL + '&ext=docx&soort=faktuur&naam=Fak', pdf, adm); await up('slug=' + slL + '&ext=jpg&soort=ander&naam=Foto', pdf, adm);
   const idL = sql.prepare('SELECT id FROM titels WHERE slug = ?').get(slL).id;
   t('docs: deleting the title removes all its documents and files', (await post('/api/admin/titel-skrap', { id: idL }, adm)).status === 200 && store.size === 0 && sql.prepare('SELECT COUNT(*) c FROM dokumente WHERE slug = ?').get(slL).c === 0);
+  // landing-page reel (snit)
+  const klip = 'aabbccddeeff00112233aabb.mp4', klip2 = '00112233445566778899aabb.mp4', anderKlip = 'ffeeddccbbaa99887766ffee.mp4';
+  for (const k of [klip, klip2, anderKlip]) store.set(k, new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]));
+  const pubBasis = { ...basis, status: 'gepubliseer', banner: 'https://x.test/b.jpg', video_url: 'https://x.test/v.mp4' };
+  r = await call('/api/reel'); let rl = await r.json();
+  t('reel: public, empty when no title has a clip', r.status === 200 && Array.isArray(rl.snitte) && rl.snitte.length === 0 && /public/.test(r.headers.get('Cache-Control')));
+  t('reel: bad clip address refused', (await post('/api/admin/titel', { ...pubBasis, titel: 'Snit Sleg', snit: 'javascript:alert(1)' }, adm)).status === 400);
+  const sn1 = await (await post('/api/admin/titel', { ...pubBasis, titel: 'Snit Een', snit: '/media/' + klip }, adm)).json();
+  const sn2 = await (await post('/api/admin/titel', { ...pubBasis, titel: 'Snit Konsep', status: 'konsep', snit: '/media/' + klip2 }, adm)).json();
+  rl = await (await call('/api/reel')).json();
+  t('reel: lists published titles with a clip, anonymous, no secrets', rl.snitte.length === 1 && rl.snitte[0].slug === sn1.slug && rl.snitte[0].snit === '/media/' + klip && !/video_url|v\.mp4/.test(JSON.stringify(rl)));
+  t('reel: drafts are not listed', !rl.snitte.some((x) => x.slug === sn2.slug));
+  t('reel: admin list returns the clip field for editing', (await rij(sn1.slug)).snit === '/media/' + klip);
+  r = await call('/media/' + klip);
+  t('reel: a listed clip plays without signing in', r.status === 200 && /public/.test(r.headers.get('Cache-Control')));
+  r = await call('/media/' + klip, { headers: { Range: 'bytes=0-3' } });
+  t('reel: range requests work on the public clip', r.status === 200 || r.status === 206);
+  t('reel: draft clip and other videos stay members-only', (await call('/media/' + klip2)).status === 401 && (await call('/media/' + anderKlip)).status === 401);
+  await post('/api/admin/titel', { ...pubBasis, id: sn1.id || sql.prepare('SELECT id FROM titels WHERE slug = ?').get(sn1.slug).id, titel: 'Snit Een', snit: '' }, adm);
+  t('reel: clearing the clip removes it from the reel and locks the file again', (await (await call('/api/reel')).json()).snitte.length === 0 && (await call('/media/' + klip)).status === 401);
   delete env.VIDEOS;
 }
 
